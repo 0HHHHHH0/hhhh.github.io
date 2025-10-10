@@ -62,165 +62,6 @@ sudo npc stop
       </categories>
   </entry>
   <entry>
-    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
-    <url>/2025/08/02/25/</url>
-    <content><![CDATA[
-前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。
-
-1.提取SNP位点信息## 设置FST阈值（例如取WEIGHTED_FST > 0.2）
-awk '$5 > 0.2' fst_binned.windowed.weir.fst > high_fst_windows.txt
-
-## 检查最高FST窗口
-sort -k5,5nr high_fst_windows.txt | head
-
-
-## 从高FST结果生成BED格式（用于后续注释）
-awk '&amp;#123;print $1"\t"$2"\t"$3"\t"$5&amp;#125;' high_fst_windows.txt > high_fst_regions.bed
-
-## 合并相邻窗口（如距离 merged_high_fst.bed
-
-2.对提取SNP位点注释然后提取与基因重叠的区域（需准备reference.gtf）
-## 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）
-bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
-awk -F'\t' '$8 == "gene" &amp;#123;print $1,$2,$3,$12&amp;#125;' OFS='\t' | \
-awk -F'[;\t]' '&amp;#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&amp;#125;' | sort | uniq > fst_genes.txt
-
-3.提取SNP位点所在基因的ID号awk -F'\t' '&amp;#123;
-  match($8, /ID=gene-([^;]+)/, id_arr);
-  match($8, /Name=([^;]+)/, name_arr);
-  if (id_arr[1] &amp;&amp; name_arr[1]) &amp;#123;
-    print $1, $2, $3, id_arr[1], name_arr[1];
-  &amp;#125;
-&amp;#125;' OFS='\t' fst_genes_annotated.bed > fst_gene_ids_names.txt
-
-
-
-
-下面为整理好的上述过程的脚本
-命名为# annotate_fst.sh 
-#!/bin/bash
-# 输入文件
-BED="merged_high_fst.bed"
-GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
-
-# 步骤1：提取基因（直接运行，若为空则需名称映射）
-bedtools intersect -a $BED -b $GFF -wa -wb | \
-awk -F'\t' '$8 == "gene" &#123;print $1,$2,$3,$12&#125;' OFS='\t' | \
-awk -F'[;\t]' '&#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&#125;' | sort | uniq > fst_genes.txt
-
-# 步骤2：检查结果
-echo "=== 前10行基因 ==="
-head fst_genes.txt
-echo "=== 行数统计 ==="
-wc -l fst_genes.txt
-
-
-
-4.通过基因ID提取蛋白序列下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好
-grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
-
-
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids.txt
-
-
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
-
-grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
-
-发现不能完全匹配所有LOC，查看哪些没匹配到
-# 找所有LOC对应的protein_id
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids_all.txt
-
-# 检查protein_ids.txt是否包含所有
-> comm -23 protein_ids_all.txt protein_ids.txt > missing_proteins.txt
-
-下面是上述命令整理好的查找脚本
-#!/bin/bash
-set -euo pipefail
-
-# 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）
-cut -f4 fst_gene_ids_names.txt | sort | uniq > gene_loc_ids.txt
-
-# 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
-    grep "protein_id=" | \
-    sed -r 's/.*protein_id=([^;]+).*/\1/' | \
-    sort | uniq > protein_ids.txt
-
-# 3. 使用seqkit提取对应的蛋白序列到指定文件
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
-
-# 4. 统计提取到的蛋白数量，确认数量
-grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
-
-
-
-5.对提取的蛋白进行注释conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
-conda activate eggnog3_env
-
-
-emapper.py -h
-
-tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data
-
-emapper.py -i proteins_extracted/fst_genes_proteins.faa \
-  --output fst_proteins_annotation \
-  --data_dir ./data \
-  -m diamond \
-  --cpu 12 \
-  --override
-
-
-
-下面是R中的操作，主要进行KEGG和GO分析
-1.对前面注释的基因进行聚类分析详细内容见 Fst_2.ipynb结果如上，没有达到我的预期，操作也较麻烦。
-2.构建非模式物种注释包org.Cgigas.eg.db详细内容见 Fst_3.ipynb 
-library(tidyverse)
-library(AnnotationForge)
-library(readxl)
-
-emapper %
-  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
-                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
-                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
-
-emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
-  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
-dim(gene2go)    #查看数据维度。
-#[1] 1523399       3
-
-#提取GID与KO信息，这里只有2列信息
-gene2ko%
- separate_rows(KO, sep = ',', convert = F) %>%
-  dplyr::filter(!is.na(KO))
-dim(gene2ko)
-#[1] 30530     2
-
-#提取GID与Pathway信息，这里只有2列信息
-gene2pathway%
-separate_rows(Pathway, sep = ',', convert = F) %>%
-  dplyr::filter(!is.na(Pathway))
- dim(gene2pathway)
-#[1] 143056      2
-
-#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
-gene2symbol%
-  dplyr::filter(!is.na(Gene_Symbol))
-dim(gene2symbol)
-#[1] 4561    2
-
-## 删除 GO ID 中的空格、制表符、换行符
-
-gene2go$GO
-
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
     <title>2.重测序数据分析——初步整理</title>
     <url>/2025/07/31/19/</url>
     <content><![CDATA[
@@ -456,6 +297,165 @@ p
       </categories>
   </entry>
   <entry>
+    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
+    <url>/2025/08/02/25/</url>
+    <content><![CDATA[
+前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。
+
+1.提取SNP位点信息## 设置FST阈值（例如取WEIGHTED_FST > 0.2）
+awk '$5 > 0.2' fst_binned.windowed.weir.fst > high_fst_windows.txt
+
+## 检查最高FST窗口
+sort -k5,5nr high_fst_windows.txt | head
+
+
+## 从高FST结果生成BED格式（用于后续注释）
+awk '&amp;#123;print $1"\t"$2"\t"$3"\t"$5&amp;#125;' high_fst_windows.txt > high_fst_regions.bed
+
+## 合并相邻窗口（如距离 merged_high_fst.bed
+
+2.对提取SNP位点注释然后提取与基因重叠的区域（需准备reference.gtf）
+## 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）
+bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
+awk -F'\t' '$8 == "gene" &amp;#123;print $1,$2,$3,$12&amp;#125;' OFS='\t' | \
+awk -F'[;\t]' '&amp;#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&amp;#125;' | sort | uniq > fst_genes.txt
+
+3.提取SNP位点所在基因的ID号awk -F'\t' '&amp;#123;
+  match($8, /ID=gene-([^;]+)/, id_arr);
+  match($8, /Name=([^;]+)/, name_arr);
+  if (id_arr[1] &amp;&amp; name_arr[1]) &amp;#123;
+    print $1, $2, $3, id_arr[1], name_arr[1];
+  &amp;#125;
+&amp;#125;' OFS='\t' fst_genes_annotated.bed > fst_gene_ids_names.txt
+
+
+
+
+下面为整理好的上述过程的脚本
+命名为# annotate_fst.sh 
+#!/bin/bash
+# 输入文件
+BED="merged_high_fst.bed"
+GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
+
+# 步骤1：提取基因（直接运行，若为空则需名称映射）
+bedtools intersect -a $BED -b $GFF -wa -wb | \
+awk -F'\t' '$8 == "gene" &#123;print $1,$2,$3,$12&#125;' OFS='\t' | \
+awk -F'[;\t]' '&#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&#125;' | sort | uniq > fst_genes.txt
+
+# 步骤2：检查结果
+echo "=== 前10行基因 ==="
+head fst_genes.txt
+echo "=== 行数统计 ==="
+wc -l fst_genes.txt
+
+
+
+4.通过基因ID提取蛋白序列下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好
+grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
+
+
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids.txt
+
+
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
+
+grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
+
+发现不能完全匹配所有LOC，查看哪些没匹配到
+# 找所有LOC对应的protein_id
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids_all.txt
+
+# 检查protein_ids.txt是否包含所有
+> comm -23 protein_ids_all.txt protein_ids.txt > missing_proteins.txt
+
+下面是上述命令整理好的查找脚本
+#!/bin/bash
+set -euo pipefail
+
+# 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）
+cut -f4 fst_gene_ids_names.txt | sort | uniq > gene_loc_ids.txt
+
+# 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
+    grep "protein_id=" | \
+    sed -r 's/.*protein_id=([^;]+).*/\1/' | \
+    sort | uniq > protein_ids.txt
+
+# 3. 使用seqkit提取对应的蛋白序列到指定文件
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
+
+# 4. 统计提取到的蛋白数量，确认数量
+grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
+
+
+
+5.对提取的蛋白进行注释conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
+conda activate eggnog3_env
+
+
+emapper.py -h
+
+tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data
+
+emapper.py -i proteins_extracted/fst_genes_proteins.faa \
+  --output fst_proteins_annotation \
+  --data_dir ./data \
+  -m diamond \
+  --cpu 12 \
+  --override
+
+
+
+下面是R中的操作，主要进行KEGG和GO分析
+1.对前面注释的基因进行聚类分析详细内容见 Fst_2.ipynb结果如上，没有达到我的预期，操作也较麻烦。
+2.构建非模式物种注释包org.Cgigas.eg.db详细内容见 Fst_3.ipynb 
+library(tidyverse)
+library(AnnotationForge)
+library(readxl)
+
+emapper %
+  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
+                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
+                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
+
+emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
+  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
+dim(gene2go)    #查看数据维度。
+#[1] 1523399       3
+
+#提取GID与KO信息，这里只有2列信息
+gene2ko%
+ separate_rows(KO, sep = ',', convert = F) %>%
+  dplyr::filter(!is.na(KO))
+dim(gene2ko)
+#[1] 30530     2
+
+#提取GID与Pathway信息，这里只有2列信息
+gene2pathway%
+separate_rows(Pathway, sep = ',', convert = F) %>%
+  dplyr::filter(!is.na(Pathway))
+ dim(gene2pathway)
+#[1] 143056      2
+
+#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
+gene2symbol%
+  dplyr::filter(!is.na(Gene_Symbol))
+dim(gene2symbol)
+#[1] 4561    2
+
+## 删除 GO ID 中的空格、制表符、换行符
+
+gene2go$GO
+
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
     <title>4.提取重测序数据中黑白肌痕组中各SNP的位点信息及基因型频率</title>
     <url>/2025/08/03/32/</url>
     <content><![CDATA[相关的sh文件内容如下：
@@ -627,6 +627,71 @@ rm -f NC_047567.1_results_*
 ./extract_chromosome_snps.sh NC_047567.1 Filter.snp.vcf.gz NC_047567.1_results 8
 ./extract_chromosome_snps_2.0.sh NC_047567.1 Filter.snp.vcf.gz NC_047567.1_results
 
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>5.各样本SNP位点信息可视化</title>
+    <url>/2025/08/03/40/</url>
+    <content><![CDATA[
+前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析
+
+需要用到的R包
+library(tidyverse)
+library(vcfR)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+下面以单个基因为例进行分析
+# 先读取数据（不自动解析列名）
+snp_data %
+  as.matrix()
+
+# 5. 可视化设置 ------------------------------------------------
+# 颜色映射
+gt_colors %
+  layout(
+    title = list(text = "SNP Genotype Heatmap", y = 0.98),
+    xaxis = list(
+      title = "Genomic Position",
+      rangeslider = list(visible = TRUE),  # 横向滚动条
+      type = "category",  # 防止数值排序
+      tickangle = 45
+    ),
+    yaxis = list(
+      title = list(text = "Sample", standoff = 30),
+      tickfont = list(size = 10),
+      automargin = TRUE,  # 自动调整边距
+      tickmode = "array",
+      tickvals = seq_len(nrow(heatmap_matrix)),
+      ticktext = rownames(heatmap_matrix)
+    ),
+    margin = list(
+      l = left_margin,  # 动态左边距
+      r = 50,
+      b = 100,
+      t = 100
+    )
+  )
+
+# 7. 输出结果 --------------------------------------------------
+# 在RStudio中直接查看
+print(fig)
+
+# 保存为HTML文件
+htmlwidgets::saveWidget(
+  widget = fig,
+  file = "snp_heatmap_complete.html",
+  title = "Interactive SNP Heatmap",
+  selfcontained = TRUE,
+  libdir = "lib"
+)
+
+输出结果如下
 ]]></content>
       <categories>
         <category>重测序</category>
@@ -872,107 +937,6 @@ systemctl status frpc.service
       </categories>
   </entry>
   <entry>
-    <title>内网穿透</title>
-    <url>/2024/11/21/5/</url>
-    <content><![CDATA[前言对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。
-经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息：
-免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）免费隧道：4条流量：不限制并发：不限制除此之外访问地址并不会强制变化官网链接
-
-https://www.chmlfrp.cn
-
-使用教程这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。
-注册&#x2F;登录没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面：
-创建隧道随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道）
-然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载）
-然后填写相应隧道信息，如果没有特殊需求，一般只需要填写端口类型及内网端口。
-随后点击确定即可成功创建隧道
-启动隧道前往 “隧道管理 -&gt; 软件下载” 页面，下载对应你系统的软件。
-下载好后解压压缩包，一般来讲只需要这三个文件，其他文件可以删除，也可以选择保留。
-随后进入网站的 “隧道管理 -&gt; 配置文件” 页面，在此页面选择你创建隧道的节点，就可以获取到相应的配置文件。将获取的配置文件覆盖到文件夹的frpc.ini中：
-随后保存文件，然后在此文件夹创建一个 “启动.txt” 的文本档案，然后将.txt后缀改为.bat。（注意！此方法仅windows可用，且需要打开显示文件扩展名）
-右键 “启动.bat” ，点击编辑，输入以下代码：
-  ./frpc -c frpc.ini 
-接下来是设置开机后台自启
-新建一个启动服务
-编辑该服务
-重新加载
-启动服务
-开始服务
-查看服务状态
-重启
-在弹出的cmd窗口中直接输入frpc即可启动
-]]></content>
-      <categories>
-        <category>折腾</category>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>5.各样本SNP位点信息可视化</title>
-    <url>/2025/08/03/40/</url>
-    <content><![CDATA[
-前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析
-
-需要用到的R包
-library(tidyverse)
-library(vcfR)
-library(data.table)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-
-下面以单个基因为例进行分析
-# 先读取数据（不自动解析列名）
-snp_data %
-  as.matrix()
-
-# 5. 可视化设置 ------------------------------------------------
-# 颜色映射
-gt_colors %
-  layout(
-    title = list(text = "SNP Genotype Heatmap", y = 0.98),
-    xaxis = list(
-      title = "Genomic Position",
-      rangeslider = list(visible = TRUE),  # 横向滚动条
-      type = "category",  # 防止数值排序
-      tickangle = 45
-    ),
-    yaxis = list(
-      title = list(text = "Sample", standoff = 30),
-      tickfont = list(size = 10),
-      automargin = TRUE,  # 自动调整边距
-      tickmode = "array",
-      tickvals = seq_len(nrow(heatmap_matrix)),
-      ticktext = rownames(heatmap_matrix)
-    ),
-    margin = list(
-      l = left_margin,  # 动态左边距
-      r = 50,
-      b = 100,
-      t = 100
-    )
-  )
-
-# 7. 输出结果 --------------------------------------------------
-# 在RStudio中直接查看
-print(fig)
-
-# 保存为HTML文件
-htmlwidgets::saveWidget(
-  widget = fig,
-  file = "snp_heatmap_complete.html",
-  title = "Interactive SNP Heatmap",
-  selfcontained = TRUE,
-  libdir = "lib"
-)
-
-输出结果如下
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
     <title>6.筛选组内一致率90%，组间有差异的SNP位点</title>
     <url>/2025/09/03/48/</url>
     <content><![CDATA[分析需求：请分析查找组间差异SNP &amp; Indel。需要找组内一致，组间具有差异的突变位点，样本一致率卡90%，即在大于90%的样本中突变型一致就认为是组内一致的突变。
@@ -1107,6 +1071,708 @@ fig  # 在RStudio中查看
       <categories>
         <category>默认分类</category>
         <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>内网穿透</title>
+    <url>/2024/11/21/5/</url>
+    <content><![CDATA[前言对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。
+经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息：
+免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）免费隧道：4条流量：不限制并发：不限制除此之外访问地址并不会强制变化官网链接
+
+https://www.chmlfrp.cn
+
+使用教程这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。
+注册&#x2F;登录没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面：
+创建隧道随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道）
+然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载）
+然后填写相应隧道信息，如果没有特殊需求，一般只需要填写端口类型及内网端口。
+随后点击确定即可成功创建隧道
+启动隧道前往 “隧道管理 -&gt; 软件下载” 页面，下载对应你系统的软件。
+下载好后解压压缩包，一般来讲只需要这三个文件，其他文件可以删除，也可以选择保留。
+随后进入网站的 “隧道管理 -&gt; 配置文件” 页面，在此页面选择你创建隧道的节点，就可以获取到相应的配置文件。将获取的配置文件覆盖到文件夹的frpc.ini中：
+随后保存文件，然后在此文件夹创建一个 “启动.txt” 的文本档案，然后将.txt后缀改为.bat。（注意！此方法仅windows可用，且需要打开显示文件扩展名）
+右键 “启动.bat” ，点击编辑，输入以下代码：
+  ./frpc -c frpc.ini 
+接下来是设置开机后台自启
+新建一个启动服务
+编辑该服务
+重新加载
+启动服务
+开始服务
+查看服务状态
+重启
+在弹出的cmd窗口中直接输入frpc即可启动
+]]></content>
+      <categories>
+        <category>折腾</category>
+        <category>WIFI</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>基因结构</title>
+    <url>/2025/09/17/55/</url>
+    <content><![CDATA[结构图!!!
+    flowchart TD
+    A[&quot;一个完整的真核生物基因（DNA模板链）&quot;]
+    
+    subgraph A_Sub[基因结构]
+        direction LR
+        Promoter[启动子 Promoter]
+        Exon1[外显子1 Exon 1]
+        Intron[内含子 Intron]
+        Exon2[外显子2 Exon 2]
+        Terminator[终止子 Terminator]
+    end
+    
+    A --&gt; A_Sub
+    
+    subgraph Transcription[第一步：转录]
+        direction TB
+        B[&quot;初级mRNA转录本（Pre-mRNA, 包含所有序列）&quot;]
+    end
+    
+    A_Sub --转录--&gt; Transcription
+    
+    subgraph Splicing[第二步：加工（剪切与拼接）]
+        direction TB
+        C[&quot;切除内含子并将外显子连接起来&quot;]
+    end
+    
+    Transcription --加工--&gt; Splicing
+    
+    subgraph Final_mRNA[第三步：成熟mRNA]
+        direction LR
+        D[&quot;5&#39; 帽子&quot;]
+        E[&quot;5&#39; UTR&quot;]
+        F[&quot;CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA&quot;]
+        G[&quot;3&#39; UTR&quot;]
+        H[&quot;多聚A尾巴&quot;]
+    end
+    
+    Splicing --&quot;拼接后形成&quot;--&gt; Final_mRNA
+    
+    %% 定义关系
+    Exon1 --包含--&gt; UTR1[5&#39; UTR部分]
+    Exon1 --包含--&gt; CDS_Part1[CDS部分]
+    Exon2 --包含--&gt; CDS_Part2[CDS部分]
+    Exon2 --包含--&gt; UTR2[3&#39; UTR部分]
+    
+    UTR1 --最终成为--&gt; E
+    CDS_Part1 --最终成为--&gt; F
+    CDS_Part2 --最终成为--&gt; F
+    UTR2 --最终成为--&gt; G
+    
+    Final_mRNA --&quot;进入细胞质进行翻译（核糖体）&quot;--&gt; I[&quot;合成的蛋白质&quot;]
+    F --&gt; I
+    
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
+    classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
+    classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
+    
+    class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
+    class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
+    class Transcription,Splicing process;
+
+!!!
+
+
+
+下面是代码
+flowchart TD
+A["一个完整的真核生物基因（DNA模板链）"]
+
+subgraph A_Sub[基因结构]
+    direction LR
+    Promoter[启动子 Promoter]
+    Exon1[外显子1 Exon 1]
+    Intron[内含子 Intron]
+    Exon2[外显子2 Exon 2]
+    Terminator[终止子 Terminator]
+end
+
+A --> A_Sub
+
+subgraph Transcription[第一步：转录]
+    direction TB
+    B["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]
+end
+
+A_Sub --转录--> Transcription
+
+subgraph Splicing[第二步：加工（剪切与拼接）]
+    direction TB
+    C["切除内含子并将外显子连接起来"]
+end
+
+Transcription --加工--> Splicing
+
+subgraph Final_mRNA[第三步：成熟mRNA]
+    direction LR
+    D["5' 帽子"]
+    E["5' UTR"]
+    F["CDS (编码序列)起始密码子AUG -> 终止密码子UAA/UAG/UGA"]
+    G["3' UTR"]
+    H["多聚A尾巴"]
+end
+
+Splicing --"拼接后形成"--> Final_mRNA
+
+%% 定义关系
+Exon1 --包含--> UTR1[5' UTR部分]
+Exon1 --包含--> CDS_Part1[CDS部分]
+Exon2 --包含--> CDS_Part2[CDS部分]
+Exon2 --包含--> UTR2[3' UTR部分]
+
+UTR1 --最终成为--> E
+CDS_Part1 --最终成为--> F
+CDS_Part2 --最终成为--> F
+UTR2 --最终成为--> G
+
+Final_mRNA --"进入细胞质进行翻译（核糖体）"--> I["合成的蛋白质"]
+F --> I
+
+classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
+classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
+classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
+
+class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
+class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
+class Transcription,Splicing process;
+
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>410随身WiFi棒子Debian刷入青龙教程</title>
+    <url>/2025/09/25/56/</url>
+    <content><![CDATA[备份教程刷Debian前请先备份（非常重要！！！）
+弄成砖了是可以刷回来的，大佬可忽略
+备份教程：	https://xiao54.com/linux/32.html视频教程：	https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1下载链接：	https://www.123pan.com/s/354uVv-z7YU3.html先进入fastboot模式，输入指令
+adb reboot bootloader
+
+410随身WiFi棒子Debian刷入青龙教程SSH账号密码解压要刷的Debian系统，然后点击一件刷入
+cmd登录地址:ssh &#114;&#111;&#x6f;&#x74;&#x40;&#x31;&#x30;&#x2e;&#x34;&#x32;&#x2e;&#48;&#46;&#x31; 密码:1313144
+SSH软件:IP:10.42.0.1 用户名:root 密码:1313144
+热点:4G-wifi 密码:12345678
+更新驱动更新驱动视频教程：https://player.bilibili.com/
+更新驱动前注意事项：需要安装vivo9008drivers.exe软件，如安装过请忽略
+1、在【Android Device】下查看有没有【Android Composite ADB Interface】这个驱动，如果不是，右键【更新驱动程序】-【浏览我的计算机以查找驱动程序软件】-【让我从计算机上的可用驱动程序列表中选取(L)】，选择【Android Composite ADB Interface或者USB Composite Device】-【下一步】
+2、插入棒子会显示一个未知设备或者RNDIS，不确定是那个就先拔掉棒子，然后重新插入
+3、下拉找到【网络适配器】-厂商下拉选择【Microsoft】型号下拉选择【基于远程 NDIS 的Internet 共享设备】-【下一步】-即可完成安装驱动
+网络编辑1、现在就用键盘上的方向键编辑，鼠标就不能用了
+nmtui
+
+2、把热点删除，因为他现在不支持WiFi和热点一起开启，所以要把热点删除连接WiFi给debian系统通网才能继续操作
+true > /etc/apt/sources.list.d/mobian.list
+
+3、更新软件包
+sudo apt-get update
+
+4、更新curl wget
+apt install curl wget
+
+5、安装docker系统
+apt install docker.io
+
+6、docker设置随服务启动而自启动
+systemctl enable docker
+
+7、启动docker
+systemctl start docker
+
+给docker设置加速代理1、创建文件夹
+sudo mkdir -p /etc/docker
+
+2、填入加速代理
+如不能使用则代理失效了，请更换代理，更换里面的链接即可。
+sudo tee /etc/docker/daemon.json  /sys/kernel/debug/usb/ci_hdrc.0/role
+安装1panel代码
+```html
+curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_start.sh &amp;&amp; bash quick_start.sh
+
+近期商家为了成本emmmc质量都不太行下面这个指令查看寿命
+查看棒子颗粒寿命查看内存寿命如果显示是0x01寿命就很好，如果显示0+09等越来越远的寿命也就离挂不远了：
+cat /sys/class/mmc_host/mmc0/mmc0\:0001/life_time
+
+
+410随身WiFi棒子Debian刷入青龙教程关灯方法一1、先安装dialog
+apt install dialog
+
+2、然后执行一键命令
+curl -L gitee.com/ojf6ii/led-control-script/raw/master/led2.sh -o /bin/ledctl &amp;&amp; chmod 755 /bin/ledctl
+
+3、下载完成后输入指令即可打开界面
+ledctl关灯方法二1、打开文件夹
+vi /etc/rc.local
+
+2、粘贴以下代码保存设置开机自启关闭led，重启即可生效
+echo none > /sys/class/leds/red\:os/trigger
+echo none > /sys/class/leds/blue\:wifi/trigger
+echo none > /sys/class/leds/green\:internet/trigger
+
+]]></content>
+      <categories>
+        <category>WIFI</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>openipc goke7205v200</title>
+    <url>/2024/12/03/7/</url>
+    <content><![CDATA[保存原始固件
+备份您的原始固件，请不要跳过这个步骤！OpenIPC U-Boot 会覆盖原始的加密分区，因此无法恢复为出厂固件，除非您拥有此特定摄像机的完整闪存备份！要创建完整的固件备份，请启动 TFTP 服务器并在引导加载程序 shell 中执行这些命令。
+
+ # Enter commands line by line! Do not copy and paste multiple lines at once!
+setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105
+mw.b 0x42000000 0xff 0x1000000
+sf probe 0; sf read 0x42000000 0x0 0x1000000
+tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
+# if there is no tftpput but tftp then run this instead
+ tftp 0x42000000 backup-gk7205v200-nor16m.bin 0x1000000
+
+
+有关详细信息，请参阅项目 wiki 中的安装说明。
+烧录完整的 OpenIPC 固件下载 OpenIPC 固件 (Ultimate)for Goke GK7205V200 with 16MB NOR flash
+完整的固件由引导加载程序、内核和根文件系统组成，也适用于使用编程器烧写闪存芯片。 请注意，完整固件不包含预设环境。你还需要添加自己的MAC地址、IP地址等设置。
+
+Enter commands line by line! Do not copy and paste multiple lines at once!setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105mw.b 0x42000000 0xff 0x1000000tftpboot 0x42000000 openipc-gk7205v200-ultimate-16mb.bin
+if there is no tftpboot but tftp then run this insteadtftp 0x42000000 openipc-gk7205v200-ultimate-16mb.binsf probe 0; sf lock 0;sf erase 0x0 0x1000000; sf write 0x42000000 0x0 0x1000000reset
+
+摄像机将自动重启并使用全新的引导加载程序启动。
+注意准备中断并进入引导程序的命令行。 在引导加载程序的命令行中，根据您的闪存大小和类型重新映射 ROM 分区。
+
+Enter commands line by line! Do not copy and paste multiple lines at once!run setnor16m
+
+恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。在端口 85 ( http://192.168.15.169:85/ ) 上打开摄像机的 Web 界面并使用登录root和密码12345登录。登录后将要求您设置自己的安全密码。通过以下方式访问摄像机ssh 或 UART 使用与上述相同的登录名和密码。
+
+打开web界面后，更新固件，更新完后调整majestic、sensor与设备型号对应。
+majesticopenipc未开源部分。
+]]></content>
+      <categories>
+        <category>折腾</category>
+      </categories>
+      <tags>
+        <tag>openipc</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>GPT 学术优化</title>
+    <url>/2024/12/06/8/</url>
+    <content><![CDATA[Installation安装方法I：直接运行 (Windows, Linux or MacOS)下载项目
+
+git clone –depth&#x3D;1 https://github.com/binary-husky/gpt_academic.gitcd gpt_academic配置API_KEY等变量
+
+在config.py中，配置API KEY等变量。特殊网络环境设置方法、Wiki-项目配置说明。
+「 程序会优先检查是否存在名为config_private.py的私密配置文件，并用其中的配置覆盖config.py的同名配置。如您能理解以上读取逻辑，我们强烈建议您在config.py同路径下创建一个名为config_private.py的新配置文件，并使用config_private.py配置项目，从而确保自动更新时不会丢失配置 」。
+「 支持通过环境变量配置项目，环境变量的书写格式参考docker-compose.yml文件或者我们的Wiki页面。配置读取优先级: 环境变量 &gt; config_private.py &gt; config.py 」。
+安装依赖
+（选择I: 如熟悉python, python推荐版本 3.9 ~ 3.11）备注：使用官方pip源或者阿里pip源, 临时换源方法：
+
+python -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+
+
+python -m pip install -r requirements.txt
+
+（选择II: 使用Anaconda）步骤也是类似的 (https://www.bilibili.com/video/BV1rc411W7Dr)：
+conda create -n gptac_venv python&#x3D;3.11    # 创建anaconda环境conda activate gptac_venv                 # 激活anaconda环境
+
+
+python -m pip install -r requirements.txt # 这个步骤和pip安装一样的步骤
+
+如果需要支持清华ChatGLM2&#x2F;复旦MOSS&#x2F;RWKV作为后端，请点击展开此处运行
+
+python main.py
+
+使用第三方API、Azure等、文心一言、星火等，见Wiki页面
+云服务器远程部署避坑指南。 请访问云服务器远程部署wiki
+在其他平台部署&amp;二级网址部署
+使用Sealos一键部署。使用WSL2（Windows Subsystem for Linux 子系统）。请访问部署wiki-2如何在二级网址（如http://localhost/subpath）下运行。请访问FastAPI运行说明
+Advanced UsageI：自定义新的便捷按钮（学术快捷键）现在已可以通过UI中的界面外观菜单中的自定义菜单添加新的便捷按钮。如果需要在代码中定义，请使用任意文本编辑器打开core_functional.py，添加如下条目即可：
+“超级英译中”: {    # 前缀，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等    “Prefix”: “请翻译把下面一段内容成中文，然后用一个markdown表格逐一解释文中出现的专有名词：\n\n”,
+# 后缀，会被加在你的输入之后。例如，配合前缀可以把你的输入内容用引号圈起来。
+&quot;Suffix&quot;: &quot;&quot;,
+
+},
+II：自定义函数插件编写强大的函数插件来执行任何你想得到的和想不到的任务。 本项目的插件编写、调试难度很低，只要您具备一定的python基础知识，就可以仿照我们提供的模板实现自己的插件功能。 详情请参考函数插件指南。
+⭐Latex&#x2F;Arxiv论文翻译功能⭐ &#x3D;&#x3D;&#x3D;&gt;虚空终端（从自然语言输入中，理解用户意图+自动调用其他插件）步骤一：输入 “ 请调用插件翻译PDF论文，地址为https://openreview.net/pdf?id=rJl0r3R9KX ”步骤二：点击“虚空终端”
+模块化功能设计，简单的接口却能支持强大的功能
+译解其他开源项目
+装饰live2d的小功能（默认关闭，需要修改config.py）
+OpenAI图像生成
+基于mermaid的流图、脑图绘制
+已知问题某些浏览器翻译插件干扰此软件前端的运行官方Gradio目前有很多兼容性问题，请务必使用requirement.txt安装Gradio
+III：主题可以通过修改THEME选项（config.py）变更主题
+Chuanhu-Small-and-Beautiful 网址
+访问GPT-Academic的在线服务并支持我们V：参考与学习代码中参考了很多其他优秀项目中的设计，顺序不分先后：
+清华ChatGLM2-6B:https://github.com/THUDM/ChatGLM2-6B
+清华JittorLLMs:https://github.com/Jittor/JittorLLMs
+ChatPaper:https://github.com/kaixindelele/ChatPaper
+Edge-GPT:https://github.com/acheong08/EdgeGPT
+ChuanhuChatGPT:https://github.com/GaiZhenbiao/ChuanhuChatGPT
+Oobabooga one-click installer:https://github.com/oobabooga/one-click-installers
+More：https://github.com/gradio-app/gradiohttps://github.com/fghrsh/live2d_demo
+下载项目git命令下载
+
+git clone https://github.com/binary-husky/chatgpt_academic.git
+
+github下载 download zipChatGPT学术优化项目地址:https://github.com/binary-husky/chatgpt_academic
+安装项目环境这里是通过Anaconda Prompt创建环境
+创建环境
+
+conda create -n chatgpt-academic python&#x3D;3.11.0
+
+输入y，回车安装！
+进入环境
+
+conda activate chatgpt-academic
+
+安装依赖先进入到项目的根目录
+
+python -m pip install -r requirements.txt
+
+PS：我这里是可以正常安装的，因为项目要求gradio&gt;&#x3D; 3.23 ，有些可能报错。需要先下载python的whl文件再进行安装。地址https://pypi.org/project/gradio/#files
+下载保存到你的项目根目录，在通过
+
+pip install gradio-3.24.1-py3-none-any.whl
+
+当我们安装好gradio之后，把requirements.txt文件中gradio注释
+重新运行
+
+python -m pip install -r requirements.txt
+
+此致项目需要的环境就安装完成了！
+打开解压的项目这里以Vscode为例，配置config.py文件
+配置API_KEY打开你的科学上网助手，我这里使用是Clash是可以的（个人感觉路线选择美国的代理更好）进入https://platform.openai.com/account/api-keys
+将创建的秘钥复制到config.py文件的API_KEY变量，秘钥配置完成！
+配置代理网络的地址第一步：进入网址https://ipapi.co/json/第二步：打开开发者工具（Google浏览器快捷键Ctrl+Shift+i）,点击网络，按一下Ctrl+r，可以看到一个json文件
+第三步：点击json文件
+第四步：将这个地址复制到config.py文件中的proxies
+运行项目项目所需的环境、秘钥、代理全部配置好就可以运行项目了
+
+python main.py
+
+浏览器输入Running on local URL
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>记一次清空SMART修复群晖报故障的硬盘</title>
+    <url>/2024/12/08/9/</url>
+    <content><![CDATA[事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐
+
+
+
+好，让我们进入正题，凡事都有个前因后果，先说说起因
+前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但是用SeaTools扫描，各种长短检测都能通过，希捷这又是什么操作
+HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红最后用MHDD扫描过后，发现硬盘并没有坏块，那么是什么原因导致的B8 End_to_End计数增加呢？各种说法都有，有说是硬盘上的缓存坏掉了，有说是SATA线接触不良导致，有说是缓存到磁盘的数据包校验出错，反正各种说法都有，具体硬盘SMART里如何判断这个值的，估计也只有硬盘厂家知道，所以就不要纠结了。但是就这样淘汰掉一块2T的硬盘？是不是太浪费了？记一次清空SMART修复群晖报故障的硬盘 
+垃圾佬没别的本事，就是爱折腾，于是先尝试了低格整块硬盘，插回群晖还是报故障，看来只能祭出本垃圾佬的终极大杀器USB转TTL神器和给神器属性加成的TTL杜邦线了，没错，就是下面这俩玩意，马粑粑家几块钱一个，随便挑随便选记一次清空SMART修复群晖报故障的硬盘 
+如果你的电脑是第一次插入USB转TTL神器，要先安装驱动，并像下图这样在属性里设置好端口的波特率为38400
+安装好驱动的USB转TTL安装好驱动的USB转TTL
+端口的设置，第一项要设置为 38400 端口的设置第一项要设置为 38400
+硬盘上TTL口的接法硬盘上TTL口的接法
+USB转TTL的接法USB转TTL的接法
+接好了之后，让我们先把USB转TTL插入电脑的USB口，打开你的putty，像下图这样设置，如果你的USB转TTL在电脑上识别出来是COM4或者COM5这样的，请按你自己的实际情况设置COM口，Speed设置为38400，然后点open
+putty设置putty设置
+这时你会看到一个黑麻麻的窗口，什么都没有记一次清空SMART修复群晖报故障的硬盘 别着急，这时我们再接上电源线，记住，只接电源线。
+不要接SATA数据线，不要接SATA数据线，不要接SATA数据线，重要的事情说三遍
+另外，接电源线最好是用电源上引出来的原生SATA电源线，尽量不要用4pin转SATA的电源转换线
+接上电源线后接上电源线后
+当你接上硬盘电源线后再看Putty会发现有回显了，当停在(P)SATA Reset后，说明硬盘已经启动完成了，这是可以按Ctrl+z激活终端，这时就会进入到希捷硬盘的F3工厂模式
+按下Ctrl+z后进入F3工厂模式按下Ctrl+z后进入F3工厂模式
+这时如果只是清零SMART那只要输入两个命令&#x2F;1和N1就能搞定
+输入&#x2F;1进入1模式输入&#x2F;1进入1模式
+在&#x2F;1模式下输入N1，看到回显Clear SMART is completed，这时硬盘的SMART值已经被清零了，这时你可以拔掉电源线和TTL线，关机把硬盘接回电源线和SATA线（其实你不关机也行，重新接回SATA线和电源线就行，我经常这样干
+这时在我们再用HDTune查看硬盘的SMART值会发现：马达启停次数，硬盘通电时间，马达旋转重试次数，点到点错误计数，接口CRC错误计数，等等等等的很多参数都已经变成0了
+这是我的硬盘清零后的效果这是我的硬盘清零后的效果
+看看我这个硬盘SMART清零后的效果，“启动&#x2F;停止次数”因为之前清零SMART后拔插过一次电源线，所以这里计数是1
+当然，有一些参数比如：原始读取错误率，磁头飞行时间等这些没有清零，这些都写在SMART的G-list里，要完全清掉需要在F3工厂模式里进入2模式停掉马达电机，清除G表，然后重建SMART和硬盘索引区到硬盘固件内才行
+这硬盘有固件锁
+这硬盘有固件锁
+但是如果你像上图我这块硬盘一样，在进入2模式输入Z想停止电机，返回Diagnostic Port Locked的话，说明这块硬盘有固件锁。被锁了固件是无法清零G表的，这也是希捷为了限制一些返厂硬盘和一些奸商通过改写G表来充当新硬盘坑人做的限制。当然，道高一尺魔高一丈，如果你有PC3000的软件和红卡或者MRT的话，固件锁其实也是可以解开的，这时候你就真的可以为所欲为了
+好了，本次折腾到此记录完毕，剩下的自然是把硬盘继续插回群晖里，把小姐姐们请回来
+仅以此文说明硬盘的SMART是可以清零的，硬盘SMART里的G表也是可以清零的，整个SMART是完全可以清除然后重建成刚出厂的样子的，甚至SMART还是可以通过工厂模式改写成你想要的任何样子的，所以二手硬盘水很深很深，请各位谨慎选择
+最后，此文仅以记录过程为目的，请某些头脑比较发达的朋友不要想着用学会了，拿旧硬盘把SMART清零了去坑人，既然有办法清零那肯定是有办法验出来的
+最后的最后，如果你只是本着不想浪费的原则，想清掉SMART上的错误，让这块硬盘继续发挥余热，建议最好清零SMART后的硬盘不要存放重要数据，同时注意时常关注一下硬盘状态，毕竟一块硬盘如果SMART某项报错了，那硬盘肯定是有一些问题的，所以如果有一天你硬盘里的小姐姐们灰飞烟灭了，千万别怪我没有提醒
+哦，还有个温馨提醒，USB转TTL的神器最好是选择CH340G芯片的，别选RS232的，别问我为什么，都是泪
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Hexo + Butterfly 个人博客搭建</title>
+    <url>/2025/10/09/Hexo_Butterfly_%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/</url>
+    <content><![CDATA[Hexo + Butterfly 个人博客搭建在用了一周左右的时间搭建博客，沉浸于试效果、改 bug、试效果、改 bug……的循环后，我还是决定写一篇文章来记录一下，省得未来的自己再走一遍这痛苦的过程。
+
+一、Hexo 静态网页生成
+1. Node.js 安装!首先我们需要下载 Node.js👉 Node.js — 在任何地方运行 JavaScript
+安装好之后我们可以输入以下指令，如果都能正常输出版本号则安装成功。
+node -v
+npm -v
+
+
+2. Git 安装Git 可是个好东西，程序员必备。官网在这里：Git - Downloading Package
+验证是否安装成功：
+git --version
+
+正常显示版本即可。
+
+3. Hexo 安装在自己心仪的文件夹下（如 E:/hexo），鼠标右击选择 Git Bash Here，依次执行以下命令：
+npm install hexo-cli -g
+npm install hexo --save
+
+如果已经安装过 hexo 或不确定装没装过也没关系，装过的执行完会显示 update。
+查看版本：
+hexo -v
+
+正常显示版本号说明安装成功。
+
+
+二、Hexo 初始化首先确保你要存放 Hexo 博客的文件夹下是空的。随后在该文件夹右键选择 Git Bash Here，执行：
+hexo init
+
+执行完毕后就能看到 Hexo 框架的文件结构。
+生成一个初始页面测试：
+hexo g &amp;&amp; hexo s
+
+在页面启动后，按住 Ctrl 点击终端中显示的http://localhost:4000/  即可自动跳转至浏览器预览。
+
+当你看到 Hexo 从地平线升起时，你就成功创建了一个本地静态博客网页。
+
+三、部署到 GitHub1. 创建仓库在 GitHub 创建一个公共仓库，命名为：
+username.github.io
+
+2. 配置账户并生成 SSH 密钥在 Git Bash 中输入以下指令：
+git config --global user.name "XXXX"                       # 配置个人信息-username
+git config --global user.email "XXXXXXXXX@XXX.com"         # 配置个人信息-useremail
+ssh-keygen -t rsa -C "XXXXXXXXX@XXX.com"	               # 生成密钥
+
+生成过程中直接回车直到完成即可。默认路径为：
+C:\Users\用户名\.ssh\id_rsa.pub
+
+打开 GitHub 设置 → 添加 SSH 密钥 → 将文件内容粘贴进去。
+
+3. 添加密钥到本地 Giteval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+
+测试连接：
+ssh -T git@github.com
+
+若得到以下回复则说明连接成功。
+Hi username! You've successfully authenticated...
+
+
+4. 确保使用正确的密钥git config --global core.sshCommand "ssh -i ~/.ssh/id_rsa"
+
+若出现以下错误：
+The authenticity of host 'github.com (20.205.243.166)' can't be established.
+Host key verification failed.
+
+说明 SSH 客户端未信任 GitHub 的主机密钥。执行以下命令修复：
+touch ~/.ssh/known_hosts
+chmod 644 ~/.ssh/known_hosts
+ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+
+再次执行 ssh -T git@github.com 即可。
+
+5. 修改 Hexo 配置文件打开站点配置文件 _config.yml，修改 deploy 部分如下：
+# Deployment
+## Docs: https://hexo.io/docs/deployment.html
+deploy:
+  type: git
+  repo: git@github.com:XXXXX/XXXXX.github.io.git
+  branch: main
+
+然后执行 Hexo 三连：
+hexo cl &amp;&amp; hexo g &amp;&amp; hexo d
+
+此时即可通过：
+https://username.github.io
+
+访问你的博客啦！
+
+四、安装 Butterfly 主题1. 下载主题文件在 Git 中执行以下命令安装 Butterfly 主题：
+git clone https://github.com/jerryc127/hexo-theme-butterfly.git themes/butterfly
+
+如果没有修改代码的需求，也可以使用 npm 安装：
+npm i hexo-theme-butterfly
+
+
+2. 安装渲染器Butterfly 主题依赖 pug 和 stylus 渲染器，否则启动后访问会报错。
+npm install hexo-renderer-pug hexo-renderer-stylus --save
+
+
+3. 启用主题在站点配置文件 _config.yml 中找到 theme 字段，修改为：
+theme: butterfly
+
+然后再次 Hexo 三连：
+hexo cl &amp;&amp; hexo g &amp;&amp; hexo s
+
+就完成了主题替换！
+
+五、Butterfly 主题美化1. 网站资料修改修改网站标题、副标题、邮箱等个人信息，编辑 _config.yml 中对应字段。
+
+
+
+参数
+描述
+
+
+
+title
+网站标题
+
+
+subtitle
+描述
+
+
+description
+网站描述
+
+
+keywords
+网站关键词，支持多个
+
+
+author
+作者名
+
+
+language
+网站语言（常用 zh-Hans 或 zh-CN）
+
+
+timezone
+时区（如 Asia&#x2F;Shanghai）
+
+
+
+2. 背景图片修改 _config.yml 中的 background 字段即可。
+
+3. 更多美化参考
+【Hexo系列】【7】Butterfly主题使用及美化 - CSDN 博客
+基于 Hexo 从零开始搭建个人博客（五） | 唐志远
+
+原文链接：https://xbxyftx.top/2025/01/26/butterfly%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/index.html  
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Typecho快速修改文章图片和文件链接地址</title>
+    <url>/2025/09/03/50/</url>
+    <content><![CDATA[说明为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。
+
+1.安装如果您使用的是基于 Debian 或 Ubuntu 的 Linux 系统，可以尝试使用 apt-get 命令。例如：
+
+sudo apt-get updatesudo apt-get install phpmyadmin
+
+
+The phpmyadmin package must have a database installed and configured before it cwith dbconfig-common.
+If you are an advanced database administrator and know that you want to performdatabase has already been installed and configured, you should refuse this optiomost likely be provided in &#x2F;usr&#x2F;share&#x2F;doc&#x2F;phpmyadmin.
+Otherwise, you should probably choose this option.
+Configure database for phpmyadmin with dbconfig-common? [yes&#x2F;no] yes
+Please provide a password for phpmyadmin to register with the database server. Igenerated.
+MySQL application password for phpmyadmin:
+Password confirmation:
+Determining localhost credentials from &#x2F;etc&#x2F;mysql&#x2F;debian.cnf: succeeded.请选择要自动配置以运行 phpMyAdmin 的网络服务器。
+
+apache2  2. lighttpd
+
+(Enter the items or ranges you want to select, separated by spaces.)
+要自动重新配置的网络服务器： 2
+dbconfig-common: writing config to &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf
+Creating config file &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf with new version
+Creating config file &#x2F;etc&#x2F;phpmyadmin&#x2F;config-db.php with new versionchecking privileges on database phpmyadmin for phpmyadmin@localhost: user creatigranting access to database phpmyadmin for phpmyadmin@localhost: success.verifying access for phpmyadmin@localhost: success.creating database phpmyadmin: success.verifying database phpmyadmin exists: success.populating database via sql…  done.dbconfig-common: flushing administrative passwordLighttpd not installed, skipping正在处理用于 libc-bin (2.31-13+deb11u2) 的触发器 …ldconfig: &#x2F;lib&#x2F;libusbgx.so.2 is not a symbolic link
+正在处理用于 php7.4-fpm (7.4.33-1+deb11u9) 的触发器 …正在处理用于 php7.4-cli (7.4.33-1+deb11u9) 的触发器 …
+
+选择了 lighttpd (选项2) 作为Web服务器，但你的系统实际上运行的是 Nginx
+下面是后续的解决步骤：
+第一步：手动配置 Nginx 以支持 phpMyAdmin由于自动配置失败了，我们需要手动为 Nginx 创建配置文件。
+
+创建 phpMyAdmin 的符号链接（如果尚未存在）：
+sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+
+
+编辑 Nginx 站点配置文件：
+sudo nano /etc/nginx/sites-enabled/default
+
+
+在 server 块中添加以下 location 配置（放在PHP location块之前或之后）：
+
+
+    # phpMyAdmin 配置
+    location /phpmyadmin &#123;
+        root /usr/share/;
+        index index.php index.html index.htm;
+        
+        location ~ ^/phpmyadmin/(.+.php)$ &#123;
+            try_files $uri =404;
+            root /usr/share/;
+            fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include /etc/nginx/fastcgi_params;
+        &#125;
+        
+        location ~* ^/phpmyadmin/(.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ &#123;
+            root /usr/share/;
+        &#125;
+    &#125;
+
+第二步：测试并重启 Nginx# 测试配置语法
+sudo nginx -t
+
+# 如果语法正确，重启Nginx
+sudo systemctl restart nginx
+# 或者使用重载
+sudo nginx -s reload
+
+第三步：访问 phpMyAdmin现在你应该可以通过浏览器访问 phpMyAdmin：
+http://你的服务器IP或域名/phpmyadmin
+
+第四步：登录 phpMyAdmin使用以下凭据登录：
+
+用户名：phpmyadmin（或者你之前设置的MySQL用户名）
+密码：你刚才安装时设置的密码
+
+如果遇到权限问题如果无法访问，可能需要调整权限：
+# 调整phpMyAdmin目录权限
+sudo chown -R www-data:www-data /usr/share/phpmyadmin/
+sudo chmod -R 755 /usr/share/phpmyadmin/
+
+验证MySQL连接如果仍然无法连接，检查MySQL用户权限：
+# 登录MySQL
+sudo mysql -u root -p
+
+# 检查phpmyadmin用户权限
+SELECT user, host FROM mysql.user;
+SHOW GRANTS FOR 'phpmyadmin'@'localhost';
+
+安全建议
+限制访问：考虑通过IP限制或HTTP认证来保护phpMyAdmin
+使用HTTPS：确保通过SSL访问phpMyAdmin
+修改URL路径：将 /phpmyadmin 改为不易猜测的路径
+
+这样配置后，phpMyAdmin 就应该可以正常工作了。完成后你可以通过浏览器访问并管理你的Typecho数据库，然后运行之前提到的SQL命令来批量更新图片链接。
+{lamp&#x2F;}
+方法操作前请各位先备份一下数据库
+(1)执行sql
+UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域名地址');
+
+ typecho_contents  是typecho存放文章的一个表(2)方法2
+选中 typecho_contents ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 text ，确认后执行即可批量修改。
+]]></content>
+      <categories>
+        <category>WIFI</category>
       </categories>
   </entry>
   <entry>
@@ -1414,672 +2080,6 @@ Hui Y, Kai W. Genomic variant annotation and prioritization with ANNOVAR and wAN
 ]]></content>
       <categories>
         <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Typecho快速修改文章图片和文件链接地址</title>
-    <url>/2025/09/03/50/</url>
-    <content><![CDATA[说明为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。
-
-1.安装如果您使用的是基于 Debian 或 Ubuntu 的 Linux 系统，可以尝试使用 apt-get 命令。例如：
-
-sudo apt-get updatesudo apt-get install phpmyadmin
-
-
-The phpmyadmin package must have a database installed and configured before it cwith dbconfig-common.
-If you are an advanced database administrator and know that you want to performdatabase has already been installed and configured, you should refuse this optiomost likely be provided in &#x2F;usr&#x2F;share&#x2F;doc&#x2F;phpmyadmin.
-Otherwise, you should probably choose this option.
-Configure database for phpmyadmin with dbconfig-common? [yes&#x2F;no] yes
-Please provide a password for phpmyadmin to register with the database server. Igenerated.
-MySQL application password for phpmyadmin:
-Password confirmation:
-Determining localhost credentials from &#x2F;etc&#x2F;mysql&#x2F;debian.cnf: succeeded.请选择要自动配置以运行 phpMyAdmin 的网络服务器。
-
-apache2  2. lighttpd
-
-(Enter the items or ranges you want to select, separated by spaces.)
-要自动重新配置的网络服务器： 2
-dbconfig-common: writing config to &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf
-Creating config file &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf with new version
-Creating config file &#x2F;etc&#x2F;phpmyadmin&#x2F;config-db.php with new versionchecking privileges on database phpmyadmin for phpmyadmin@localhost: user creatigranting access to database phpmyadmin for phpmyadmin@localhost: success.verifying access for phpmyadmin@localhost: success.creating database phpmyadmin: success.verifying database phpmyadmin exists: success.populating database via sql…  done.dbconfig-common: flushing administrative passwordLighttpd not installed, skipping正在处理用于 libc-bin (2.31-13+deb11u2) 的触发器 …ldconfig: &#x2F;lib&#x2F;libusbgx.so.2 is not a symbolic link
-正在处理用于 php7.4-fpm (7.4.33-1+deb11u9) 的触发器 …正在处理用于 php7.4-cli (7.4.33-1+deb11u9) 的触发器 …
-
-选择了 lighttpd (选项2) 作为Web服务器，但你的系统实际上运行的是 Nginx
-下面是后续的解决步骤：
-第一步：手动配置 Nginx 以支持 phpMyAdmin由于自动配置失败了，我们需要手动为 Nginx 创建配置文件。
-
-创建 phpMyAdmin 的符号链接（如果尚未存在）：
-sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
-
-
-编辑 Nginx 站点配置文件：
-sudo nano /etc/nginx/sites-enabled/default
-
-
-在 server 块中添加以下 location 配置（放在PHP location块之前或之后）：
-
-
-    # phpMyAdmin 配置
-    location /phpmyadmin &#123;
-        root /usr/share/;
-        index index.php index.html index.htm;
-        
-        location ~ ^/phpmyadmin/(.+.php)$ &#123;
-            try_files $uri =404;
-            root /usr/share/;
-            fastcgi_pass unix:/run/php/php7.4-fpm.sock;
-            fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-            include /etc/nginx/fastcgi_params;
-        &#125;
-        
-        location ~* ^/phpmyadmin/(.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ &#123;
-            root /usr/share/;
-        &#125;
-    &#125;
-
-第二步：测试并重启 Nginx# 测试配置语法
-sudo nginx -t
-
-# 如果语法正确，重启Nginx
-sudo systemctl restart nginx
-# 或者使用重载
-sudo nginx -s reload
-
-第三步：访问 phpMyAdmin现在你应该可以通过浏览器访问 phpMyAdmin：
-http://你的服务器IP或域名/phpmyadmin
-
-第四步：登录 phpMyAdmin使用以下凭据登录：
-
-用户名：phpmyadmin（或者你之前设置的MySQL用户名）
-密码：你刚才安装时设置的密码
-
-如果遇到权限问题如果无法访问，可能需要调整权限：
-# 调整phpMyAdmin目录权限
-sudo chown -R www-data:www-data /usr/share/phpmyadmin/
-sudo chmod -R 755 /usr/share/phpmyadmin/
-
-验证MySQL连接如果仍然无法连接，检查MySQL用户权限：
-# 登录MySQL
-sudo mysql -u root -p
-
-# 检查phpmyadmin用户权限
-SELECT user, host FROM mysql.user;
-SHOW GRANTS FOR 'phpmyadmin'@'localhost';
-
-安全建议
-限制访问：考虑通过IP限制或HTTP认证来保护phpMyAdmin
-使用HTTPS：确保通过SSL访问phpMyAdmin
-修改URL路径：将 /phpmyadmin 改为不易猜测的路径
-
-这样配置后，phpMyAdmin 就应该可以正常工作了。完成后你可以通过浏览器访问并管理你的Typecho数据库，然后运行之前提到的SQL命令来批量更新图片链接。
-{lamp&#x2F;}
-方法操作前请各位先备份一下数据库
-(1)执行sql
-UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域名地址');
-
- typecho_contents  是typecho存放文章的一个表(2)方法2
-选中 typecho_contents ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 text ，确认后执行即可批量修改。
-]]></content>
-      <categories>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>基因结构</title>
-    <url>/2025/09/17/55/</url>
-    <content><![CDATA[结构图!!!
-    flowchart TD
-    A[&quot;一个完整的真核生物基因（DNA模板链）&quot;]
-    
-    subgraph A_Sub[基因结构]
-        direction LR
-        Promoter[启动子 Promoter]
-        Exon1[外显子1 Exon 1]
-        Intron[内含子 Intron]
-        Exon2[外显子2 Exon 2]
-        Terminator[终止子 Terminator]
-    end
-    
-    A --&gt; A_Sub
-    
-    subgraph Transcription[第一步：转录]
-        direction TB
-        B[&quot;初级mRNA转录本（Pre-mRNA, 包含所有序列）&quot;]
-    end
-    
-    A_Sub --转录--&gt; Transcription
-    
-    subgraph Splicing[第二步：加工（剪切与拼接）]
-        direction TB
-        C[&quot;切除内含子并将外显子连接起来&quot;]
-    end
-    
-    Transcription --加工--&gt; Splicing
-    
-    subgraph Final_mRNA[第三步：成熟mRNA]
-        direction LR
-        D[&quot;5&#39; 帽子&quot;]
-        E[&quot;5&#39; UTR&quot;]
-        F[&quot;CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA&quot;]
-        G[&quot;3&#39; UTR&quot;]
-        H[&quot;多聚A尾巴&quot;]
-    end
-    
-    Splicing --&quot;拼接后形成&quot;--&gt; Final_mRNA
-    
-    %% 定义关系
-    Exon1 --包含--&gt; UTR1[5&#39; UTR部分]
-    Exon1 --包含--&gt; CDS_Part1[CDS部分]
-    Exon2 --包含--&gt; CDS_Part2[CDS部分]
-    Exon2 --包含--&gt; UTR2[3&#39; UTR部分]
-    
-    UTR1 --最终成为--&gt; E
-    CDS_Part1 --最终成为--&gt; F
-    CDS_Part2 --最终成为--&gt; F
-    UTR2 --最终成为--&gt; G
-    
-    Final_mRNA --&quot;进入细胞质进行翻译（核糖体）&quot;--&gt; I[&quot;合成的蛋白质&quot;]
-    F --&gt; I
-    
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
-    classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
-    classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
-    
-    class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
-    class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
-    class Transcription,Splicing process;
-
-!!!
-
-
-
-下面是代码
-flowchart TD
-A["一个完整的真核生物基因（DNA模板链）"]
-
-subgraph A_Sub[基因结构]
-    direction LR
-    Promoter[启动子 Promoter]
-    Exon1[外显子1 Exon 1]
-    Intron[内含子 Intron]
-    Exon2[外显子2 Exon 2]
-    Terminator[终止子 Terminator]
-end
-
-A --> A_Sub
-
-subgraph Transcription[第一步：转录]
-    direction TB
-    B["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]
-end
-
-A_Sub --转录--> Transcription
-
-subgraph Splicing[第二步：加工（剪切与拼接）]
-    direction TB
-    C["切除内含子并将外显子连接起来"]
-end
-
-Transcription --加工--> Splicing
-
-subgraph Final_mRNA[第三步：成熟mRNA]
-    direction LR
-    D["5' 帽子"]
-    E["5' UTR"]
-    F["CDS (编码序列)起始密码子AUG -> 终止密码子UAA/UAG/UGA"]
-    G["3' UTR"]
-    H["多聚A尾巴"]
-end
-
-Splicing --"拼接后形成"--> Final_mRNA
-
-%% 定义关系
-Exon1 --包含--> UTR1[5' UTR部分]
-Exon1 --包含--> CDS_Part1[CDS部分]
-Exon2 --包含--> CDS_Part2[CDS部分]
-Exon2 --包含--> UTR2[3' UTR部分]
-
-UTR1 --最终成为--> E
-CDS_Part1 --最终成为--> F
-CDS_Part2 --最终成为--> F
-UTR2 --最终成为--> G
-
-Final_mRNA --"进入细胞质进行翻译（核糖体）"--> I["合成的蛋白质"]
-F --> I
-
-classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
-classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
-classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
-
-class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
-class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
-class Transcription,Splicing process;
-
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>openipc goke7205v200</title>
-    <url>/2024/12/03/7/</url>
-    <content><![CDATA[保存原始固件
-备份您的原始固件，请不要跳过这个步骤！OpenIPC U-Boot 会覆盖原始的加密分区，因此无法恢复为出厂固件，除非您拥有此特定摄像机的完整闪存备份！要创建完整的固件备份，请启动 TFTP 服务器并在引导加载程序 shell 中执行这些命令。
-
- # Enter commands line by line! Do not copy and paste multiple lines at once!
-setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105
-mw.b 0x42000000 0xff 0x1000000
-sf probe 0; sf read 0x42000000 0x0 0x1000000
-tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
-# if there is no tftpput but tftp then run this instead
- tftp 0x42000000 backup-gk7205v200-nor16m.bin 0x1000000
-
-
-有关详细信息，请参阅项目 wiki 中的安装说明。
-烧录完整的 OpenIPC 固件下载 OpenIPC 固件 (Ultimate)for Goke GK7205V200 with 16MB NOR flash
-完整的固件由引导加载程序、内核和根文件系统组成，也适用于使用编程器烧写闪存芯片。 请注意，完整固件不包含预设环境。你还需要添加自己的MAC地址、IP地址等设置。
-
-Enter commands line by line! Do not copy and paste multiple lines at once!setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105mw.b 0x42000000 0xff 0x1000000tftpboot 0x42000000 openipc-gk7205v200-ultimate-16mb.bin
-if there is no tftpboot but tftp then run this insteadtftp 0x42000000 openipc-gk7205v200-ultimate-16mb.binsf probe 0; sf lock 0;sf erase 0x0 0x1000000; sf write 0x42000000 0x0 0x1000000reset
-
-摄像机将自动重启并使用全新的引导加载程序启动。
-注意准备中断并进入引导程序的命令行。 在引导加载程序的命令行中，根据您的闪存大小和类型重新映射 ROM 分区。
-
-Enter commands line by line! Do not copy and paste multiple lines at once!run setnor16m
-
-恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。在端口 85 ( http://192.168.15.169:85/ ) 上打开摄像机的 Web 界面并使用登录root和密码12345登录。登录后将要求您设置自己的安全密码。通过以下方式访问摄像机ssh 或 UART 使用与上述相同的登录名和密码。
-
-打开web界面后，更新固件，更新完后调整majestic、sensor与设备型号对应。
-majesticopenipc未开源部分。
-]]></content>
-      <categories>
-        <category>折腾</category>
-      </categories>
-      <tags>
-        <tag>openipc</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>GPT 学术优化</title>
-    <url>/2024/12/06/8/</url>
-    <content><![CDATA[Installation安装方法I：直接运行 (Windows, Linux or MacOS)下载项目
-
-git clone –depth&#x3D;1 https://github.com/binary-husky/gpt_academic.gitcd gpt_academic配置API_KEY等变量
-
-在config.py中，配置API KEY等变量。特殊网络环境设置方法、Wiki-项目配置说明。
-「 程序会优先检查是否存在名为config_private.py的私密配置文件，并用其中的配置覆盖config.py的同名配置。如您能理解以上读取逻辑，我们强烈建议您在config.py同路径下创建一个名为config_private.py的新配置文件，并使用config_private.py配置项目，从而确保自动更新时不会丢失配置 」。
-「 支持通过环境变量配置项目，环境变量的书写格式参考docker-compose.yml文件或者我们的Wiki页面。配置读取优先级: 环境变量 &gt; config_private.py &gt; config.py 」。
-安装依赖
-（选择I: 如熟悉python, python推荐版本 3.9 ~ 3.11）备注：使用官方pip源或者阿里pip源, 临时换源方法：
-
-python -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
-
-
-python -m pip install -r requirements.txt
-
-（选择II: 使用Anaconda）步骤也是类似的 (https://www.bilibili.com/video/BV1rc411W7Dr)：
-conda create -n gptac_venv python&#x3D;3.11    # 创建anaconda环境conda activate gptac_venv                 # 激活anaconda环境
-
-
-python -m pip install -r requirements.txt # 这个步骤和pip安装一样的步骤
-
-如果需要支持清华ChatGLM2&#x2F;复旦MOSS&#x2F;RWKV作为后端，请点击展开此处运行
-
-python main.py
-
-使用第三方API、Azure等、文心一言、星火等，见Wiki页面
-云服务器远程部署避坑指南。 请访问云服务器远程部署wiki
-在其他平台部署&amp;二级网址部署
-使用Sealos一键部署。使用WSL2（Windows Subsystem for Linux 子系统）。请访问部署wiki-2如何在二级网址（如http://localhost/subpath）下运行。请访问FastAPI运行说明
-Advanced UsageI：自定义新的便捷按钮（学术快捷键）现在已可以通过UI中的界面外观菜单中的自定义菜单添加新的便捷按钮。如果需要在代码中定义，请使用任意文本编辑器打开core_functional.py，添加如下条目即可：
-“超级英译中”: {    # 前缀，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等    “Prefix”: “请翻译把下面一段内容成中文，然后用一个markdown表格逐一解释文中出现的专有名词：\n\n”,
-# 后缀，会被加在你的输入之后。例如，配合前缀可以把你的输入内容用引号圈起来。
-&quot;Suffix&quot;: &quot;&quot;,
-
-},
-II：自定义函数插件编写强大的函数插件来执行任何你想得到的和想不到的任务。 本项目的插件编写、调试难度很低，只要您具备一定的python基础知识，就可以仿照我们提供的模板实现自己的插件功能。 详情请参考函数插件指南。
-⭐Latex&#x2F;Arxiv论文翻译功能⭐ &#x3D;&#x3D;&#x3D;&gt;虚空终端（从自然语言输入中，理解用户意图+自动调用其他插件）步骤一：输入 “ 请调用插件翻译PDF论文，地址为https://openreview.net/pdf?id=rJl0r3R9KX ”步骤二：点击“虚空终端”
-模块化功能设计，简单的接口却能支持强大的功能
-译解其他开源项目
-装饰live2d的小功能（默认关闭，需要修改config.py）
-OpenAI图像生成
-基于mermaid的流图、脑图绘制
-已知问题某些浏览器翻译插件干扰此软件前端的运行官方Gradio目前有很多兼容性问题，请务必使用requirement.txt安装Gradio
-III：主题可以通过修改THEME选项（config.py）变更主题
-Chuanhu-Small-and-Beautiful 网址
-访问GPT-Academic的在线服务并支持我们V：参考与学习代码中参考了很多其他优秀项目中的设计，顺序不分先后：
-清华ChatGLM2-6B:https://github.com/THUDM/ChatGLM2-6B
-清华JittorLLMs:https://github.com/Jittor/JittorLLMs
-ChatPaper:https://github.com/kaixindelele/ChatPaper
-Edge-GPT:https://github.com/acheong08/EdgeGPT
-ChuanhuChatGPT:https://github.com/GaiZhenbiao/ChuanhuChatGPT
-Oobabooga one-click installer:https://github.com/oobabooga/one-click-installers
-More：https://github.com/gradio-app/gradiohttps://github.com/fghrsh/live2d_demo
-下载项目git命令下载
-
-git clone https://github.com/binary-husky/chatgpt_academic.git
-
-github下载 download zipChatGPT学术优化项目地址:https://github.com/binary-husky/chatgpt_academic
-安装项目环境这里是通过Anaconda Prompt创建环境
-创建环境
-
-conda create -n chatgpt-academic python&#x3D;3.11.0
-
-输入y，回车安装！
-进入环境
-
-conda activate chatgpt-academic
-
-安装依赖先进入到项目的根目录
-
-python -m pip install -r requirements.txt
-
-PS：我这里是可以正常安装的，因为项目要求gradio&gt;&#x3D; 3.23 ，有些可能报错。需要先下载python的whl文件再进行安装。地址https://pypi.org/project/gradio/#files
-下载保存到你的项目根目录，在通过
-
-pip install gradio-3.24.1-py3-none-any.whl
-
-当我们安装好gradio之后，把requirements.txt文件中gradio注释
-重新运行
-
-python -m pip install -r requirements.txt
-
-此致项目需要的环境就安装完成了！
-打开解压的项目这里以Vscode为例，配置config.py文件
-配置API_KEY打开你的科学上网助手，我这里使用是Clash是可以的（个人感觉路线选择美国的代理更好）进入https://platform.openai.com/account/api-keys
-将创建的秘钥复制到config.py文件的API_KEY变量，秘钥配置完成！
-配置代理网络的地址第一步：进入网址https://ipapi.co/json/第二步：打开开发者工具（Google浏览器快捷键Ctrl+Shift+i）,点击网络，按一下Ctrl+r，可以看到一个json文件
-第三步：点击json文件
-第四步：将这个地址复制到config.py文件中的proxies
-运行项目项目所需的环境、秘钥、代理全部配置好就可以运行项目了
-
-python main.py
-
-浏览器输入Running on local URL
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>410随身WiFi棒子Debian刷入青龙教程</title>
-    <url>/2025/09/25/56/</url>
-    <content><![CDATA[备份教程刷Debian前请先备份（非常重要！！！）
-弄成砖了是可以刷回来的，大佬可忽略
-备份教程：	https://xiao54.com/linux/32.html视频教程：	https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1下载链接：	https://www.123pan.com/s/354uVv-z7YU3.html先进入fastboot模式，输入指令
-adb reboot bootloader
-
-410随身WiFi棒子Debian刷入青龙教程SSH账号密码解压要刷的Debian系统，然后点击一件刷入
-cmd登录地址:ssh &#x72;&#111;&#111;&#x74;&#64;&#x31;&#x30;&#x2e;&#x34;&#x32;&#x2e;&#x30;&#46;&#x31; 密码:1313144
-SSH软件:IP:10.42.0.1 用户名:root 密码:1313144
-热点:4G-wifi 密码:12345678
-更新驱动更新驱动视频教程：https://player.bilibili.com/
-更新驱动前注意事项：需要安装vivo9008drivers.exe软件，如安装过请忽略
-1、在【Android Device】下查看有没有【Android Composite ADB Interface】这个驱动，如果不是，右键【更新驱动程序】-【浏览我的计算机以查找驱动程序软件】-【让我从计算机上的可用驱动程序列表中选取(L)】，选择【Android Composite ADB Interface或者USB Composite Device】-【下一步】
-2、插入棒子会显示一个未知设备或者RNDIS，不确定是那个就先拔掉棒子，然后重新插入
-3、下拉找到【网络适配器】-厂商下拉选择【Microsoft】型号下拉选择【基于远程 NDIS 的Internet 共享设备】-【下一步】-即可完成安装驱动
-网络编辑1、现在就用键盘上的方向键编辑，鼠标就不能用了
-nmtui
-
-2、把热点删除，因为他现在不支持WiFi和热点一起开启，所以要把热点删除连接WiFi给debian系统通网才能继续操作
-true > /etc/apt/sources.list.d/mobian.list
-
-3、更新软件包
-sudo apt-get update
-
-4、更新curl wget
-apt install curl wget
-
-5、安装docker系统
-apt install docker.io
-
-6、docker设置随服务启动而自启动
-systemctl enable docker
-
-7、启动docker
-systemctl start docker
-
-给docker设置加速代理1、创建文件夹
-sudo mkdir -p /etc/docker
-
-2、填入加速代理
-如不能使用则代理失效了，请更换代理，更换里面的链接即可。
-sudo tee /etc/docker/daemon.json  /sys/kernel/debug/usb/ci_hdrc.0/role
-安装1panel代码
-```html
-curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_start.sh &amp;&amp; bash quick_start.sh
-
-近期商家为了成本emmmc质量都不太行下面这个指令查看寿命
-查看棒子颗粒寿命查看内存寿命如果显示是0x01寿命就很好，如果显示0+09等越来越远的寿命也就离挂不远了：
-cat /sys/class/mmc_host/mmc0/mmc0\:0001/life_time
-
-
-410随身WiFi棒子Debian刷入青龙教程关灯方法一1、先安装dialog
-apt install dialog
-
-2、然后执行一键命令
-curl -L gitee.com/ojf6ii/led-control-script/raw/master/led2.sh -o /bin/ledctl &amp;&amp; chmod 755 /bin/ledctl
-
-3、下载完成后输入指令即可打开界面
-ledctl关灯方法二1、打开文件夹
-vi /etc/rc.local
-
-2、粘贴以下代码保存设置开机自启关闭led，重启即可生效
-echo none > /sys/class/leds/red\:os/trigger
-echo none > /sys/class/leds/blue\:wifi/trigger
-echo none > /sys/class/leds/green\:internet/trigger
-
-]]></content>
-      <categories>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>记一次清空SMART修复群晖报故障的硬盘</title>
-    <url>/2024/12/08/9/</url>
-    <content><![CDATA[事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐
-
-
-
-好，让我们进入正题，凡事都有个前因后果，先说说起因
-前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但是用SeaTools扫描，各种长短检测都能通过，希捷这又是什么操作
-HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红最后用MHDD扫描过后，发现硬盘并没有坏块，那么是什么原因导致的B8 End_to_End计数增加呢？各种说法都有，有说是硬盘上的缓存坏掉了，有说是SATA线接触不良导致，有说是缓存到磁盘的数据包校验出错，反正各种说法都有，具体硬盘SMART里如何判断这个值的，估计也只有硬盘厂家知道，所以就不要纠结了。但是就这样淘汰掉一块2T的硬盘？是不是太浪费了？记一次清空SMART修复群晖报故障的硬盘 
-垃圾佬没别的本事，就是爱折腾，于是先尝试了低格整块硬盘，插回群晖还是报故障，看来只能祭出本垃圾佬的终极大杀器USB转TTL神器和给神器属性加成的TTL杜邦线了，没错，就是下面这俩玩意，马粑粑家几块钱一个，随便挑随便选记一次清空SMART修复群晖报故障的硬盘 
-如果你的电脑是第一次插入USB转TTL神器，要先安装驱动，并像下图这样在属性里设置好端口的波特率为38400
-安装好驱动的USB转TTL安装好驱动的USB转TTL
-端口的设置，第一项要设置为 38400 端口的设置第一项要设置为 38400
-硬盘上TTL口的接法硬盘上TTL口的接法
-USB转TTL的接法USB转TTL的接法
-接好了之后，让我们先把USB转TTL插入电脑的USB口，打开你的putty，像下图这样设置，如果你的USB转TTL在电脑上识别出来是COM4或者COM5这样的，请按你自己的实际情况设置COM口，Speed设置为38400，然后点open
-putty设置putty设置
-这时你会看到一个黑麻麻的窗口，什么都没有记一次清空SMART修复群晖报故障的硬盘 别着急，这时我们再接上电源线，记住，只接电源线。
-不要接SATA数据线，不要接SATA数据线，不要接SATA数据线，重要的事情说三遍
-另外，接电源线最好是用电源上引出来的原生SATA电源线，尽量不要用4pin转SATA的电源转换线
-接上电源线后接上电源线后
-当你接上硬盘电源线后再看Putty会发现有回显了，当停在(P)SATA Reset后，说明硬盘已经启动完成了，这是可以按Ctrl+z激活终端，这时就会进入到希捷硬盘的F3工厂模式
-按下Ctrl+z后进入F3工厂模式按下Ctrl+z后进入F3工厂模式
-这时如果只是清零SMART那只要输入两个命令&#x2F;1和N1就能搞定
-输入&#x2F;1进入1模式输入&#x2F;1进入1模式
-在&#x2F;1模式下输入N1，看到回显Clear SMART is completed，这时硬盘的SMART值已经被清零了，这时你可以拔掉电源线和TTL线，关机把硬盘接回电源线和SATA线（其实你不关机也行，重新接回SATA线和电源线就行，我经常这样干
-这时在我们再用HDTune查看硬盘的SMART值会发现：马达启停次数，硬盘通电时间，马达旋转重试次数，点到点错误计数，接口CRC错误计数，等等等等的很多参数都已经变成0了
-这是我的硬盘清零后的效果这是我的硬盘清零后的效果
-看看我这个硬盘SMART清零后的效果，“启动&#x2F;停止次数”因为之前清零SMART后拔插过一次电源线，所以这里计数是1
-当然，有一些参数比如：原始读取错误率，磁头飞行时间等这些没有清零，这些都写在SMART的G-list里，要完全清掉需要在F3工厂模式里进入2模式停掉马达电机，清除G表，然后重建SMART和硬盘索引区到硬盘固件内才行
-这硬盘有固件锁
-这硬盘有固件锁
-但是如果你像上图我这块硬盘一样，在进入2模式输入Z想停止电机，返回Diagnostic Port Locked的话，说明这块硬盘有固件锁。被锁了固件是无法清零G表的，这也是希捷为了限制一些返厂硬盘和一些奸商通过改写G表来充当新硬盘坑人做的限制。当然，道高一尺魔高一丈，如果你有PC3000的软件和红卡或者MRT的话，固件锁其实也是可以解开的，这时候你就真的可以为所欲为了
-好了，本次折腾到此记录完毕，剩下的自然是把硬盘继续插回群晖里，把小姐姐们请回来
-仅以此文说明硬盘的SMART是可以清零的，硬盘SMART里的G表也是可以清零的，整个SMART是完全可以清除然后重建成刚出厂的样子的，甚至SMART还是可以通过工厂模式改写成你想要的任何样子的，所以二手硬盘水很深很深，请各位谨慎选择
-最后，此文仅以记录过程为目的，请某些头脑比较发达的朋友不要想着用学会了，拿旧硬盘把SMART清零了去坑人，既然有办法清零那肯定是有办法验出来的
-最后的最后，如果你只是本着不想浪费的原则，想清掉SMART上的错误，让这块硬盘继续发挥余热，建议最好清零SMART后的硬盘不要存放重要数据，同时注意时常关注一下硬盘状态，毕竟一块硬盘如果SMART某项报错了，那硬盘肯定是有一些问题的，所以如果有一天你硬盘里的小姐姐们灰飞烟灭了，千万别怪我没有提醒
-哦，还有个温馨提醒，USB转TTL的神器最好是选择CH340G芯片的，别选RS232的，别问我为什么，都是泪
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Hexo + Butterfly 个人博客搭建</title>
-    <url>/2025/10/09/Hexo_Butterfly_%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/</url>
-    <content><![CDATA[Hexo + Butterfly 个人博客搭建在用了一周左右的时间搭建博客，沉浸于试效果、改 bug、试效果、改 bug……的循环后，我还是决定写一篇文章来记录一下，省得未来的自己再走一遍这痛苦的过程。
-
-一、Hexo 静态网页生成
-1. Node.js 安装!首先我们需要下载 Node.js👉 Node.js — 在任何地方运行 JavaScript
-安装好之后我们可以输入以下指令，如果都能正常输出版本号则安装成功。
-node -v
-npm -v
-
-
-2. Git 安装Git 可是个好东西，程序员必备。官网在这里：Git - Downloading Package
-验证是否安装成功：
-git --version
-
-正常显示版本即可。
-
-3. Hexo 安装在自己心仪的文件夹下（如 E:/hexo），鼠标右击选择 Git Bash Here，依次执行以下命令：
-npm install hexo-cli -g
-npm install hexo --save
-
-如果已经安装过 hexo 或不确定装没装过也没关系，装过的执行完会显示 update。
-查看版本：
-hexo -v
-
-正常显示版本号说明安装成功。
-
-
-二、Hexo 初始化首先确保你要存放 Hexo 博客的文件夹下是空的。随后在该文件夹右键选择 Git Bash Here，执行：
-hexo init
-
-执行完毕后就能看到 Hexo 框架的文件结构。
-生成一个初始页面测试：
-hexo g &amp;&amp; hexo s
-
-在页面启动后，按住 Ctrl 点击终端中显示的http://localhost:4000/  即可自动跳转至浏览器预览。
-
-当你看到 Hexo 从地平线升起时，你就成功创建了一个本地静态博客网页。
-
-三、部署到 GitHub1. 创建仓库在 GitHub 创建一个公共仓库，命名为：
-username.github.io
-
-2. 配置账户并生成 SSH 密钥在 Git Bash 中输入以下指令：
-git config --global user.name "XXXX"                       # 配置个人信息-username
-git config --global user.email "XXXXXXXXX@XXX.com"         # 配置个人信息-useremail
-ssh-keygen -t rsa -C "XXXXXXXXX@XXX.com"	               # 生成密钥
-
-生成过程中直接回车直到完成即可。默认路径为：
-C:\Users\用户名\.ssh\id_rsa.pub
-
-打开 GitHub 设置 → 添加 SSH 密钥 → 将文件内容粘贴进去。
-
-3. 添加密钥到本地 Giteval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_rsa
-
-测试连接：
-ssh -T git@github.com
-
-若得到以下回复则说明连接成功。
-Hi username! You've successfully authenticated...
-
-
-4. 确保使用正确的密钥git config --global core.sshCommand "ssh -i ~/.ssh/id_rsa"
-
-若出现以下错误：
-The authenticity of host 'github.com (20.205.243.166)' can't be established.
-Host key verification failed.
-
-说明 SSH 客户端未信任 GitHub 的主机密钥。执行以下命令修复：
-touch ~/.ssh/known_hosts
-chmod 644 ~/.ssh/known_hosts
-ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
-
-再次执行 ssh -T git@github.com 即可。
-
-5. 修改 Hexo 配置文件打开站点配置文件 _config.yml，修改 deploy 部分如下：
-# Deployment
-## Docs: https://hexo.io/docs/deployment.html
-deploy:
-  type: git
-  repo: git@github.com:XXXXX/XXXXX.github.io.git
-  branch: main
-
-然后执行 Hexo 三连：
-hexo cl &amp;&amp; hexo g &amp;&amp; hexo d
-
-此时即可通过：
-https://username.github.io
-
-访问你的博客啦！
-
-四、安装 Butterfly 主题1. 下载主题文件在 Git 中执行以下命令安装 Butterfly 主题：
-git clone https://github.com/jerryc127/hexo-theme-butterfly.git themes/butterfly
-
-如果没有修改代码的需求，也可以使用 npm 安装：
-npm i hexo-theme-butterfly
-
-
-2. 安装渲染器Butterfly 主题依赖 pug 和 stylus 渲染器，否则启动后访问会报错。
-npm install hexo-renderer-pug hexo-renderer-stylus --save
-
-
-3. 启用主题在站点配置文件 _config.yml 中找到 theme 字段，修改为：
-theme: butterfly
-
-然后再次 Hexo 三连：
-hexo cl &amp;&amp; hexo g &amp;&amp; hexo s
-
-就完成了主题替换！
-
-五、Butterfly 主题美化1. 网站资料修改修改网站标题、副标题、邮箱等个人信息，编辑 _config.yml 中对应字段。
-
-
-
-参数
-描述
-
-
-
-title
-网站标题
-
-
-subtitle
-描述
-
-
-description
-网站描述
-
-
-keywords
-网站关键词，支持多个
-
-
-author
-作者名
-
-
-language
-网站语言（常用 zh-Hans 或 zh-CN）
-
-
-timezone
-时区（如 Asia&#x2F;Shanghai）
-
-
-
-2. 背景图片修改 _config.yml 中的 background 字段即可。
-
-3. 更多美化参考
-【Hexo系列】【7】Butterfly主题使用及美化 - CSDN 博客
-基于 Hexo 从零开始搭建个人博客（五） | 唐志远
-
-原文链接：https://xbxyftx.top/2025/01/26/butterfly%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/index.html  
-]]></content>
-      <categories>
-        <category>默认分类</category>
       </categories>
   </entry>
 </search>
