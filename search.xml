@@ -62,6 +62,165 @@ sudo npc stop
       </categories>
   </entry>
   <entry>
+    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
+    <url>/2025/08/02/25/</url>
+    <content><![CDATA[
+前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。
+
+1.提取SNP位点信息## 设置FST阈值（例如取WEIGHTED_FST > 0.2）
+awk '$5 > 0.2' fst_binned.windowed.weir.fst > high_fst_windows.txt
+
+## 检查最高FST窗口
+sort -k5,5nr high_fst_windows.txt | head
+
+
+## 从高FST结果生成BED格式（用于后续注释）
+awk '&amp;#123;print $1"\t"$2"\t"$3"\t"$5&amp;#125;' high_fst_windows.txt > high_fst_regions.bed
+
+## 合并相邻窗口（如距离 merged_high_fst.bed
+
+2.对提取SNP位点注释然后提取与基因重叠的区域（需准备reference.gtf）
+## 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）
+bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
+awk -F'\t' '$8 == "gene" &amp;#123;print $1,$2,$3,$12&amp;#125;' OFS='\t' | \
+awk -F'[;\t]' '&amp;#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&amp;#125;' | sort | uniq > fst_genes.txt
+
+3.提取SNP位点所在基因的ID号awk -F'\t' '&amp;#123;
+  match($8, /ID=gene-([^;]+)/, id_arr);
+  match($8, /Name=([^;]+)/, name_arr);
+  if (id_arr[1] &amp;&amp; name_arr[1]) &amp;#123;
+    print $1, $2, $3, id_arr[1], name_arr[1];
+  &amp;#125;
+&amp;#125;' OFS='\t' fst_genes_annotated.bed > fst_gene_ids_names.txt
+
+
+
+
+下面为整理好的上述过程的脚本
+命名为# annotate_fst.sh 
+#!/bin/bash
+# 输入文件
+BED="merged_high_fst.bed"
+GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
+
+# 步骤1：提取基因（直接运行，若为空则需名称映射）
+bedtools intersect -a $BED -b $GFF -wa -wb | \
+awk -F'\t' '$8 == "gene" &#123;print $1,$2,$3,$12&#125;' OFS='\t' | \
+awk -F'[;\t]' '&#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&#125;' | sort | uniq > fst_genes.txt
+
+# 步骤2：检查结果
+echo "=== 前10行基因 ==="
+head fst_genes.txt
+echo "=== 行数统计 ==="
+wc -l fst_genes.txt
+
+
+
+4.通过基因ID提取蛋白序列下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好
+grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
+
+
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids.txt
+
+
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
+
+grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
+
+发现不能完全匹配所有LOC，查看哪些没匹配到
+# 找所有LOC对应的protein_id
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids_all.txt
+
+# 检查protein_ids.txt是否包含所有
+> comm -23 protein_ids_all.txt protein_ids.txt > missing_proteins.txt
+
+下面是上述命令整理好的查找脚本
+#!/bin/bash
+set -euo pipefail
+
+# 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）
+cut -f4 fst_gene_ids_names.txt | sort | uniq > gene_loc_ids.txt
+
+# 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
+    grep "protein_id=" | \
+    sed -r 's/.*protein_id=([^;]+).*/\1/' | \
+    sort | uniq > protein_ids.txt
+
+# 3. 使用seqkit提取对应的蛋白序列到指定文件
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
+
+# 4. 统计提取到的蛋白数量，确认数量
+grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
+
+
+
+5.对提取的蛋白进行注释conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
+conda activate eggnog3_env
+
+
+emapper.py -h
+
+tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data
+
+emapper.py -i proteins_extracted/fst_genes_proteins.faa \
+  --output fst_proteins_annotation \
+  --data_dir ./data \
+  -m diamond \
+  --cpu 12 \
+  --override
+
+
+
+下面是R中的操作，主要进行KEGG和GO分析
+1.对前面注释的基因进行聚类分析详细内容见 Fst_2.ipynb结果如上，没有达到我的预期，操作也较麻烦。
+2.构建非模式物种注释包org.Cgigas.eg.db详细内容见 Fst_3.ipynb 
+library(tidyverse)
+library(AnnotationForge)
+library(readxl)
+
+emapper %
+  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
+                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
+                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
+
+emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
+  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
+dim(gene2go)    #查看数据维度。
+#[1] 1523399       3
+
+#提取GID与KO信息，这里只有2列信息
+gene2ko%
+ separate_rows(KO, sep = ',', convert = F) %>%
+  dplyr::filter(!is.na(KO))
+dim(gene2ko)
+#[1] 30530     2
+
+#提取GID与Pathway信息，这里只有2列信息
+gene2pathway%
+separate_rows(Pathway, sep = ',', convert = F) %>%
+  dplyr::filter(!is.na(Pathway))
+ dim(gene2pathway)
+#[1] 143056      2
+
+#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
+gene2symbol%
+  dplyr::filter(!is.na(Gene_Symbol))
+dim(gene2symbol)
+#[1] 4561    2
+
+## 删除 GO ID 中的空格、制表符、换行符
+
+gene2go$GO
+
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
     <title>2.重测序数据分析——初步整理</title>
     <url>/2025/07/31/19/</url>
     <content><![CDATA[
@@ -474,165 +633,6 @@ rm -f NC_047567.1_results_*
       </categories>
   </entry>
   <entry>
-    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
-    <url>/2025/08/02/25/</url>
-    <content><![CDATA[
-前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。
-
-1.提取SNP位点信息## 设置FST阈值（例如取WEIGHTED_FST > 0.2）
-awk '$5 > 0.2' fst_binned.windowed.weir.fst > high_fst_windows.txt
-
-## 检查最高FST窗口
-sort -k5,5nr high_fst_windows.txt | head
-
-
-## 从高FST结果生成BED格式（用于后续注释）
-awk '&amp;#123;print $1"\t"$2"\t"$3"\t"$5&amp;#125;' high_fst_windows.txt > high_fst_regions.bed
-
-## 合并相邻窗口（如距离 merged_high_fst.bed
-
-2.对提取SNP位点注释然后提取与基因重叠的区域（需准备reference.gtf）
-## 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）
-bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
-awk -F'\t' '$8 == "gene" &amp;#123;print $1,$2,$3,$12&amp;#125;' OFS='\t' | \
-awk -F'[;\t]' '&amp;#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&amp;#125;' | sort | uniq > fst_genes.txt
-
-3.提取SNP位点所在基因的ID号awk -F'\t' '&amp;#123;
-  match($8, /ID=gene-([^;]+)/, id_arr);
-  match($8, /Name=([^;]+)/, name_arr);
-  if (id_arr[1] &amp;&amp; name_arr[1]) &amp;#123;
-    print $1, $2, $3, id_arr[1], name_arr[1];
-  &amp;#125;
-&amp;#125;' OFS='\t' fst_genes_annotated.bed > fst_gene_ids_names.txt
-
-
-
-
-下面为整理好的上述过程的脚本
-命名为# annotate_fst.sh 
-#!/bin/bash
-# 输入文件
-BED="merged_high_fst.bed"
-GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
-
-# 步骤1：提取基因（直接运行，若为空则需名称映射）
-bedtools intersect -a $BED -b $GFF -wa -wb | \
-awk -F'\t' '$8 == "gene" &#123;print $1,$2,$3,$12&#125;' OFS='\t' | \
-awk -F'[;\t]' '&#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&#125;' | sort | uniq > fst_genes.txt
-
-# 步骤2：检查结果
-echo "=== 前10行基因 ==="
-head fst_genes.txt
-echo "=== 行数统计 ==="
-wc -l fst_genes.txt
-
-
-
-4.通过基因ID提取蛋白序列下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好
-grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
-
-
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids.txt
-
-
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
-
-grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
-
-发现不能完全匹配所有LOC，查看哪些没匹配到
-# 找所有LOC对应的protein_id
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids_all.txt
-
-# 检查protein_ids.txt是否包含所有
-> comm -23 protein_ids_all.txt protein_ids.txt > missing_proteins.txt
-
-下面是上述命令整理好的查找脚本
-#!/bin/bash
-set -euo pipefail
-
-# 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）
-cut -f4 fst_gene_ids_names.txt | sort | uniq > gene_loc_ids.txt
-
-# 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
-    grep "protein_id=" | \
-    sed -r 's/.*protein_id=([^;]+).*/\1/' | \
-    sort | uniq > protein_ids.txt
-
-# 3. 使用seqkit提取对应的蛋白序列到指定文件
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
-
-# 4. 统计提取到的蛋白数量，确认数量
-grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
-
-
-
-5.对提取的蛋白进行注释conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
-conda activate eggnog3_env
-
-
-emapper.py -h
-
-tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data
-
-emapper.py -i proteins_extracted/fst_genes_proteins.faa \
-  --output fst_proteins_annotation \
-  --data_dir ./data \
-  -m diamond \
-  --cpu 12 \
-  --override
-
-
-
-下面是R中的操作，主要进行KEGG和GO分析
-1.对前面注释的基因进行聚类分析详细内容见 Fst_2.ipynb结果如上，没有达到我的预期，操作也较麻烦。
-2.构建非模式物种注释包org.Cgigas.eg.db详细内容见 Fst_3.ipynb 
-library(tidyverse)
-library(AnnotationForge)
-library(readxl)
-
-emapper %
-  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
-                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
-                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
-
-emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
-  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
-dim(gene2go)    #查看数据维度。
-#[1] 1523399       3
-
-#提取GID与KO信息，这里只有2列信息
-gene2ko%
- separate_rows(KO, sep = ',', convert = F) %>%
-  dplyr::filter(!is.na(KO))
-dim(gene2ko)
-#[1] 30530     2
-
-#提取GID与Pathway信息，这里只有2列信息
-gene2pathway%
-separate_rows(Pathway, sep = ',', convert = F) %>%
-  dplyr::filter(!is.na(Pathway))
- dim(gene2pathway)
-#[1] 143056      2
-
-#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
-gene2symbol%
-  dplyr::filter(!is.na(Gene_Symbol))
-dim(gene2symbol)
-#[1] 4561    2
-
-## 删除 GO ID 中的空格、制表符、换行符
-
-gene2go$GO
-
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
     <title>UZ801 随身wifi 刷debain 搭Blog</title>
     <url>/2024/11/21/4/</url>
     <content><![CDATA[在随身WiFi上部署个人博客完整指南0、写在前面感谢酷安社区里的 @handsomehacker @梦太晓 大佬的分享，本文很多部分都是参考自他们。
@@ -872,6 +872,107 @@ systemctl status frpc.service
       </categories>
   </entry>
   <entry>
+    <title>内网穿透</title>
+    <url>/2024/11/21/5/</url>
+    <content><![CDATA[前言对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。
+经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息：
+免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）免费隧道：4条流量：不限制并发：不限制除此之外访问地址并不会强制变化官网链接
+
+https://www.chmlfrp.cn
+
+使用教程这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。
+注册&#x2F;登录没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面：
+创建隧道随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道）
+然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载）
+然后填写相应隧道信息，如果没有特殊需求，一般只需要填写端口类型及内网端口。
+随后点击确定即可成功创建隧道
+启动隧道前往 “隧道管理 -&gt; 软件下载” 页面，下载对应你系统的软件。
+下载好后解压压缩包，一般来讲只需要这三个文件，其他文件可以删除，也可以选择保留。
+随后进入网站的 “隧道管理 -&gt; 配置文件” 页面，在此页面选择你创建隧道的节点，就可以获取到相应的配置文件。将获取的配置文件覆盖到文件夹的frpc.ini中：
+随后保存文件，然后在此文件夹创建一个 “启动.txt” 的文本档案，然后将.txt后缀改为.bat。（注意！此方法仅windows可用，且需要打开显示文件扩展名）
+右键 “启动.bat” ，点击编辑，输入以下代码：
+  ./frpc -c frpc.ini 
+接下来是设置开机后台自启
+新建一个启动服务
+编辑该服务
+重新加载
+启动服务
+开始服务
+查看服务状态
+重启
+在弹出的cmd窗口中直接输入frpc即可启动
+]]></content>
+      <categories>
+        <category>折腾</category>
+        <category>WIFI</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>5.各样本SNP位点信息可视化</title>
+    <url>/2025/08/03/40/</url>
+    <content><![CDATA[
+前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析
+
+需要用到的R包
+library(tidyverse)
+library(vcfR)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+下面以单个基因为例进行分析
+# 先读取数据（不自动解析列名）
+snp_data %
+  as.matrix()
+
+# 5. 可视化设置 ------------------------------------------------
+# 颜色映射
+gt_colors %
+  layout(
+    title = list(text = "SNP Genotype Heatmap", y = 0.98),
+    xaxis = list(
+      title = "Genomic Position",
+      rangeslider = list(visible = TRUE),  # 横向滚动条
+      type = "category",  # 防止数值排序
+      tickangle = 45
+    ),
+    yaxis = list(
+      title = list(text = "Sample", standoff = 30),
+      tickfont = list(size = 10),
+      automargin = TRUE,  # 自动调整边距
+      tickmode = "array",
+      tickvals = seq_len(nrow(heatmap_matrix)),
+      ticktext = rownames(heatmap_matrix)
+    ),
+    margin = list(
+      l = left_margin,  # 动态左边距
+      r = 50,
+      b = 100,
+      t = 100
+    )
+  )
+
+# 7. 输出结果 --------------------------------------------------
+# 在RStudio中直接查看
+print(fig)
+
+# 保存为HTML文件
+htmlwidgets::saveWidget(
+  widget = fig,
+  file = "snp_heatmap_complete.html",
+  title = "Interactive SNP Heatmap",
+  selfcontained = TRUE,
+  libdir = "lib"
+)
+
+输出结果如下
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
     <title>6.筛选组内一致率90%，组间有差异的SNP位点</title>
     <url>/2025/09/03/48/</url>
     <content><![CDATA[分析需求：请分析查找组间差异SNP &amp; Indel。需要找组内一致，组间具有差异的突变位点，样本一致率卡90%，即在大于90%的样本中突变型一致就认为是组内一致的突变。
@@ -1006,216 +1107,6 @@ fig  # 在RStudio中查看
       <categories>
         <category>默认分类</category>
         <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Typecho快速修改文章图片和文件链接地址</title>
-    <url>/2025/09/03/50/</url>
-    <content><![CDATA[说明为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。
-
-1.安装如果您使用的是基于 Debian 或 Ubuntu 的 Linux 系统，可以尝试使用 apt-get 命令。例如：
-
-sudo apt-get updatesudo apt-get install phpmyadmin
-
-
-The phpmyadmin package must have a database installed and configured before it cwith dbconfig-common.
-If you are an advanced database administrator and know that you want to performdatabase has already been installed and configured, you should refuse this optiomost likely be provided in &#x2F;usr&#x2F;share&#x2F;doc&#x2F;phpmyadmin.
-Otherwise, you should probably choose this option.
-Configure database for phpmyadmin with dbconfig-common? [yes&#x2F;no] yes
-Please provide a password for phpmyadmin to register with the database server. Igenerated.
-MySQL application password for phpmyadmin:
-Password confirmation:
-Determining localhost credentials from &#x2F;etc&#x2F;mysql&#x2F;debian.cnf: succeeded.请选择要自动配置以运行 phpMyAdmin 的网络服务器。
-
-apache2  2. lighttpd
-
-(Enter the items or ranges you want to select, separated by spaces.)
-要自动重新配置的网络服务器： 2
-dbconfig-common: writing config to &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf
-Creating config file &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf with new version
-Creating config file &#x2F;etc&#x2F;phpmyadmin&#x2F;config-db.php with new versionchecking privileges on database phpmyadmin for phpmyadmin@localhost: user creatigranting access to database phpmyadmin for phpmyadmin@localhost: success.verifying access for phpmyadmin@localhost: success.creating database phpmyadmin: success.verifying database phpmyadmin exists: success.populating database via sql…  done.dbconfig-common: flushing administrative passwordLighttpd not installed, skipping正在处理用于 libc-bin (2.31-13+deb11u2) 的触发器 …ldconfig: &#x2F;lib&#x2F;libusbgx.so.2 is not a symbolic link
-正在处理用于 php7.4-fpm (7.4.33-1+deb11u9) 的触发器 …正在处理用于 php7.4-cli (7.4.33-1+deb11u9) 的触发器 …
-
-选择了 lighttpd (选项2) 作为Web服务器，但你的系统实际上运行的是 Nginx
-下面是后续的解决步骤：
-第一步：手动配置 Nginx 以支持 phpMyAdmin由于自动配置失败了，我们需要手动为 Nginx 创建配置文件。
-
-创建 phpMyAdmin 的符号链接（如果尚未存在）：
-sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
-
-
-编辑 Nginx 站点配置文件：
-sudo nano /etc/nginx/sites-enabled/default
-
-
-在 server 块中添加以下 location 配置（放在PHP location块之前或之后）：
-
-
-    # phpMyAdmin 配置
-    location /phpmyadmin &#123;
-        root /usr/share/;
-        index index.php index.html index.htm;
-        
-        location ~ ^/phpmyadmin/(.+.php)$ &#123;
-            try_files $uri =404;
-            root /usr/share/;
-            fastcgi_pass unix:/run/php/php7.4-fpm.sock;
-            fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-            include /etc/nginx/fastcgi_params;
-        &#125;
-        
-        location ~* ^/phpmyadmin/(.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ &#123;
-            root /usr/share/;
-        &#125;
-    &#125;
-
-第二步：测试并重启 Nginx# 测试配置语法
-sudo nginx -t
-
-# 如果语法正确，重启Nginx
-sudo systemctl restart nginx
-# 或者使用重载
-sudo nginx -s reload
-
-第三步：访问 phpMyAdmin现在你应该可以通过浏览器访问 phpMyAdmin：
-http://你的服务器IP或域名/phpmyadmin
-
-第四步：登录 phpMyAdmin使用以下凭据登录：
-
-用户名：phpmyadmin（或者你之前设置的MySQL用户名）
-密码：你刚才安装时设置的密码
-
-如果遇到权限问题如果无法访问，可能需要调整权限：
-# 调整phpMyAdmin目录权限
-sudo chown -R www-data:www-data /usr/share/phpmyadmin/
-sudo chmod -R 755 /usr/share/phpmyadmin/
-
-验证MySQL连接如果仍然无法连接，检查MySQL用户权限：
-# 登录MySQL
-sudo mysql -u root -p
-
-# 检查phpmyadmin用户权限
-SELECT user, host FROM mysql.user;
-SHOW GRANTS FOR 'phpmyadmin'@'localhost';
-
-安全建议
-限制访问：考虑通过IP限制或HTTP认证来保护phpMyAdmin
-使用HTTPS：确保通过SSL访问phpMyAdmin
-修改URL路径：将 /phpmyadmin 改为不易猜测的路径
-
-这样配置后，phpMyAdmin 就应该可以正常工作了。完成后你可以通过浏览器访问并管理你的Typecho数据库，然后运行之前提到的SQL命令来批量更新图片链接。
-{lamp&#x2F;}
-方法操作前请各位先备份一下数据库
-(1)执行sql
-UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域名地址');
-
- typecho_contents  是typecho存放文章的一个表(2)方法2
-选中 typecho_contents ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 text ，确认后执行即可批量修改。
-]]></content>
-      <categories>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>5.各样本SNP位点信息可视化</title>
-    <url>/2025/08/03/40/</url>
-    <content><![CDATA[
-前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析
-
-需要用到的R包
-library(tidyverse)
-library(vcfR)
-library(data.table)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-
-下面以单个基因为例进行分析
-# 先读取数据（不自动解析列名）
-snp_data %
-  as.matrix()
-
-# 5. 可视化设置 ------------------------------------------------
-# 颜色映射
-gt_colors %
-  layout(
-    title = list(text = "SNP Genotype Heatmap", y = 0.98),
-    xaxis = list(
-      title = "Genomic Position",
-      rangeslider = list(visible = TRUE),  # 横向滚动条
-      type = "category",  # 防止数值排序
-      tickangle = 45
-    ),
-    yaxis = list(
-      title = list(text = "Sample", standoff = 30),
-      tickfont = list(size = 10),
-      automargin = TRUE,  # 自动调整边距
-      tickmode = "array",
-      tickvals = seq_len(nrow(heatmap_matrix)),
-      ticktext = rownames(heatmap_matrix)
-    ),
-    margin = list(
-      l = left_margin,  # 动态左边距
-      r = 50,
-      b = 100,
-      t = 100
-    )
-  )
-
-# 7. 输出结果 --------------------------------------------------
-# 在RStudio中直接查看
-print(fig)
-
-# 保存为HTML文件
-htmlwidgets::saveWidget(
-  widget = fig,
-  file = "snp_heatmap_complete.html",
-  title = "Interactive SNP Heatmap",
-  selfcontained = TRUE,
-  libdir = "lib"
-)
-
-输出结果如下
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>内网穿透</title>
-    <url>/2024/11/21/5/</url>
-    <content><![CDATA[前言对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。
-经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息：
-免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）免费隧道：4条流量：不限制并发：不限制除此之外访问地址并不会强制变化官网链接
-
-https://www.chmlfrp.cn
-
-使用教程这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。
-注册&#x2F;登录没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面：
-创建隧道随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道）
-然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载）
-然后填写相应隧道信息，如果没有特殊需求，一般只需要填写端口类型及内网端口。
-随后点击确定即可成功创建隧道
-启动隧道前往 “隧道管理 -&gt; 软件下载” 页面，下载对应你系统的软件。
-下载好后解压压缩包，一般来讲只需要这三个文件，其他文件可以删除，也可以选择保留。
-随后进入网站的 “隧道管理 -&gt; 配置文件” 页面，在此页面选择你创建隧道的节点，就可以获取到相应的配置文件。将获取的配置文件覆盖到文件夹的frpc.ini中：
-随后保存文件，然后在此文件夹创建一个 “启动.txt” 的文本档案，然后将.txt后缀改为.bat。（注意！此方法仅windows可用，且需要打开显示文件扩展名）
-右键 “启动.bat” ，点击编辑，输入以下代码：
-  ./frpc -c frpc.ini 
-接下来是设置开机后台自启
-新建一个启动服务
-编辑该服务
-重新加载
-启动服务
-开始服务
-查看服务状态
-重启
-在弹出的cmd窗口中直接输入frpc即可启动
-]]></content>
-      <categories>
-        <category>折腾</category>
-        <category>WIFI</category>
       </categories>
   </entry>
   <entry>
@@ -1526,6 +1417,115 @@ Hui Y, Kai W. Genomic variant annotation and prioritization with ANNOVAR and wAN
       </categories>
   </entry>
   <entry>
+    <title>Typecho快速修改文章图片和文件链接地址</title>
+    <url>/2025/09/03/50/</url>
+    <content><![CDATA[说明为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。
+
+1.安装如果您使用的是基于 Debian 或 Ubuntu 的 Linux 系统，可以尝试使用 apt-get 命令。例如：
+
+sudo apt-get updatesudo apt-get install phpmyadmin
+
+
+The phpmyadmin package must have a database installed and configured before it cwith dbconfig-common.
+If you are an advanced database administrator and know that you want to performdatabase has already been installed and configured, you should refuse this optiomost likely be provided in &#x2F;usr&#x2F;share&#x2F;doc&#x2F;phpmyadmin.
+Otherwise, you should probably choose this option.
+Configure database for phpmyadmin with dbconfig-common? [yes&#x2F;no] yes
+Please provide a password for phpmyadmin to register with the database server. Igenerated.
+MySQL application password for phpmyadmin:
+Password confirmation:
+Determining localhost credentials from &#x2F;etc&#x2F;mysql&#x2F;debian.cnf: succeeded.请选择要自动配置以运行 phpMyAdmin 的网络服务器。
+
+apache2  2. lighttpd
+
+(Enter the items or ranges you want to select, separated by spaces.)
+要自动重新配置的网络服务器： 2
+dbconfig-common: writing config to &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf
+Creating config file &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf with new version
+Creating config file &#x2F;etc&#x2F;phpmyadmin&#x2F;config-db.php with new versionchecking privileges on database phpmyadmin for phpmyadmin@localhost: user creatigranting access to database phpmyadmin for phpmyadmin@localhost: success.verifying access for phpmyadmin@localhost: success.creating database phpmyadmin: success.verifying database phpmyadmin exists: success.populating database via sql…  done.dbconfig-common: flushing administrative passwordLighttpd not installed, skipping正在处理用于 libc-bin (2.31-13+deb11u2) 的触发器 …ldconfig: &#x2F;lib&#x2F;libusbgx.so.2 is not a symbolic link
+正在处理用于 php7.4-fpm (7.4.33-1+deb11u9) 的触发器 …正在处理用于 php7.4-cli (7.4.33-1+deb11u9) 的触发器 …
+
+选择了 lighttpd (选项2) 作为Web服务器，但你的系统实际上运行的是 Nginx
+下面是后续的解决步骤：
+第一步：手动配置 Nginx 以支持 phpMyAdmin由于自动配置失败了，我们需要手动为 Nginx 创建配置文件。
+
+创建 phpMyAdmin 的符号链接（如果尚未存在）：
+sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+
+
+编辑 Nginx 站点配置文件：
+sudo nano /etc/nginx/sites-enabled/default
+
+
+在 server 块中添加以下 location 配置（放在PHP location块之前或之后）：
+
+
+    # phpMyAdmin 配置
+    location /phpmyadmin &#123;
+        root /usr/share/;
+        index index.php index.html index.htm;
+        
+        location ~ ^/phpmyadmin/(.+.php)$ &#123;
+            try_files $uri =404;
+            root /usr/share/;
+            fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include /etc/nginx/fastcgi_params;
+        &#125;
+        
+        location ~* ^/phpmyadmin/(.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ &#123;
+            root /usr/share/;
+        &#125;
+    &#125;
+
+第二步：测试并重启 Nginx# 测试配置语法
+sudo nginx -t
+
+# 如果语法正确，重启Nginx
+sudo systemctl restart nginx
+# 或者使用重载
+sudo nginx -s reload
+
+第三步：访问 phpMyAdmin现在你应该可以通过浏览器访问 phpMyAdmin：
+http://你的服务器IP或域名/phpmyadmin
+
+第四步：登录 phpMyAdmin使用以下凭据登录：
+
+用户名：phpmyadmin（或者你之前设置的MySQL用户名）
+密码：你刚才安装时设置的密码
+
+如果遇到权限问题如果无法访问，可能需要调整权限：
+# 调整phpMyAdmin目录权限
+sudo chown -R www-data:www-data /usr/share/phpmyadmin/
+sudo chmod -R 755 /usr/share/phpmyadmin/
+
+验证MySQL连接如果仍然无法连接，检查MySQL用户权限：
+# 登录MySQL
+sudo mysql -u root -p
+
+# 检查phpmyadmin用户权限
+SELECT user, host FROM mysql.user;
+SHOW GRANTS FOR 'phpmyadmin'@'localhost';
+
+安全建议
+限制访问：考虑通过IP限制或HTTP认证来保护phpMyAdmin
+使用HTTPS：确保通过SSL访问phpMyAdmin
+修改URL路径：将 /phpmyadmin 改为不易猜测的路径
+
+这样配置后，phpMyAdmin 就应该可以正常工作了。完成后你可以通过浏览器访问并管理你的Typecho数据库，然后运行之前提到的SQL命令来批量更新图片链接。
+{lamp&#x2F;}
+方法操作前请各位先备份一下数据库
+(1)执行sql
+UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域名地址');
+
+ typecho_contents  是typecho存放文章的一个表(2)方法2
+选中 typecho_contents ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 text ，确认后执行即可批量修改。
+]]></content>
+      <categories>
+        <category>WIFI</category>
+      </categories>
+  </entry>
+  <entry>
     <title>基因结构</title>
     <url>/2025/09/17/55/</url>
     <content><![CDATA[结构图!!!
@@ -1661,79 +1661,6 @@ class Transcription,Splicing process;
 ]]></content>
       <categories>
         <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>410随身WiFi棒子Debian刷入青龙教程</title>
-    <url>/2025/09/25/56/</url>
-    <content><![CDATA[备份教程刷Debian前请先备份（非常重要！！！）
-弄成砖了是可以刷回来的，大佬可忽略
-备份教程：	https://xiao54.com/linux/32.html视频教程：	https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1下载链接：	https://www.123pan.com/s/354uVv-z7YU3.html先进入fastboot模式，输入指令
-adb reboot bootloader
-
-410随身WiFi棒子Debian刷入青龙教程SSH账号密码解压要刷的Debian系统，然后点击一件刷入
-cmd登录地址:ssh &#114;&#x6f;&#111;&#116;&#x40;&#49;&#48;&#46;&#x34;&#50;&#x2e;&#x30;&#x2e;&#49; 密码:1313144
-SSH软件:IP:10.42.0.1 用户名:root 密码:1313144
-热点:4G-wifi 密码:12345678
-更新驱动更新驱动视频教程：https://player.bilibili.com/
-更新驱动前注意事项：需要安装vivo9008drivers.exe软件，如安装过请忽略
-1、在【Android Device】下查看有没有【Android Composite ADB Interface】这个驱动，如果不是，右键【更新驱动程序】-【浏览我的计算机以查找驱动程序软件】-【让我从计算机上的可用驱动程序列表中选取(L)】，选择【Android Composite ADB Interface或者USB Composite Device】-【下一步】
-2、插入棒子会显示一个未知设备或者RNDIS，不确定是那个就先拔掉棒子，然后重新插入
-3、下拉找到【网络适配器】-厂商下拉选择【Microsoft】型号下拉选择【基于远程 NDIS 的Internet 共享设备】-【下一步】-即可完成安装驱动
-网络编辑1、现在就用键盘上的方向键编辑，鼠标就不能用了
-nmtui
-
-2、把热点删除，因为他现在不支持WiFi和热点一起开启，所以要把热点删除连接WiFi给debian系统通网才能继续操作
-true > /etc/apt/sources.list.d/mobian.list
-
-3、更新软件包
-sudo apt-get update
-
-4、更新curl wget
-apt install curl wget
-
-5、安装docker系统
-apt install docker.io
-
-6、docker设置随服务启动而自启动
-systemctl enable docker
-
-7、启动docker
-systemctl start docker
-
-给docker设置加速代理1、创建文件夹
-sudo mkdir -p /etc/docker
-
-2、填入加速代理
-如不能使用则代理失效了，请更换代理，更换里面的链接即可。
-sudo tee /etc/docker/daemon.json  /sys/kernel/debug/usb/ci_hdrc.0/role
-安装1panel代码
-```html
-curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_start.sh &amp;&amp; bash quick_start.sh
-
-近期商家为了成本emmmc质量都不太行下面这个指令查看寿命
-查看棒子颗粒寿命查看内存寿命如果显示是0x01寿命就很好，如果显示0+09等越来越远的寿命也就离挂不远了：
-cat /sys/class/mmc_host/mmc0/mmc0\:0001/life_time
-
-
-410随身WiFi棒子Debian刷入青龙教程关灯方法一1、先安装dialog
-apt install dialog
-
-2、然后执行一键命令
-curl -L gitee.com/ojf6ii/led-control-script/raw/master/led2.sh -o /bin/ledctl &amp;&amp; chmod 755 /bin/ledctl
-
-3、下载完成后输入指令即可打开界面
-ledctl关灯方法二1、打开文件夹
-vi /etc/rc.local
-
-2、粘贴以下代码保存设置开机自启关闭led，重启即可生效
-echo none > /sys/class/leds/red\:os/trigger
-echo none > /sys/class/leds/blue\:wifi/trigger
-echo none > /sys/class/leds/green\:internet/trigger
-
-]]></content>
-      <categories>
-        <category>WIFI</category>
       </categories>
   </entry>
   <entry>
@@ -1875,6 +1802,79 @@ python main.py
 ]]></content>
       <categories>
         <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>410随身WiFi棒子Debian刷入青龙教程</title>
+    <url>/2025/09/25/56/</url>
+    <content><![CDATA[备份教程刷Debian前请先备份（非常重要！！！）
+弄成砖了是可以刷回来的，大佬可忽略
+备份教程：	https://xiao54.com/linux/32.html视频教程：	https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1下载链接：	https://www.123pan.com/s/354uVv-z7YU3.html先进入fastboot模式，输入指令
+adb reboot bootloader
+
+410随身WiFi棒子Debian刷入青龙教程SSH账号密码解压要刷的Debian系统，然后点击一件刷入
+cmd登录地址:ssh &#x72;&#111;&#111;&#x74;&#64;&#x31;&#x30;&#x2e;&#x34;&#x32;&#x2e;&#x30;&#46;&#x31; 密码:1313144
+SSH软件:IP:10.42.0.1 用户名:root 密码:1313144
+热点:4G-wifi 密码:12345678
+更新驱动更新驱动视频教程：https://player.bilibili.com/
+更新驱动前注意事项：需要安装vivo9008drivers.exe软件，如安装过请忽略
+1、在【Android Device】下查看有没有【Android Composite ADB Interface】这个驱动，如果不是，右键【更新驱动程序】-【浏览我的计算机以查找驱动程序软件】-【让我从计算机上的可用驱动程序列表中选取(L)】，选择【Android Composite ADB Interface或者USB Composite Device】-【下一步】
+2、插入棒子会显示一个未知设备或者RNDIS，不确定是那个就先拔掉棒子，然后重新插入
+3、下拉找到【网络适配器】-厂商下拉选择【Microsoft】型号下拉选择【基于远程 NDIS 的Internet 共享设备】-【下一步】-即可完成安装驱动
+网络编辑1、现在就用键盘上的方向键编辑，鼠标就不能用了
+nmtui
+
+2、把热点删除，因为他现在不支持WiFi和热点一起开启，所以要把热点删除连接WiFi给debian系统通网才能继续操作
+true > /etc/apt/sources.list.d/mobian.list
+
+3、更新软件包
+sudo apt-get update
+
+4、更新curl wget
+apt install curl wget
+
+5、安装docker系统
+apt install docker.io
+
+6、docker设置随服务启动而自启动
+systemctl enable docker
+
+7、启动docker
+systemctl start docker
+
+给docker设置加速代理1、创建文件夹
+sudo mkdir -p /etc/docker
+
+2、填入加速代理
+如不能使用则代理失效了，请更换代理，更换里面的链接即可。
+sudo tee /etc/docker/daemon.json  /sys/kernel/debug/usb/ci_hdrc.0/role
+安装1panel代码
+```html
+curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_start.sh &amp;&amp; bash quick_start.sh
+
+近期商家为了成本emmmc质量都不太行下面这个指令查看寿命
+查看棒子颗粒寿命查看内存寿命如果显示是0x01寿命就很好，如果显示0+09等越来越远的寿命也就离挂不远了：
+cat /sys/class/mmc_host/mmc0/mmc0\:0001/life_time
+
+
+410随身WiFi棒子Debian刷入青龙教程关灯方法一1、先安装dialog
+apt install dialog
+
+2、然后执行一键命令
+curl -L gitee.com/ojf6ii/led-control-script/raw/master/led2.sh -o /bin/ledctl &amp;&amp; chmod 755 /bin/ledctl
+
+3、下载完成后输入指令即可打开界面
+ledctl关灯方法二1、打开文件夹
+vi /etc/rc.local
+
+2、粘贴以下代码保存设置开机自启关闭led，重启即可生效
+echo none > /sys/class/leds/red\:os/trigger
+echo none > /sys/class/leds/blue\:wifi/trigger
+echo none > /sys/class/leds/green\:internet/trigger
+
+]]></content>
+      <categories>
+        <category>WIFI</category>
       </categories>
   </entry>
   <entry>
