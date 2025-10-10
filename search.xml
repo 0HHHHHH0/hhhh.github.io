@@ -1,6 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>1.NPC内网穿透——Linux</title>
+    <url>/2025/07/24/18/</url>
+    <content><![CDATA[
+历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。
+
+
+要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。
+
+用到的软件linux-npc.zip - 蓝奏云使用教程共两个步骤1.下载npc客户端后修改 npc.conf文件模板参考修改前
+[common]
+server_addr=填写服务器IP地址:8024
+conn_type=tcp
+vkey=唯一验证密钥
+
+示例如下：修改前
+
+修改后
+
+2.在文件目录中执行以下命令需要修改ip和密钥（不要修改服务端口和删除空格）
+
+
+
+基本使用
+无配置文件模式（推荐）详细命令行参数
+
+📌 适用于
+快速连接 NPS 服务器所有配置均在 Web 管理端完成客户端仅需运行一条命令📌 普通连接（TCP 模式）
+ ./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp 
+📌 TLS 加密连接（安全模式）
+ ./npc -server=ip:8025 -vkey=web界面中显示的密钥 -type=tls 
+📌 连接多个服务端
+ ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls 
+📌 说明：
+默认端口 8024 为非 TLS 端口，用于普通 TCP 连接如果 -type&#x3D;tls，必须使用 8025 作为 TLS 端口，否则连接失败
+
+注册到系统服务（开机启动 &amp; 守护进程）📌 适用于
+
+保证 NPC 在服务器重启后自动运行无需手动启动，后台运行Linux&#x2F;macOS
+# 普通连接（TCP）
+sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
+# TLS 加密连接（安全模式）
+sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off
+# 连接多个服务端
+sudo ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls -log=off
+
+# 启动服务
+sudo npc start
+# 停止服务
+sudo npc stop
+# 卸载（修改参数时需要先卸载再重新注册）
+ sudo npc uninstall 
+
+
+
+后面就是开放相应的端口，实现远程访问。
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
     <title>2.重测序数据分析——初步整理</title>
     <url>/2025/07/31/19/</url>
     <content><![CDATA[
@@ -236,226 +297,6 @@ p
       </categories>
   </entry>
   <entry>
-    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
-    <url>/2025/08/02/25/</url>
-    <content><![CDATA[
-前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。
-
-1.提取SNP位点信息## 设置FST阈值（例如取WEIGHTED_FST > 0.2）
-awk '$5 > 0.2' fst_binned.windowed.weir.fst > high_fst_windows.txt
-
-## 检查最高FST窗口
-sort -k5,5nr high_fst_windows.txt | head
-
-
-## 从高FST结果生成BED格式（用于后续注释）
-awk '&amp;#123;print $1"\t"$2"\t"$3"\t"$5&amp;#125;' high_fst_windows.txt > high_fst_regions.bed
-
-## 合并相邻窗口（如距离 merged_high_fst.bed
-
-2.对提取SNP位点注释然后提取与基因重叠的区域（需准备reference.gtf）
-## 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）
-bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
-awk -F'\t' '$8 == "gene" &amp;#123;print $1,$2,$3,$12&amp;#125;' OFS='\t' | \
-awk -F'[;\t]' '&amp;#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&amp;#125;' | sort | uniq > fst_genes.txt
-
-3.提取SNP位点所在基因的ID号awk -F'\t' '&amp;#123;
-  match($8, /ID=gene-([^;]+)/, id_arr);
-  match($8, /Name=([^;]+)/, name_arr);
-  if (id_arr[1] &amp;&amp; name_arr[1]) &amp;#123;
-    print $1, $2, $3, id_arr[1], name_arr[1];
-  &amp;#125;
-&amp;#125;' OFS='\t' fst_genes_annotated.bed > fst_gene_ids_names.txt
-
-
-
-
-下面为整理好的上述过程的脚本
-命名为# annotate_fst.sh 
-#!/bin/bash
-# 输入文件
-BED="merged_high_fst.bed"
-GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
-
-# 步骤1：提取基因（直接运行，若为空则需名称映射）
-bedtools intersect -a $BED -b $GFF -wa -wb | \
-awk -F'\t' '$8 == "gene" &#123;print $1,$2,$3,$12&#125;' OFS='\t' | \
-awk -F'[;\t]' '&#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&#125;' | sort | uniq > fst_genes.txt
-
-# 步骤2：检查结果
-echo "=== 前10行基因 ==="
-head fst_genes.txt
-echo "=== 行数统计 ==="
-wc -l fst_genes.txt
-
-
-
-4.通过基因ID提取蛋白序列下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好
-grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
-
-
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids.txt
-
-
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
-
-grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
-
-发现不能完全匹配所有LOC，查看哪些没匹配到
-# 找所有LOC对应的protein_id
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids_all.txt
-
-# 检查protein_ids.txt是否包含所有
-> comm -23 protein_ids_all.txt protein_ids.txt > missing_proteins.txt
-
-下面是上述命令整理好的查找脚本
-#!/bin/bash
-set -euo pipefail
-
-# 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）
-cut -f4 fst_gene_ids_names.txt | sort | uniq > gene_loc_ids.txt
-
-# 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
-    grep "protein_id=" | \
-    sed -r 's/.*protein_id=([^;]+).*/\1/' | \
-    sort | uniq > protein_ids.txt
-
-# 3. 使用seqkit提取对应的蛋白序列到指定文件
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
-
-# 4. 统计提取到的蛋白数量，确认数量
-grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
-
-
-
-5.对提取的蛋白进行注释conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
-conda activate eggnog3_env
-
-
-emapper.py -h
-
-tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data
-
-emapper.py -i proteins_extracted/fst_genes_proteins.faa \
-  --output fst_proteins_annotation \
-  --data_dir ./data \
-  -m diamond \
-  --cpu 12 \
-  --override
-
-
-
-下面是R中的操作，主要进行KEGG和GO分析
-1.对前面注释的基因进行聚类分析详细内容见 Fst_2.ipynb结果如上，没有达到我的预期，操作也较麻烦。
-2.构建非模式物种注释包org.Cgigas.eg.db详细内容见 Fst_3.ipynb 
-library(tidyverse)
-library(AnnotationForge)
-library(readxl)
-
-emapper %
-  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
-                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
-                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
-
-emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
-  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
-dim(gene2go)    #查看数据维度。
-#[1] 1523399       3
-
-#提取GID与KO信息，这里只有2列信息
-gene2ko%
- separate_rows(KO, sep = ',', convert = F) %>%
-  dplyr::filter(!is.na(KO))
-dim(gene2ko)
-#[1] 30530     2
-
-#提取GID与Pathway信息，这里只有2列信息
-gene2pathway%
-separate_rows(Pathway, sep = ',', convert = F) %>%
-  dplyr::filter(!is.na(Pathway))
- dim(gene2pathway)
-#[1] 143056      2
-
-#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
-gene2symbol%
-  dplyr::filter(!is.na(Gene_Symbol))
-dim(gene2symbol)
-#[1] 4561    2
-
-## 删除 GO ID 中的空格、制表符、换行符
-
-gene2go$GO
-
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>1.NPC内网穿透——Linux</title>
-    <url>/2025/07/24/18/</url>
-    <content><![CDATA[
-历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。
-
-
-要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。
-
-用到的软件linux-npc.zip - 蓝奏云使用教程共两个步骤1.下载npc客户端后修改 npc.conf文件模板参考修改前
-[common]
-server_addr=填写服务器IP地址:8024
-conn_type=tcp
-vkey=唯一验证密钥
-
-示例如下：修改前
-
-修改后
-
-2.在文件目录中执行以下命令需要修改ip和密钥（不要修改服务端口和删除空格）
-
-
-
-基本使用
-无配置文件模式（推荐）详细命令行参数
-
-📌 适用于
-快速连接 NPS 服务器所有配置均在 Web 管理端完成客户端仅需运行一条命令📌 普通连接（TCP 模式）
- ./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp 
-📌 TLS 加密连接（安全模式）
- ./npc -server=ip:8025 -vkey=web界面中显示的密钥 -type=tls 
-📌 连接多个服务端
- ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls 
-📌 说明：
-默认端口 8024 为非 TLS 端口，用于普通 TCP 连接如果 -type&#x3D;tls，必须使用 8025 作为 TLS 端口，否则连接失败
-
-注册到系统服务（开机启动 &amp; 守护进程）📌 适用于
-
-保证 NPC 在服务器重启后自动运行无需手动启动，后台运行Linux&#x2F;macOS
-# 普通连接（TCP）
-sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
-# TLS 加密连接（安全模式）
-sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off
-# 连接多个服务端
-sudo ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls -log=off
-
-# 启动服务
-sudo npc start
-# 停止服务
-sudo npc stop
-# 卸载（修改参数时需要先卸载再重新注册）
- sudo npc uninstall 
-
-
-
-后面就是开放相应的端口，实现远程访问。
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
     <title>4.提取重测序数据中黑白肌痕组中各SNP的位点信息及基因型频率</title>
     <url>/2025/08/03/32/</url>
     <content><![CDATA[相关的sh文件内容如下：
@@ -633,65 +474,159 @@ rm -f NC_047567.1_results_*
       </categories>
   </entry>
   <entry>
-    <title>5.各样本SNP位点信息可视化</title>
-    <url>/2025/08/03/40/</url>
+    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
+    <url>/2025/08/02/25/</url>
     <content><![CDATA[
-前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析
+前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。
 
-需要用到的R包
+1.提取SNP位点信息## 设置FST阈值（例如取WEIGHTED_FST > 0.2）
+awk '$5 > 0.2' fst_binned.windowed.weir.fst > high_fst_windows.txt
+
+## 检查最高FST窗口
+sort -k5,5nr high_fst_windows.txt | head
+
+
+## 从高FST结果生成BED格式（用于后续注释）
+awk '&amp;#123;print $1"\t"$2"\t"$3"\t"$5&amp;#125;' high_fst_windows.txt > high_fst_regions.bed
+
+## 合并相邻窗口（如距离 merged_high_fst.bed
+
+2.对提取SNP位点注释然后提取与基因重叠的区域（需准备reference.gtf）
+## 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）
+bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
+awk -F'\t' '$8 == "gene" &amp;#123;print $1,$2,$3,$12&amp;#125;' OFS='\t' | \
+awk -F'[;\t]' '&amp;#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&amp;#125;' | sort | uniq > fst_genes.txt
+
+3.提取SNP位点所在基因的ID号awk -F'\t' '&amp;#123;
+  match($8, /ID=gene-([^;]+)/, id_arr);
+  match($8, /Name=([^;]+)/, name_arr);
+  if (id_arr[1] &amp;&amp; name_arr[1]) &amp;#123;
+    print $1, $2, $3, id_arr[1], name_arr[1];
+  &amp;#125;
+&amp;#125;' OFS='\t' fst_genes_annotated.bed > fst_gene_ids_names.txt
+
+
+
+
+下面为整理好的上述过程的脚本
+命名为# annotate_fst.sh 
+#!/bin/bash
+# 输入文件
+BED="merged_high_fst.bed"
+GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
+
+# 步骤1：提取基因（直接运行，若为空则需名称映射）
+bedtools intersect -a $BED -b $GFF -wa -wb | \
+awk -F'\t' '$8 == "gene" &#123;print $1,$2,$3,$12&#125;' OFS='\t' | \
+awk -F'[;\t]' '&#123;gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4&#125;' | sort | uniq > fst_genes.txt
+
+# 步骤2：检查结果
+echo "=== 前10行基因 ==="
+head fst_genes.txt
+echo "=== 行数统计 ==="
+wc -l fst_genes.txt
+
+
+
+4.通过基因ID提取蛋白序列下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好
+grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
+
+
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids.txt
+
+
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
+
+grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
+
+发现不能完全匹配所有LOC，查看哪些没匹配到
+# 找所有LOC对应的protein_id
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq > protein_ids_all.txt
+
+# 检查protein_ids.txt是否包含所有
+> comm -23 protein_ids_all.txt protein_ids.txt > missing_proteins.txt
+
+下面是上述命令整理好的查找脚本
+#!/bin/bash
+set -euo pipefail
+
+# 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）
+cut -f4 fst_gene_ids_names.txt | sort | uniq > gene_loc_ids.txt
+
+# 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
+    grep "protein_id=" | \
+    sed -r 's/.*protein_id=([^;]+).*/\1/' | \
+    sort | uniq > protein_ids.txt
+
+# 3. 使用seqkit提取对应的蛋白序列到指定文件
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa > proteins_extracted/fst_genes_proteins.faa
+
+# 4. 统计提取到的蛋白数量，确认数量
+grep "^>" proteins_extracted/fst_genes_proteins.faa | wc -l
+
+
+
+5.对提取的蛋白进行注释conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
+conda activate eggnog3_env
+
+
+emapper.py -h
+
+tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data
+
+emapper.py -i proteins_extracted/fst_genes_proteins.faa \
+  --output fst_proteins_annotation \
+  --data_dir ./data \
+  -m diamond \
+  --cpu 12 \
+  --override
+
+
+
+下面是R中的操作，主要进行KEGG和GO分析
+1.对前面注释的基因进行聚类分析详细内容见 Fst_2.ipynb结果如上，没有达到我的预期，操作也较麻烦。
+2.构建非模式物种注释包org.Cgigas.eg.db详细内容见 Fst_3.ipynb 
 library(tidyverse)
-library(vcfR)
-library(data.table)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
+library(AnnotationForge)
+library(readxl)
 
-下面以单个基因为例进行分析
-# 先读取数据（不自动解析列名）
-snp_data %
-  as.matrix()
+emapper %
+  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
+                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
+                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
 
-# 5. 可视化设置 ------------------------------------------------
-# 颜色映射
-gt_colors %
-  layout(
-    title = list(text = "SNP Genotype Heatmap", y = 0.98),
-    xaxis = list(
-      title = "Genomic Position",
-      rangeslider = list(visible = TRUE),  # 横向滚动条
-      type = "category",  # 防止数值排序
-      tickangle = 45
-    ),
-    yaxis = list(
-      title = list(text = "Sample", standoff = 30),
-      tickfont = list(size = 10),
-      automargin = TRUE,  # 自动调整边距
-      tickmode = "array",
-      tickvals = seq_len(nrow(heatmap_matrix)),
-      ticktext = rownames(heatmap_matrix)
-    ),
-    margin = list(
-      l = left_margin,  # 动态左边距
-      r = 50,
-      b = 100,
-      t = 100
-    )
-  )
+emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
+  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
+dim(gene2go)    #查看数据维度。
+#[1] 1523399       3
 
-# 7. 输出结果 --------------------------------------------------
-# 在RStudio中直接查看
-print(fig)
+#提取GID与KO信息，这里只有2列信息
+gene2ko%
+ separate_rows(KO, sep = ',', convert = F) %>%
+  dplyr::filter(!is.na(KO))
+dim(gene2ko)
+#[1] 30530     2
 
-# 保存为HTML文件
-htmlwidgets::saveWidget(
-  widget = fig,
-  file = "snp_heatmap_complete.html",
-  title = "Interactive SNP Heatmap",
-  selfcontained = TRUE,
-  libdir = "lib"
-)
+#提取GID与Pathway信息，这里只有2列信息
+gene2pathway%
+separate_rows(Pathway, sep = ',', convert = F) %>%
+  dplyr::filter(!is.na(Pathway))
+ dim(gene2pathway)
+#[1] 143056      2
 
-输出结果如下
+#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
+gene2symbol%
+  dplyr::filter(!is.na(Gene_Symbol))
+dim(gene2symbol)
+#[1] 4561    2
+
+## 删除 GO ID 中的空格、制表符、换行符
+
+gene2go$GO
+
 ]]></content>
       <categories>
         <category>重测序</category>
@@ -1074,6 +1009,180 @@ fig  # 在RStudio中查看
       </categories>
   </entry>
   <entry>
+    <title>Typecho快速修改文章图片和文件链接地址</title>
+    <url>/2025/09/03/50/</url>
+    <content><![CDATA[说明为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。
+
+1.安装如果您使用的是基于 Debian 或 Ubuntu 的 Linux 系统，可以尝试使用 apt-get 命令。例如：
+
+sudo apt-get updatesudo apt-get install phpmyadmin
+
+
+The phpmyadmin package must have a database installed and configured before it cwith dbconfig-common.
+If you are an advanced database administrator and know that you want to performdatabase has already been installed and configured, you should refuse this optiomost likely be provided in &#x2F;usr&#x2F;share&#x2F;doc&#x2F;phpmyadmin.
+Otherwise, you should probably choose this option.
+Configure database for phpmyadmin with dbconfig-common? [yes&#x2F;no] yes
+Please provide a password for phpmyadmin to register with the database server. Igenerated.
+MySQL application password for phpmyadmin:
+Password confirmation:
+Determining localhost credentials from &#x2F;etc&#x2F;mysql&#x2F;debian.cnf: succeeded.请选择要自动配置以运行 phpMyAdmin 的网络服务器。
+
+apache2  2. lighttpd
+
+(Enter the items or ranges you want to select, separated by spaces.)
+要自动重新配置的网络服务器： 2
+dbconfig-common: writing config to &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf
+Creating config file &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf with new version
+Creating config file &#x2F;etc&#x2F;phpmyadmin&#x2F;config-db.php with new versionchecking privileges on database phpmyadmin for phpmyadmin@localhost: user creatigranting access to database phpmyadmin for phpmyadmin@localhost: success.verifying access for phpmyadmin@localhost: success.creating database phpmyadmin: success.verifying database phpmyadmin exists: success.populating database via sql…  done.dbconfig-common: flushing administrative passwordLighttpd not installed, skipping正在处理用于 libc-bin (2.31-13+deb11u2) 的触发器 …ldconfig: &#x2F;lib&#x2F;libusbgx.so.2 is not a symbolic link
+正在处理用于 php7.4-fpm (7.4.33-1+deb11u9) 的触发器 …正在处理用于 php7.4-cli (7.4.33-1+deb11u9) 的触发器 …
+
+选择了 lighttpd (选项2) 作为Web服务器，但你的系统实际上运行的是 Nginx
+下面是后续的解决步骤：
+第一步：手动配置 Nginx 以支持 phpMyAdmin由于自动配置失败了，我们需要手动为 Nginx 创建配置文件。
+
+创建 phpMyAdmin 的符号链接（如果尚未存在）：
+sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
+
+
+编辑 Nginx 站点配置文件：
+sudo nano /etc/nginx/sites-enabled/default
+
+
+在 server 块中添加以下 location 配置（放在PHP location块之前或之后）：
+
+
+    # phpMyAdmin 配置
+    location /phpmyadmin &#123;
+        root /usr/share/;
+        index index.php index.html index.htm;
+        
+        location ~ ^/phpmyadmin/(.+.php)$ &#123;
+            try_files $uri =404;
+            root /usr/share/;
+            fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include /etc/nginx/fastcgi_params;
+        &#125;
+        
+        location ~* ^/phpmyadmin/(.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ &#123;
+            root /usr/share/;
+        &#125;
+    &#125;
+
+第二步：测试并重启 Nginx# 测试配置语法
+sudo nginx -t
+
+# 如果语法正确，重启Nginx
+sudo systemctl restart nginx
+# 或者使用重载
+sudo nginx -s reload
+
+第三步：访问 phpMyAdmin现在你应该可以通过浏览器访问 phpMyAdmin：
+http://你的服务器IP或域名/phpmyadmin
+
+第四步：登录 phpMyAdmin使用以下凭据登录：
+
+用户名：phpmyadmin（或者你之前设置的MySQL用户名）
+密码：你刚才安装时设置的密码
+
+如果遇到权限问题如果无法访问，可能需要调整权限：
+# 调整phpMyAdmin目录权限
+sudo chown -R www-data:www-data /usr/share/phpmyadmin/
+sudo chmod -R 755 /usr/share/phpmyadmin/
+
+验证MySQL连接如果仍然无法连接，检查MySQL用户权限：
+# 登录MySQL
+sudo mysql -u root -p
+
+# 检查phpmyadmin用户权限
+SELECT user, host FROM mysql.user;
+SHOW GRANTS FOR 'phpmyadmin'@'localhost';
+
+安全建议
+限制访问：考虑通过IP限制或HTTP认证来保护phpMyAdmin
+使用HTTPS：确保通过SSL访问phpMyAdmin
+修改URL路径：将 /phpmyadmin 改为不易猜测的路径
+
+这样配置后，phpMyAdmin 就应该可以正常工作了。完成后你可以通过浏览器访问并管理你的Typecho数据库，然后运行之前提到的SQL命令来批量更新图片链接。
+{lamp&#x2F;}
+方法操作前请各位先备份一下数据库
+(1)执行sql
+UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域名地址');
+
+ typecho_contents  是typecho存放文章的一个表(2)方法2
+选中 typecho_contents ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 text ，确认后执行即可批量修改。
+]]></content>
+      <categories>
+        <category>WIFI</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>5.各样本SNP位点信息可视化</title>
+    <url>/2025/08/03/40/</url>
+    <content><![CDATA[
+前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析
+
+需要用到的R包
+library(tidyverse)
+library(vcfR)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+下面以单个基因为例进行分析
+# 先读取数据（不自动解析列名）
+snp_data %
+  as.matrix()
+
+# 5. 可视化设置 ------------------------------------------------
+# 颜色映射
+gt_colors %
+  layout(
+    title = list(text = "SNP Genotype Heatmap", y = 0.98),
+    xaxis = list(
+      title = "Genomic Position",
+      rangeslider = list(visible = TRUE),  # 横向滚动条
+      type = "category",  # 防止数值排序
+      tickangle = 45
+    ),
+    yaxis = list(
+      title = list(text = "Sample", standoff = 30),
+      tickfont = list(size = 10),
+      automargin = TRUE,  # 自动调整边距
+      tickmode = "array",
+      tickvals = seq_len(nrow(heatmap_matrix)),
+      ticktext = rownames(heatmap_matrix)
+    ),
+    margin = list(
+      l = left_margin,  # 动态左边距
+      r = 50,
+      b = 100,
+      t = 100
+    )
+  )
+
+# 7. 输出结果 --------------------------------------------------
+# 在RStudio中直接查看
+print(fig)
+
+# 保存为HTML文件
+htmlwidgets::saveWidget(
+  widget = fig,
+  file = "snp_heatmap_complete.html",
+  title = "Interactive SNP Heatmap",
+  selfcontained = TRUE,
+  libdir = "lib"
+)
+
+输出结果如下
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
     <title>内网穿透</title>
     <url>/2024/11/21/5/</url>
     <content><![CDATA[前言对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。
@@ -1110,6 +1219,451 @@ https://www.chmlfrp.cn
       </categories>
   </entry>
   <entry>
+    <title>ANNOVAR | 变异注释</title>
+    <url>/2025/09/16/53/</url>
+    <content><![CDATA[一、简介会得到一系列变异数据，这些变异数据只是告诉我们在基因组的某个位置发生了一段序列的改变，至于这个改变会不会影响生物学功能，我们并不清楚。而注释就是将基因组的序列变异数据转化为我们更关心的生物学功能变化的信息。
+Annovar常被用在人类基因组的注释上，其实，它也可以对人类以外的基因组数据进行注释。比如，老鼠基因组的注释上。需要自己进行建立注释信息。
+ANNOVAR是一个perl编写的命令行工具，能在安装了perl解释器的多种操作系统上执行。允许多种输入文件格式，包括最常被使用的VCF格式。输出文件也有多种格式，包括注释过的VCF文件、用tab或者逗号分隔的text文件。
+ANNOVAR能快速注释遗传变异并预测其功能。类似的variants注释软件还有 VEP, snpEff, VAAST, AnnTools等等.
+
+ANNOVAR 注释变异可以分成有基于基因、基于染色体区间和变异数据等三种类型. 这三种注释分别针对于每一个variant的不同方面：
+基于基因的注释（gene-based annotation）注释结果为突变位点位于基因的相对位置，是否改变氨基酸编码，确定受影响的氨基酸，获得变异位点的HGVS命名方式，揭示variant与已知基因直接的关系以及对其产生的功能性影响。可灵活使用RefSeq genes, UCSC genes, ENSEMBL genes, GENCODE genes或许多其他基因定义系统。
+基于染色体区间的注释（region-based annotation）识别特定基因组区域的变异，例如，44个物种中的保守区域，预测的转录因子结合位点, segmental duplication regions, GWAS hits, ChIP-Seq peaks, RNA-Seq peaks等等许多其他的在基因组区间的注释；
+变异数据库的注释 &#x2F; 基于过滤的注释（ filter-based annotation ）则给出这个variant的一系列信息，如： population frequency in different populations 和various types of variant-deleteriousness prediction scores, 这些可被用来过滤掉一些公共的及 probably（大概,肯定的成分较大,是most likely） nondeleterious variants. 包括Clinvar, dbSNP, Cosmic, ExAC, gnomAD等等，突变数据库整理可参考从 vcf 文件准备 ANNOVAR 数据库。鉴定特定数据库中记录的变异，例如，该变异位点是否在dbSNP中有报道，在千人基因组计划中的等位基因频率如何等等。
+ANNOVAR 数据库文件实际上为特定格式的文本文件，其数据库文件命名规则为: ${path_database}&#x2F;${buildver}_${database_name}.txt
+ANNOVAR 所有注释结果都在 vcf 文件 INFO 列添加key-value
+二、ANNOVAR的下载下载地址
+填写登记表，下载ANNOVAR软件（http://annovar.openbio informatics.org&#x2F;），解压文件
+tar xvfz annovar.latest.tar.gz解压后生成annovar文件夹，里面有6个perl脚本程序和2个文件夹。
+ANNOVAR 的文件结构|– annotate_variation.pl              # 主程序，功能包括下载数据库，三种不同的注释|– coding_change.pl                   # 可用来推断蛋白质序列|– convert2annovar.pl                 # 将多种格式转为.avinput的程序|– retrieve_seq_from_fasta.pl         # 用于自行建立其他物种的转录本|– table_annovar.pl                   # 注释程序，可一次性完成三种类型的注释|– variants_reduction.pl              # 可用来更灵活地定制过滤注释流程|– example                            # 存放示例文件|– humandb                            # 人类注释数据库自带了humandb是已经建立好的hg19或者GRCh37等常用的数据库，可用于人的注释。 如果要进行其他注释，需要使用 -downdb命令下载数据库到 humandb&#x2F; 目录。
+三、注释perl retrieve_seq_from_fasta.pl  –format refGene  –seqfile zunla.fasta  zunla_refGene.txt  –out zunla_refGeneMrna.fa
+
+用ANNOVAR注释人类基因组variants信息1.1 下载所有需要的注释信息库对于基于基因的注释的数据库已经在下好的 ANNOVAR package中了。如果要进行其他注释，需要按以下命令下载数据库到 ‘humandb&#x2F;’ 目录里：
+
+perl annotate_variation.pl --downdb --buildver hg19 cytoBand humandb/
+perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 1000g2014oct humandb/
+perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 exac03 humandb/
+perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 ljb26_all humandb/
+perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 clinvar_20140929 humandb/
+perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 snp138 humandb/
+
+# -buildver: 基因组对应版本
+# -webfrom annovar: 从annovar库里下载;如果annovar库中没有，则不用写该选项，会从UCSC中下载
+# refGene: 数据库名称
+# humandb/: 下载至该目录
+
+这里下载的是几个通常用到的数据库：1）cytoBand 是每个细胞间band（cytogenetic band）的染色体坐标信息 ,2）1000g2014oct　　　　for alternative allele frequency in the 1000 Genomes Project (version October 2014),　　　　是2014年10版，1000基因组项目（和ExAV 外显子集合联合一样，是公开、开放的数据库）　　　　里面供选择的等位基因频率信息3）exac03　　　　for the variants reported in the Exome Aggregation Consortium (version 0.3),　　　　是0.3版外显子集合联合中报道过的variants.4）ljb26_all　　　　for various functional deleteriousness prediction scores from the dbNSFP database (version 2.6),　　　　 dbNSFP: A Lightweight Database of Human NonsynonymousSNPs and TheirFunctionalPredictions on ResearchGate5）clinvar_20140929　　　　for the variants reported in the ClinVar database (version 20140929)　　　　ClinVar是美国国家生物技术信息中心（NCBI）于2012年11月宣布、2013年4月正式启动的公共、免费数据库。作为核心数据库，ClinVar数据库整合了十多个不同类型数据库、通过标准的命名法来描述疾病，同时支持科研人员将数据下载到本地中，开展更为个性化的研究。在遗传变异和临床表型方面，NCBI和不同的研究组已经建立了各种各样的数据库，数据信息相对比较分散，ClinVar数据库的目的在于整合这些分散的数据、将变异、临床表型、实证数据以及功能注解与分析等四个方面的信息，通过专家评审，逐步形成一个标准的、可信的、稳定的遗传变异-临床表型相关的数据库。6）snp138　　　　for the dbSNP database (version 138).
+注意：　　(i) 第一个命令中不包含 –webfrom annovar 选项, 因此是从the UCSC Genome Browser annotation database下载文件的；　　(ii) –buildver hg19 选项是针对hg19这一版的基因组的；　　(iii) 运行上面命令后，在 humandb&#x2F; 目录下会多几个以 hg19为前缀的文件。
+1.2 table_annovar.pl注释variants输入下列命令，用之前下载好的注释数据库来注释vcf格式文件中的variants。ANNOVAR 所有注释结果都在 vcf 文件 INFO 列添加key-value。输出的csv文件将包含输入的5列主要信息以及各个数据库里的注释。
+perl table_annovar.pl  humandb&#x2F; –outfile final –buildver hg19  –protocol refGene,cytoBand,1000g2014oct_eur,1000g2014oct_afr,exac03,ljb26_all,clinvar_20140929,snp138  –operation g,r,f,f,f,f,f,f  –vcfinput 参考输入的vcf文件的名称　　–protocol 选项后跟注释来源数据库的准确名称　　–operation选项后跟注释的类型:　　　　g 表示基于基因的注释（gene-based annotation）；　　　　r 表示基于区域的注释（region-based annotation）；　　　　f 表示基于筛选子的注释（ filter-based annotation）；　　–outfile 选项是指定输出文件的前缀
+关键步骤：　　1、确保注释数据库的名称正确并且是按你想要在输出文件中显示的顺序排列的；　　2、确保 –operation指定的注释类型顺序和–protocol指定的数据库顺序是一致的；　　3、确保每个protocal名称或注释类型之间只有一个逗号，并且没有空白。
+final.hg19_multianno.vcf.输出文件应该是以个VCF格式文件，INFO那列以 key&#x3D;value 形式、 ;分割成几个小区域. eg:Func.refGene&#x3D;intronic;Gene.refGene&#x3D;SAMD11. 每个键值对代表一个ANNOVAR注释信息。输出文件可以用为VCF格式文件设计的基因分析软件进一步处理。
+final.hg19_multianno.txt. 每一行代表一个variant 。用tab分隔，多余列为加上的注释信息，顺序按 –protocol选项所设定的注释类型argument。
+
+用Annovar注释人类以外的基因组（Gene-based annotation）Annovar常被用在人类基因组的注释上，其实，它也可以对人类以外的基因组数据进行注释。annovar一般只包含人类基因组注释数据库，其他的物种需要自己进行建立注释信息。
+
+2.1 以注释小鼠基因组为例一般如果你想看是否有某种物种,如小鼠mm9的注释库时，命令行运行
+perl annotate_variation.pl -builder mm9 -downdb avdblist -webfrom annovar .&#x2F;会生成一个mm9开头的文件，里面包含小鼠mm9有多少注释数据库，然后自己可以构建一个mousedb数据库 先在annovar文件夹里面创建mousedb文件夹（名字可自取），命令mkdir mousedb 然后使用annovar文件夹下的perl程序annotate_variation.pl
+perl annotate_variation.pl -downdb -buildver mm9 -webfrom annovar refGene mousedb&#x2F;这个命令能实现的是帮忙下载mm9的refGene的文件，保存在mousedb文件下，自动解压后文件名为mm9_refGene.txt。 然后程序会提示使用以下两个命令继续建库
+annotate_variation.pl –buildver mm9 –downdb seq mousedb&#x2F;mm9_seqretrieve_seq_from_fasta.pl mousedb&#x2F;mm9_refGene.txt -seqdir mousedb&#x2F;mm9_seq -format refGene -outfile mousedb&#x2F;mm9_refGeneMrna.fa同样在annovar文件下运行这两个perl程序
+perl annotate_variation.pl –buildver mm9 –downdb seq mousedb&#x2F;mm9_seq通过这个命令，会在mousedb下创建文件夹mm9_seq，并且在里面下载mm9的基因组文件chromFa.tar.gz，perl程序帮忙解压后是按染色体分开的fasta格式文件。 然后继续运行perl程序
+perl retrieve_seq_from_fasta.pl mousedb&#x2F;mm9_refGene.txt -seqdir mousedb&#x2F;mm9_seq -format refGene -outfile mousedb&#x2F;mm9_refGeneMrna.fa该程序会会在mousedb下创建mm9_refGeneMrna.fa文件，是根据mm9_refGene.txt的信息，重新构建成的老鼠转录表达基因fasta格式文件 这样老鼠mm9 annovar gene based注释库就弄好了 以文本文件test.input为案例进行测试 生成test.input的txt格式文件，根据annovar官网介绍，只要这最基本的五列信息就可以进行注释，五列分别染色体名称，染色体上的位置，染色体上的位置，参考基因组碱基，变异碱基。
+1       19215217        19215217        T       C
+1       33803084        33803084        A       G
+1       33803198        33803198        A       G
+1       37499237        37499237        T       C
+1       37499238        37499238        T       C
+1       37500003        37500003        T       C
+1       43826936        43826936        T       C
+1       58853960        58853960        A       G
+1       58854487        58854487        A       G
+1       60436865        60436865        T       C
+
+然后使用perl程序进行gene based的注释
+perl annotate_variation.pl -out test -build mm9 test.input mousedb注释后会生成test.variant_function，test.exonic_variant_function和test.log文件，前两个即为所需要的文件。用这个例子输出test.exonic_variant_function文件输出为空文件，因为这些位点没有在exonic区域的，所以没有结果。如果有位点在exonic中，则在test.exonic_variant_function中会更具体的描述为同义突变还是非同义突变
+intronic        Tfap2b  1       19215217        19215217        T       C
+UTR3            Bag2    1       33803084        33803084        A       G
+UTR3            Bag2    1       33803198        33803198        A       G
+UTR3            Mgat4a  1       37499237        37499237        T       C
+UTR3            Mgat4a  1       37499238        37499238        T       C
+UTR3            Mgat4a  1       37500003        37500003        T       C
+intronic        Uxs1    1       43826936        43826936        T       C
+intronic        Casp8   1       58853960        58853960        A       G
+intronic        Casp8   1       58854487        58854487        A       G
+intronic        Cyp20a1 1       60436865        60436865        T       C
+
+2.2 以注释大猩猩基因组（with the genome build identifier as panTro2.）为例。对于gene-based annotation， ANNOVAR需要 genePred format 的 gene definition file和 FASTA format 的 transcript sequence file；
+第一步：输入以下命令，下载大猩猩基因组定义文件（ gene definition file）及序列的 FASTA 文件到chimpdb&#x2F;目录
+perl annotate_variation.pl –downdb –buildver panTro2 gene chimpdb&#x2F;perl annotate_variation.pl –downdb –buildver panTro2 seq chimpdb&#x2F;panTro2_seq运行过程中，出现下列提示&#96;&#96;&#96;html—————————ADDITIONAL PROCEDURE—————————NOTICE: the FASTA file for the genome is not available to download but can be generated by the ANNOVAR software.PLEASE RUN THE FOLLOWING TWO COMMANDS CONSECUTIVELY TO GENERATE THE FASTA FILES (you may need to change -seqdir to -seqfile for some genomes):
+annotate_variation.pl --buildver panTro2 --downdb seq chimpdb/panTro2_seq
+retrieve_seq_from_fasta.pl chimpdb/panTro2_refGene.txt -seqdir chimpdb/panTro2_seq -format refGene -outfile chimpdb/panTro2_refGeneMrna.fa
+
+
+
+第二步：注意ANNOVAR数据库中只包含人类基因组已建好的转录本，不包含其他物种的。故需要按以下命令自行建立对应物种的transcript FASTA file
+
+perl retrieve_seq_from_fasta.pl chimpdb/panTro2_refGene.txt 
+  --seqdir chimpdb/panTro2_seq 
+  --format refGene 
+  --outfile chimpdb/panTro2_refGeneMrna.fa
+--seqdir说明下载的序列文件的所在目录；
+--format说明 gene definition file的格式.；
+--outfile 指定输出mRNA 序列文件的名称；
+
+关键：跟在--outfile后的输出文件名应该是 _refGeneMrna.fa这种形式，否则下一步找不到正确的 transcript FASTA sequence file.
+
+第三步：注释variants，with the chimpanzee gene annotation:
+
+perl table_annovar.pl  chimpdb/ 
+  --vcfinput 
+  --outfile final 
+  --buildver panTro2 
+  --protocol refGene 
+  --operation g
+ input VCF file；
+chimpdb/ directory of the downloaded data；
+
+第四步：输出结果文件核对。 final.panTro2_multianno.txt file. The gene annotation for chimpanzee is added after the input variants.
+
+关键：如果没有现成可用的gene definition file ，可以将基因预测工具产生的 GFF3 or GTF 文件转换成 gene definition file.
+
+&lt;div style=&quot;height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;&quot;&gt;&lt;/div&gt;
+
+
+## 三、构建自定义注释库
+ANNOVAR可以从服务器下载注释库，但是主要针对人类基因组，那么需要分析、注释其它的物种测序结果，怎么办呢，需要自建注释库。
+
+1 以注释长牡蛎基因组为例
+### 第一步：准备工作
+首先，需要参考基因组的序列和注释文件，这里是名为Cg长牡蛎
+
+GCF_902806645.1_cgigas_uk_roslin_v1_genomic.fna      # 长牡蛎 的参考基因组序列
+/home/wanglab/Ywh/adductor_muscle_scar/Crassostrea_gigas.cgigas_uk_roslin_v1.61.gtf       # 长牡蛎的注释文件，我这里是gtf
+ANNOVAR 建库需要 genePred 文件，因而需要准备几个转换 gtf 到 genePred 格式的软件
+
+gffread           # gff3 to gtf
+gtfToGenePred     # gtf to genePred
+gffread的下载地址，需要自行编译。编译过程会自行下载https://github.com/gpertea/gclib，也可以预先下载，然后 `make` 。
+```html
+git clone https://github.com/gpertea/gffread
+cd gffread
+make release
+
+推荐直接conda安装
+ conda install gffreadgtfToGenePred的下载地址，已经编译好了，下载直接使用，他属于UCSC工具包，因而在conda环境安装gtfToGenePred的命令为
+ conda install ucsc-gtftogenepredconda直接安装gtftogenepred没成功，需要加上UCSC前缀。
+第二步：建立注释库创建辣椒注释库的文件夹Cgigasdb，然后进去
+mkdir Cgigasdbcd Cgigasdb转换gff3 为 gtf，推荐使用GTF格式，因为有些GFF3格式文件转换可能不正确
+gffread Cgigas.gff -T -o Cgigas.gtf转换gtf 为 GenePred
+gtfToGenePred -genePredExt “&#x2F;home&#x2F;wanglab&#x2F;Ywh&#x2F;adductor_muscle_scar&#x2F;ReSeq_Data&#x2F;DZQD2023092909&#x2F;annovar&#x2F;Cgigasdb&#x2F;GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gtf” Cg_refGene.txt建立注释库
+perl ..&#x2F;retrieve_seq_from_fasta.pl –format refGene –seqfile GCF_902806645.1_cgigas_uk_roslin_v1_genomic.fna –outfile Cg_refGeneMrna.fa Cg_refGene.txt这样我们的建库就完成了，获得两个重要的文件
+Cgigas_refGeneMrna.faCgigas_refGene.txt强调：关于文件的命名，按照常规逻辑，这两个文件肯定不能随便命名，不然annovar无法识别！摸索了一下，前缀就是下面build参数使用的名字，这里就是Cgigas，下面注释就要使用“-build Cgigas”这个参数，对于基于基因注释的txt文件命名就是refGene，连起来就是 Cgigas_refGene.txt。而fa文件前缀一样，后面有稍稍差别为refGeneMrna，连起来就是Cgigas_refGeneMrna.fa。
+第三步：转换需要注释的vcf文件BB3.HC.vcf是HaplotypeCaller得到的vcf文件，转换成适用annovar的文件格式。得到的BB3.avinput就是我们需要注释的文件
+perl convert2annovar.pl -format vcf4 BB3.HC.vcf &gt; BB3.avinput
+# 将您的TSV转换为Annovar的avinput格式
+awk 'NR>1 &#123;print $1"\t"$2"\t"$2"\t"$3"\t"$4&#125;' /home/wanglab/Ywh/adductor_muscle_scar/Variants/filtered_variants_thr0p7_20250902_162128.tsv > filtered_variants_thr0p7_20250902_162128.avinput
+
+ANNOVAR主要使用convert2annovar.pl程序进行转换，转换后文件是精简过的，主要包含前面提到的5列内容，如果要将原格式的文件的所有内容都包含在转换后的.avinput文件中，可以使用-includeinfo参数；如果需要分开每个sample输出单一的.avinput文件，可以使用-allsample参数，等等。
+ANNOVAR还主要支持以下格式转换：
+SAMtools pileup formatComplete Genomics formatGFF3-SOLiD calling formatSOAPsnp calling formatMAQ calling formatCASAVA calling format
+第四步：annotate_variation注释# 一步完成注释和表格输出
+perl table_annovar.pl filtered_variants_thr0p7_20250902_162128.avinput Cgigasdb/ \
+   -buildver Cg \
+   -out filtered_variants_thr0p7_20250902_162128 \
+   -remove \
+   -protocol refGene \
+   -operation g \
+   -nastring . \
+   -csvout
+
+-geneanno -dbtype refGene是默认值，可以省略，那么命令也可以写成
+得到结果文件：
+BB3.exonic_variant_function     # 外显子区域突变的功能、类型等BB3.variant_function            # 突变的基因及位置BB3.log                         # 日志文件第五步：table_annovar.pl注释
+table_annovar.pl是ANNOVAR多个脚本的封装，可以一次性完成三种类型的注释。
+我这里只有regGene类型的注释库，那么注释命令为
+perl table_annovar.pl  
+  BB3.avinput pepperdb/  
+  -buildver zunla               # 使用zunla注释库
+  -out BB3 
+  -remove                       # 清除所有临时文件
+  -protocol refGene             # 注释库类型为refgene
+  -operation g                  # 操作子为g
+  -nastring .                   # 缺省值用“.”代替
+  -csvout                       # 输出csv文件
+
+table_annovar.pl也可以不经过转换，直接对vcf文件进行注释，添加-vcfinput参数就行，注释的内容将会放在vcf文件的“INFO”那一栏。但是需要注意的是不能和-csvout参数同时使用，命令如下
+perl table_annovar.pl 
+  BB3.HC.vcf 
+  pepperdb/  
+  -buildver zunla 
+  -out BB3 
+  -protocol refGene 
+  -operation g 
+  -nastring .  
+  -vcfinput 
+  -polish
+
+所以，两种输入格式
+VCF文件：用 -vcfinput指定avinput每行代表一个位点前5列依次为：chromosome, start position, end position, the reference nucleotides, the observed nucleotidesreference nucleotides：不知道时可设置为0observed nucleotides: insertion,deletion,block subsititution可用-表示其余列：可有可无，如果有，在输出文件中会原样输出。more BB3.avinput
+1       948921  948921  T       C       comments: rs15842, a SNP in 5' UTR of ISG15
+1       13211293        13211294        TC      -       comments: rs59770105, a 2-bp deletion
+1       11403596        11403596        -       AT      comments: rs35561142, a 2-bp insertion
+1       105492231       105492231       A       ATAAA   comments: rs10552169, a block substitution
+1       67705958        67705958        G       A       comments: rs11209026 (R381Q), a SNP in IL23R associated 
+
+cat example&#x2F;ex1.avinput
+1   948921  948921  T   C   comments: rs15842, a SNP in 5' UTR of ISG15
+1   1404001 1404001 G   T   comments: rs149123833, a SNP in 3' UTR of ATAD3C
+1   5935162 5935162 A   T   comments: rs1287637, a splice site variant in NPHP4
+1   162736463   162736463   C   T   comments: rs1000050, a SNP in Illumina SNP arrays
+1   84875173    84875173    C   T   comments: rs6576700 or SNP_A-1780419, a SNP in Affymetrix SNP arrays
+1   13211293    13211294    TC  -   comments: rs59770105, a 2-bp deletion
+1   11403596    11403596    -   AT  comments: rs35561142, a 2-bp insertion
+1   105492231   105492231   A   ATAAA   comments: rs10552169, a block substitution
+1   67705958    67705958    G   A   comments: rs11209026 (R381Q), a SNP in IL23R associated with Crohn's disease
+2   234183368   234183368   A   G   comments: rs2241880 (T300A), a SNP in the ATG16L1 associated with Crohn's disease
+
+该格式每列以tab分割，最重要的地方为前5列，分别是:
+染色体(Chromosome)起始位置(Start)结束位置(End)参考等位基因(Reference Allele)替代等位基因(Alternative Allele)剩下为注释部分（可选）。ANNOVAR主要也是依靠这5处信息对数据库进行比对，进而注释变异。
+报错：
+chmod 777 table_annovar.pl问题依旧！
+没办法，只能跑去table_annovar.pl脚本的444行看一下具体代码
+1.  #generate gene anno
+2.  my $sc;
+3.  $sc = $SC_PREFIX .  "annotate_variation.pl -geneanno -buildver $buildver -dbtype $protocol -outfile $tempfile.$protocol -exonsort -nofirstcodondel $queryfile $dbloc";  #20191010: add -nofirstcodondel
+4.  $argument and $sc .=  " $argument";
+5.  $intronhgvs and $sc .=  " -splicing_threshold $intronhgvs";
+
+7.  if  ($thread)  &amp;#123;
+8.  $sc .=  " -thread $thread";
+9.  &amp;#125;
+10.  if  ($maxgenethread)  &amp;#123;
+11.  $sc .=  " -maxgenethread $maxgenethread";
+12.  &amp;#125;
+
+14.  print STDERR "\nNOTICE: Running with system command \n";
+15.  system ($sc)  and  die  "Error running system command: \n";
+
+444行的内容为system ($sc) and die “Error running system command: \n”;看得出来，这里执行了system系统命令，往上查找变量$sc的值，发现这里调用了annotate_variation.pl脚本，同样
+chmod 777 annotate_variation.pl为了避免别的脚本权限问题，干脆全部777
+chmod 777 *成功解决权限问题。
+注释完的结果合并到原文件
+# 步骤1: 为原始文件添加行号
+awk 'NR==1 &amp;#123;print "LineNumber\t"$0&amp;#125; NR>1 &amp;#123;print NR-1"\t"$0&amp;#125;' /home/wanglab/Ywh/adductor_muscle_scar/Variants/filtered_variants_thr0p7_20250902_162128.tsv > original_with_linenum.tsv
+
+# 步骤2: 为注释文件添加行号
+awk 'NR==1 &amp;#123;print "LineNumber\t"$0&amp;#125; NR>1 &amp;#123;print NR-1"\t"$0&amp;#125;' filtered_variants_thr0p7_20250902_162128.Cg_multianno.csv > anno_with_linenum.tsv
+
+# 步骤3: 基于行号合并
+join -t $'\t' -1 1 -2 1 original_with_linenum.tsv anno_with_linenum.tsv > merged_result.tsv
+
+# 步骤4: 清理临时文件
+rm original_with_linenum.tsv anno_with_linenum.tsv
+
+2 以构建拟南芥（Arabidopsis thaliana）的注释所需文件为例第一步：准备下载Arabidopsis 的 GTF file 和 genome FASTA file，到 ‘atdb’目录下。解压文件。 地址
+mkdir atdb                                                                                                                                                
+cd atdb         
+wget ftp://ftp.ensemblgenomes.org/pub/release-27/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz                    
+wget ftp://ftp.ensemblgenomes.org/pub/release-27/plants/gtf/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.27.gtf.gz                                                                                                                                                                                                                   
+gunzip Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz             
+gunzip Arabidopsis_thaliana.TAIR10.27.gtf.gz  
+
+**第二步：用 gtfToGenePred 工具将 GTF file 转换 GenePred file
+gtfToGenePred -genePredExt Arabidopsis_thaliana.TAIR10.27.gtf AT_refGene.txt用retrieve_seq_from_fasta.pl生成 transcript FASTA file
+perl ..&#x2F;retrieve_seq_from_fasta.pl –format refGene –seqfile Arabidopsis_thaliana.TAIR10.27.dna.genome.fa AT_refGene.txt AT_refGeneMrna.faAfter this step, the annotation database files needed for gene-based annotation are ready. Now you can annotate a given VCF file using the procedure starting from B(iii). Please note that the ‘–buildver’ argument should be set to ‘AT’.参考http://annovar.openbioinformatics.org/en/latest/user-guide/gene/ for more details.bases and other arguments are the same as in the human genome annotation.
+总脚本如下
+下载物种基因序列、注释文件
+wget -c ftp://ftp.ensemblgenomes.org/pub/release-27/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz
+wget -c ftp://ftp.ensemblgenomes.org/pub/release-27/plants/gtf/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.27.gtf.gz
+gzip -d Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz
+gzip -d Arabidopsis_thaliana.TAIR10.27.gtf.gz
+
+#gtf文件格式转换
+wget -c http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/gtfToGenePred
+gtfToGenePred -genePredExt Arabidopsis_thaliana.TAIR10.27.gtf AT_refGene.txt
+ 
+# 另一种格式转换方法，https://github.com/chengcz/pyGTF
+
+# 使用软件包提供脚本build物种数据库，数据库buildver为AT，名称为refGene
+perl retrieve_seq_from_fasta.pl --format refGene --seqfile Arabidopsis_thaliana.TAIR10.27.dna.genome.fa AT_refGene.txt --out AT_refGeneMrna.fa
+
+五、批量注释&#x2F;home&#x2F;jmzeng&#x2F;bio-soft&#x2F;annovar&#x2F;convert2annovar.pl -format vcf4  Sample3.varscan.snp.vcf &gt; Sample3.annovar&#x2F;home&#x2F;jmzeng&#x2F;bio-soft&#x2F;annovar&#x2F;convert2annovar.pl -format vcf4  Sample4.varscan.snp.vcf &gt; Sample4.annovar&#x2F;home&#x2F;jmzeng&#x2F;bio-soft&#x2F;annovar&#x2F;convert2annovar.pl -format vcf4  Sample5.varscan.snp.vcf &gt; Sample5.annovar然后用下面这个脚本批量注释
+image001Reading gene annotation from &#x2F;home&#x2F;jmzeng&#x2F;bio-soft&#x2F;annovar&#x2F;humandb&#x2F;hg19_refGene.txt … Done with 50914 transcripts (including 11516 without coding sequence annotation) for 26271 unique genes
+最后查看结果可知，真正在外显子上面的突变并不多
+23515 Sample3.anno.exonic_variant_function23913 Sample4.anno.exonic_variant_function24009 Sample5.anno.exonic_variant_functionannovar软件就是把我们得到的十万多个snp分类了，看看这些snp分别是基因的哪些位置，是否引起蛋白突变
+downstreamexonicexonic;splicingintergenicintronicncRNA_exonicncRNA_intronicncRNA_splicingncRNA_UTR3ncRNA_UTR5splicingupstreamupstream;downstreamUTR3UTR5UTR5;UTR3六、一步到位：table_annovar.pl 可以同时进行3种注释perl table_annovar.pl example&#x2F;ex1.avinput humandb&#x2F; -buildver hg19 -out myanno -remove -protocol refGene,cytoBand,exac03,avsnp147,dbnsfp30a -operation gx,r,f,f,f -nastring . -csvout -polish -xref example&#x2F;gene_xref.txt#-remove: remove all temporary files#-operation:g,gene-based; gx,gene-based with cross-reference annotation (from -xref argument);r, region-based; f,filter-based.#-nastring：没有对应注释，则输出.#-csvout:结果用,分隔；去掉则采用默认，用Tab分隔#-xref: whether a known genetic disease is caused by defects in this gene (this information was suffplied in the  example&#x2F;gene_xref.txt file in the command line) 这一项没有也OK
+其中（每种数据库对应的类型参考官网）g,gene-based,对应数据库为refGene,ensGene等r,region-based,对应数据库为cytoBand等f,filter-based,对应数据库为exac03,avsnp147,dbnsfp30a等
+3种注释分开进行：annotate_variation.pl1 gene-basedperl annotate_variation.pl -geneanno -dbtype refGene -buildver hg19 example&#x2F;ex1.avinput humandb&#x2F;  
+结果文件在example&#x2F;中，ex1.avinput.variant_function和ex1.avinput.exonic_variant_function（1）ex1.avinput.variant_function
+[root@localhost example]# head ex1.avinput.variant_functionUTR5    ISG15(NM_005101:c.-33T&gt;C)       1       948921  948921  T       C       comments: rs15842, a SNP in 5’ UTR of ISG15UTR3    ATAD3C(NM_001039211:c.*91G&gt;T)   1       1404001 1404001 G       T       comments: rs149123833, a SNP in 3’ UTR of ATAD3C
+第1列：variant effects,将变异分类，如intergenic, intronic, non-synonymous SNP, frameshift deletion, large-scale duplication等第2列：基因名，Symbol，括号中为NM_22222,为refGene编号其余列：输入文件ex1.avinput的内容
+（2）ex1.avinput.exonic_variant_function
+[root@localhost example]# head  ex1.avinput.exonic_variant_functionline9   nonsynonymous SNV       IL23R:NM_144701:exon9:c.G1142A:p.R381Q, 1       67705958        67705958       GA       comments: rs11209026 (R381Q), a SNP in IL23R associated with Crohn’s diseaseline10  nonsynonymous SNV       ATG16L1:NM_017974:exon8:c.A841G:p.T281A,ATG16L1:NM_001190267:exon9:c.A550G:p.T184A,ATG16L1:NM_030803:exon9:c.A898G:p.T300A,ATG16L1:NM_001190266:exon9:c.A646G:p.T216A,ATG16L1:NM_198890:exon5:c.A409G:p.T137A,  2       234183368       234183368       A       G       comments: rs2241880 (T300A), a SNP in the ATG16L1 associated with Crohn’s diseaseline11  nonsynonymous SNV       NOD2:NM_022162:exon4:c.C2104T:p.R702W,NOD2:NM_001293557:exon3:c.C2023T:p.R675W,16       50745926        50745926        C       T       comments: rs2066844 (R702W), a non-synonymous SNP in NOD2
+第1列：该变异在input文件的行号第2列：对编码基因的影响，frameshift,nonsynonymous等第3列：被影响的基因或转录本,其中NM_22222,为refGene编号其余列：同输入文件
+用awk操作时，分隔符设定为\t；不设置时，空格也被当做分隔符，会造成错位
+[root@localhost example]# head  ex1.avinput.exonic_variant_function|awk -F ‘\t’ ‘{print $2}’nonsynonymous SNVnonsynonymous SNVnonsynonymous SNVnonsynonymous SNVframeshift insertionframeshift deletionframeshift deletionstoplossstopgainframeshift substitution
+[root@localhost example]# head  ex1.avinput.exonic_variant_function|awk ‘{print $2}’nonsynonymousnonsynonymousnonsynonymousnonsynonymousframeshiftframeshiftframeshiftstoplossstopgainframeshift
+2 region-basedperl annotate_variation.pl -regionanno -dbtype cytoBand -buildver hg19 example&#x2F;ex1.avinput humandb&#x2F; 
+鉴定各变异的cytogenetic band,如1p36.33结果文件在example中，ex1.avinput.hg19_cytoBand
+[root@localhost example]# more ex1.avinput.hg19_cytoBandcytoBand        1p36.33 1       948921  948921  T       C       comments: rs15842, a SNP in 5’ UTR of ISG15cytoBand        1p36.33 1       1404001 1404001 G       T       comments: rs149123833, a SNP in 3’ UTR of ATAD3CcytoBand        1p36.31 1       5935162 5935162 A       T       comments: rs1287637, a splice site variant in NPHP4cytoBand        1q23.3  1       162736463       162736463       C       T       comments: rs1000050, a SNP in Illumina SNP arrays第1列：cytoBand第2列：1p21.1其余列：同输入文件
+3 ilterperl annotate_variation.pl -filter -dbtype exac03 -buildver hg19 example&#x2F;ex1.avinput humandb&#x2F;结果文件在example&#x2F;中,ex1.avinput.hg19_exac03_filtered(exac03中没有报道的位点）和ex1.avinput.hg19_exac03_dropped（exac03中报道的位点，包含其等位基因频率）
+
+比较两个文件的重复值，保留后者重复项
+awk 'BEGIN &amp;#123;OFS="\t"&amp;#125; 
+     NR==FNR &amp;#123;if(FNR>1) start_values[$3] = 1; next&amp;#125; 
+     FNR==1 &amp;#123;print; next&amp;#125; 
+     $2 in start_values' annovar/merged_result.tsv filtered_variants_thr0p7_20250916_203336.tsv > filtered_filtered_variants_thr0p7_20250916_203336.tsv
+
+
+https://www.jianshu.com/p/84c818207240https://www.plob.org/article/9976.html
+snpEffhttps://www.bioinfo-scrounger.com/archives/268/
+重要http://www.bio-info-trainee.com/2028.htmlhttps://www.jianshu.com/p/cea3b179b8a9
+ANNOVAR注释变异VCF结果说明https://www.omicsclass.com/article/464https://www.omicsclass.com/article/804http://blog.sina.com.cn/s/blog_71df25810102ybtt.html
+Hui Y, Kai W. Genomic variant annotation and prioritization with ANNOVAR and wANNOVAR[J]. Nature Protocols, 2015, 10(10).
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>基因结构</title>
+    <url>/2025/09/17/55/</url>
+    <content><![CDATA[结构图!!!
+    flowchart TD
+    A[&quot;一个完整的真核生物基因（DNA模板链）&quot;]
+    
+    subgraph A_Sub[基因结构]
+        direction LR
+        Promoter[启动子 Promoter]
+        Exon1[外显子1 Exon 1]
+        Intron[内含子 Intron]
+        Exon2[外显子2 Exon 2]
+        Terminator[终止子 Terminator]
+    end
+    
+    A --&gt; A_Sub
+    
+    subgraph Transcription[第一步：转录]
+        direction TB
+        B[&quot;初级mRNA转录本（Pre-mRNA, 包含所有序列）&quot;]
+    end
+    
+    A_Sub --转录--&gt; Transcription
+    
+    subgraph Splicing[第二步：加工（剪切与拼接）]
+        direction TB
+        C[&quot;切除内含子并将外显子连接起来&quot;]
+    end
+    
+    Transcription --加工--&gt; Splicing
+    
+    subgraph Final_mRNA[第三步：成熟mRNA]
+        direction LR
+        D[&quot;5&#39; 帽子&quot;]
+        E[&quot;5&#39; UTR&quot;]
+        F[&quot;CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA&quot;]
+        G[&quot;3&#39; UTR&quot;]
+        H[&quot;多聚A尾巴&quot;]
+    end
+    
+    Splicing --&quot;拼接后形成&quot;--&gt; Final_mRNA
+    
+    %% 定义关系
+    Exon1 --包含--&gt; UTR1[5&#39; UTR部分]
+    Exon1 --包含--&gt; CDS_Part1[CDS部分]
+    Exon2 --包含--&gt; CDS_Part2[CDS部分]
+    Exon2 --包含--&gt; UTR2[3&#39; UTR部分]
+    
+    UTR1 --最终成为--&gt; E
+    CDS_Part1 --最终成为--&gt; F
+    CDS_Part2 --最终成为--&gt; F
+    UTR2 --最终成为--&gt; G
+    
+    Final_mRNA --&quot;进入细胞质进行翻译（核糖体）&quot;--&gt; I[&quot;合成的蛋白质&quot;]
+    F --&gt; I
+    
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
+    classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
+    classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
+    
+    class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
+    class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
+    class Transcription,Splicing process;
+
+!!!
+
+
+
+下面是代码
+flowchart TD
+A["一个完整的真核生物基因（DNA模板链）"]
+
+subgraph A_Sub[基因结构]
+    direction LR
+    Promoter[启动子 Promoter]
+    Exon1[外显子1 Exon 1]
+    Intron[内含子 Intron]
+    Exon2[外显子2 Exon 2]
+    Terminator[终止子 Terminator]
+end
+
+A --> A_Sub
+
+subgraph Transcription[第一步：转录]
+    direction TB
+    B["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]
+end
+
+A_Sub --转录--> Transcription
+
+subgraph Splicing[第二步：加工（剪切与拼接）]
+    direction TB
+    C["切除内含子并将外显子连接起来"]
+end
+
+Transcription --加工--> Splicing
+
+subgraph Final_mRNA[第三步：成熟mRNA]
+    direction LR
+    D["5' 帽子"]
+    E["5' UTR"]
+    F["CDS (编码序列)起始密码子AUG -> 终止密码子UAA/UAG/UGA"]
+    G["3' UTR"]
+    H["多聚A尾巴"]
+end
+
+Splicing --"拼接后形成"--> Final_mRNA
+
+%% 定义关系
+Exon1 --包含--> UTR1[5' UTR部分]
+Exon1 --包含--> CDS_Part1[CDS部分]
+Exon2 --包含--> CDS_Part2[CDS部分]
+Exon2 --包含--> UTR2[3' UTR部分]
+
+UTR1 --最终成为--> E
+CDS_Part1 --最终成为--> F
+CDS_Part2 --最终成为--> F
+UTR2 --最终成为--> G
+
+Final_mRNA --"进入细胞质进行翻译（核糖体）"--> I["合成的蛋白质"]
+F --> I
+
+classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
+classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
+classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
+
+class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
+class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
+class Transcription,Splicing process;
+
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
     <title>410随身WiFi棒子Debian刷入青龙教程</title>
     <url>/2025/09/25/56/</url>
     <content><![CDATA[备份教程刷Debian前请先备份（非常重要！！！）
@@ -1118,7 +1672,7 @@ https://www.chmlfrp.cn
 adb reboot bootloader
 
 410随身WiFi棒子Debian刷入青龙教程SSH账号密码解压要刷的Debian系统，然后点击一件刷入
-cmd登录地址:ssh &#x72;&#x6f;&#111;&#116;&#64;&#49;&#x30;&#46;&#x34;&#x32;&#46;&#48;&#x2e;&#49; 密码:1313144
+cmd登录地址:ssh &#114;&#x6f;&#111;&#116;&#x40;&#49;&#48;&#46;&#x34;&#50;&#x2e;&#x30;&#x2e;&#49; 密码:1313144
 SSH软件:IP:10.42.0.1 用户名:root 密码:1313144
 热点:4G-wifi 密码:12345678
 更新驱动更新驱动视频教程：https://player.bilibili.com/
@@ -1526,560 +2080,6 @@ timezone
 ]]></content>
       <categories>
         <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>基因结构</title>
-    <url>/2025/09/17/55/</url>
-    <content><![CDATA[结构图!!!
-    flowchart TD
-    A[&quot;一个完整的真核生物基因（DNA模板链）&quot;]
-    
-    subgraph A_Sub[基因结构]
-        direction LR
-        Promoter[启动子 Promoter]
-        Exon1[外显子1 Exon 1]
-        Intron[内含子 Intron]
-        Exon2[外显子2 Exon 2]
-        Terminator[终止子 Terminator]
-    end
-    
-    A --&gt; A_Sub
-    
-    subgraph Transcription[第一步：转录]
-        direction TB
-        B[&quot;初级mRNA转录本（Pre-mRNA, 包含所有序列）&quot;]
-    end
-    
-    A_Sub --转录--&gt; Transcription
-    
-    subgraph Splicing[第二步：加工（剪切与拼接）]
-        direction TB
-        C[&quot;切除内含子并将外显子连接起来&quot;]
-    end
-    
-    Transcription --加工--&gt; Splicing
-    
-    subgraph Final_mRNA[第三步：成熟mRNA]
-        direction LR
-        D[&quot;5&#39; 帽子&quot;]
-        E[&quot;5&#39; UTR&quot;]
-        F[&quot;CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA&quot;]
-        G[&quot;3&#39; UTR&quot;]
-        H[&quot;多聚A尾巴&quot;]
-    end
-    
-    Splicing --&quot;拼接后形成&quot;--&gt; Final_mRNA
-    
-    %% 定义关系
-    Exon1 --包含--&gt; UTR1[5&#39; UTR部分]
-    Exon1 --包含--&gt; CDS_Part1[CDS部分]
-    Exon2 --包含--&gt; CDS_Part2[CDS部分]
-    Exon2 --包含--&gt; UTR2[3&#39; UTR部分]
-    
-    UTR1 --最终成为--&gt; E
-    CDS_Part1 --最终成为--&gt; F
-    CDS_Part2 --最终成为--&gt; F
-    UTR2 --最终成为--&gt; G
-    
-    Final_mRNA --&quot;进入细胞质进行翻译（核糖体）&quot;--&gt; I[&quot;合成的蛋白质&quot;]
-    F --&gt; I
-    
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
-    classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
-    classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
-    
-    class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
-    class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
-    class Transcription,Splicing process;
-
-!!!
-
-
-
-下面是代码
-flowchart TD
-A["一个完整的真核生物基因（DNA模板链）"]
-
-subgraph A_Sub[基因结构]
-    direction LR
-    Promoter[启动子 Promoter]
-    Exon1[外显子1 Exon 1]
-    Intron[内含子 Intron]
-    Exon2[外显子2 Exon 2]
-    Terminator[终止子 Terminator]
-end
-
-A --> A_Sub
-
-subgraph Transcription[第一步：转录]
-    direction TB
-    B["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]
-end
-
-A_Sub --转录--> Transcription
-
-subgraph Splicing[第二步：加工（剪切与拼接）]
-    direction TB
-    C["切除内含子并将外显子连接起来"]
-end
-
-Transcription --加工--> Splicing
-
-subgraph Final_mRNA[第三步：成熟mRNA]
-    direction LR
-    D["5' 帽子"]
-    E["5' UTR"]
-    F["CDS (编码序列)起始密码子AUG -> 终止密码子UAA/UAG/UGA"]
-    G["3' UTR"]
-    H["多聚A尾巴"]
-end
-
-Splicing --"拼接后形成"--> Final_mRNA
-
-%% 定义关系
-Exon1 --包含--> UTR1[5' UTR部分]
-Exon1 --包含--> CDS_Part1[CDS部分]
-Exon2 --包含--> CDS_Part2[CDS部分]
-Exon2 --包含--> UTR2[3' UTR部分]
-
-UTR1 --最终成为--> E
-CDS_Part1 --最终成为--> F
-CDS_Part2 --最终成为--> F
-UTR2 --最终成为--> G
-
-Final_mRNA --"进入细胞质进行翻译（核糖体）"--> I["合成的蛋白质"]
-F --> I
-
-classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
-classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
-classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
-
-class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
-class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
-class Transcription,Splicing process;
-
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Typecho快速修改文章图片和文件链接地址</title>
-    <url>/2025/09/03/50/</url>
-    <content><![CDATA[说明为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。
-
-1.安装如果您使用的是基于 Debian 或 Ubuntu 的 Linux 系统，可以尝试使用 apt-get 命令。例如：
-
-sudo apt-get updatesudo apt-get install phpmyadmin
-
-
-The phpmyadmin package must have a database installed and configured before it cwith dbconfig-common.
-If you are an advanced database administrator and know that you want to performdatabase has already been installed and configured, you should refuse this optiomost likely be provided in &#x2F;usr&#x2F;share&#x2F;doc&#x2F;phpmyadmin.
-Otherwise, you should probably choose this option.
-Configure database for phpmyadmin with dbconfig-common? [yes&#x2F;no] yes
-Please provide a password for phpmyadmin to register with the database server. Igenerated.
-MySQL application password for phpmyadmin:
-Password confirmation:
-Determining localhost credentials from &#x2F;etc&#x2F;mysql&#x2F;debian.cnf: succeeded.请选择要自动配置以运行 phpMyAdmin 的网络服务器。
-
-apache2  2. lighttpd
-
-(Enter the items or ranges you want to select, separated by spaces.)
-要自动重新配置的网络服务器： 2
-dbconfig-common: writing config to &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf
-Creating config file &#x2F;etc&#x2F;dbconfig-common&#x2F;phpmyadmin.conf with new version
-Creating config file &#x2F;etc&#x2F;phpmyadmin&#x2F;config-db.php with new versionchecking privileges on database phpmyadmin for phpmyadmin@localhost: user creatigranting access to database phpmyadmin for phpmyadmin@localhost: success.verifying access for phpmyadmin@localhost: success.creating database phpmyadmin: success.verifying database phpmyadmin exists: success.populating database via sql…  done.dbconfig-common: flushing administrative passwordLighttpd not installed, skipping正在处理用于 libc-bin (2.31-13+deb11u2) 的触发器 …ldconfig: &#x2F;lib&#x2F;libusbgx.so.2 is not a symbolic link
-正在处理用于 php7.4-fpm (7.4.33-1+deb11u9) 的触发器 …正在处理用于 php7.4-cli (7.4.33-1+deb11u9) 的触发器 …
-
-选择了 lighttpd (选项2) 作为Web服务器，但你的系统实际上运行的是 Nginx
-下面是后续的解决步骤：
-第一步：手动配置 Nginx 以支持 phpMyAdmin由于自动配置失败了，我们需要手动为 Nginx 创建配置文件。
-
-创建 phpMyAdmin 的符号链接（如果尚未存在）：
-sudo ln -s /usr/share/phpmyadmin /var/www/html/phpmyadmin
-
-
-编辑 Nginx 站点配置文件：
-sudo nano /etc/nginx/sites-enabled/default
-
-
-在 server 块中添加以下 location 配置（放在PHP location块之前或之后）：
-
-
-    # phpMyAdmin 配置
-    location /phpmyadmin &#123;
-        root /usr/share/;
-        index index.php index.html index.htm;
-        
-        location ~ ^/phpmyadmin/(.+.php)$ &#123;
-            try_files $uri =404;
-            root /usr/share/;
-            fastcgi_pass unix:/run/php/php7.4-fpm.sock;
-            fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-            include /etc/nginx/fastcgi_params;
-        &#125;
-        
-        location ~* ^/phpmyadmin/(.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ &#123;
-            root /usr/share/;
-        &#125;
-    &#125;
-
-第二步：测试并重启 Nginx# 测试配置语法
-sudo nginx -t
-
-# 如果语法正确，重启Nginx
-sudo systemctl restart nginx
-# 或者使用重载
-sudo nginx -s reload
-
-第三步：访问 phpMyAdmin现在你应该可以通过浏览器访问 phpMyAdmin：
-http://你的服务器IP或域名/phpmyadmin
-
-第四步：登录 phpMyAdmin使用以下凭据登录：
-
-用户名：phpmyadmin（或者你之前设置的MySQL用户名）
-密码：你刚才安装时设置的密码
-
-如果遇到权限问题如果无法访问，可能需要调整权限：
-# 调整phpMyAdmin目录权限
-sudo chown -R www-data:www-data /usr/share/phpmyadmin/
-sudo chmod -R 755 /usr/share/phpmyadmin/
-
-验证MySQL连接如果仍然无法连接，检查MySQL用户权限：
-# 登录MySQL
-sudo mysql -u root -p
-
-# 检查phpmyadmin用户权限
-SELECT user, host FROM mysql.user;
-SHOW GRANTS FOR 'phpmyadmin'@'localhost';
-
-安全建议
-限制访问：考虑通过IP限制或HTTP认证来保护phpMyAdmin
-使用HTTPS：确保通过SSL访问phpMyAdmin
-修改URL路径：将 /phpmyadmin 改为不易猜测的路径
-
-这样配置后，phpMyAdmin 就应该可以正常工作了。完成后你可以通过浏览器访问并管理你的Typecho数据库，然后运行之前提到的SQL命令来批量更新图片链接。
-{lamp&#x2F;}
-方法操作前请各位先备份一下数据库
-(1)执行sql
-UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域名地址');
-
- typecho_contents  是typecho存放文章的一个表(2)方法2
-选中 typecho_contents ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 text ，确认后执行即可批量修改。
-]]></content>
-      <categories>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>ANNOVAR | 变异注释</title>
-    <url>/2025/09/16/53/</url>
-    <content><![CDATA[一、简介会得到一系列变异数据，这些变异数据只是告诉我们在基因组的某个位置发生了一段序列的改变，至于这个改变会不会影响生物学功能，我们并不清楚。而注释就是将基因组的序列变异数据转化为我们更关心的生物学功能变化的信息。
-Annovar常被用在人类基因组的注释上，其实，它也可以对人类以外的基因组数据进行注释。比如，老鼠基因组的注释上。需要自己进行建立注释信息。
-ANNOVAR是一个perl编写的命令行工具，能在安装了perl解释器的多种操作系统上执行。允许多种输入文件格式，包括最常被使用的VCF格式。输出文件也有多种格式，包括注释过的VCF文件、用tab或者逗号分隔的text文件。
-ANNOVAR能快速注释遗传变异并预测其功能。类似的variants注释软件还有 VEP, snpEff, VAAST, AnnTools等等.
-
-ANNOVAR 注释变异可以分成有基于基因、基于染色体区间和变异数据等三种类型. 这三种注释分别针对于每一个variant的不同方面：
-基于基因的注释（gene-based annotation）注释结果为突变位点位于基因的相对位置，是否改变氨基酸编码，确定受影响的氨基酸，获得变异位点的HGVS命名方式，揭示variant与已知基因直接的关系以及对其产生的功能性影响。可灵活使用RefSeq genes, UCSC genes, ENSEMBL genes, GENCODE genes或许多其他基因定义系统。
-基于染色体区间的注释（region-based annotation）识别特定基因组区域的变异，例如，44个物种中的保守区域，预测的转录因子结合位点, segmental duplication regions, GWAS hits, ChIP-Seq peaks, RNA-Seq peaks等等许多其他的在基因组区间的注释；
-变异数据库的注释 &#x2F; 基于过滤的注释（ filter-based annotation ）则给出这个variant的一系列信息，如： population frequency in different populations 和various types of variant-deleteriousness prediction scores, 这些可被用来过滤掉一些公共的及 probably（大概,肯定的成分较大,是most likely） nondeleterious variants. 包括Clinvar, dbSNP, Cosmic, ExAC, gnomAD等等，突变数据库整理可参考从 vcf 文件准备 ANNOVAR 数据库。鉴定特定数据库中记录的变异，例如，该变异位点是否在dbSNP中有报道，在千人基因组计划中的等位基因频率如何等等。
-ANNOVAR 数据库文件实际上为特定格式的文本文件，其数据库文件命名规则为: ${path_database}&#x2F;${buildver}_${database_name}.txt
-ANNOVAR 所有注释结果都在 vcf 文件 INFO 列添加key-value
-二、ANNOVAR的下载下载地址
-填写登记表，下载ANNOVAR软件（http://annovar.openbio informatics.org&#x2F;），解压文件
-tar xvfz annovar.latest.tar.gz解压后生成annovar文件夹，里面有6个perl脚本程序和2个文件夹。
-ANNOVAR 的文件结构|– annotate_variation.pl              # 主程序，功能包括下载数据库，三种不同的注释|– coding_change.pl                   # 可用来推断蛋白质序列|– convert2annovar.pl                 # 将多种格式转为.avinput的程序|– retrieve_seq_from_fasta.pl         # 用于自行建立其他物种的转录本|– table_annovar.pl                   # 注释程序，可一次性完成三种类型的注释|– variants_reduction.pl              # 可用来更灵活地定制过滤注释流程|– example                            # 存放示例文件|– humandb                            # 人类注释数据库自带了humandb是已经建立好的hg19或者GRCh37等常用的数据库，可用于人的注释。 如果要进行其他注释，需要使用 -downdb命令下载数据库到 humandb&#x2F; 目录。
-三、注释perl retrieve_seq_from_fasta.pl  –format refGene  –seqfile zunla.fasta  zunla_refGene.txt  –out zunla_refGeneMrna.fa
-
-用ANNOVAR注释人类基因组variants信息1.1 下载所有需要的注释信息库对于基于基因的注释的数据库已经在下好的 ANNOVAR package中了。如果要进行其他注释，需要按以下命令下载数据库到 ‘humandb&#x2F;’ 目录里：
-
-perl annotate_variation.pl --downdb --buildver hg19 cytoBand humandb/
-perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 1000g2014oct humandb/
-perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 exac03 humandb/
-perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 ljb26_all humandb/
-perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 clinvar_20140929 humandb/
-perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 snp138 humandb/
-
-# -buildver: 基因组对应版本
-# -webfrom annovar: 从annovar库里下载;如果annovar库中没有，则不用写该选项，会从UCSC中下载
-# refGene: 数据库名称
-# humandb/: 下载至该目录
-
-这里下载的是几个通常用到的数据库：1）cytoBand 是每个细胞间band（cytogenetic band）的染色体坐标信息 ,2）1000g2014oct　　　　for alternative allele frequency in the 1000 Genomes Project (version October 2014),　　　　是2014年10版，1000基因组项目（和ExAV 外显子集合联合一样，是公开、开放的数据库）　　　　里面供选择的等位基因频率信息3）exac03　　　　for the variants reported in the Exome Aggregation Consortium (version 0.3),　　　　是0.3版外显子集合联合中报道过的variants.4）ljb26_all　　　　for various functional deleteriousness prediction scores from the dbNSFP database (version 2.6),　　　　 dbNSFP: A Lightweight Database of Human NonsynonymousSNPs and TheirFunctionalPredictions on ResearchGate5）clinvar_20140929　　　　for the variants reported in the ClinVar database (version 20140929)　　　　ClinVar是美国国家生物技术信息中心（NCBI）于2012年11月宣布、2013年4月正式启动的公共、免费数据库。作为核心数据库，ClinVar数据库整合了十多个不同类型数据库、通过标准的命名法来描述疾病，同时支持科研人员将数据下载到本地中，开展更为个性化的研究。在遗传变异和临床表型方面，NCBI和不同的研究组已经建立了各种各样的数据库，数据信息相对比较分散，ClinVar数据库的目的在于整合这些分散的数据、将变异、临床表型、实证数据以及功能注解与分析等四个方面的信息，通过专家评审，逐步形成一个标准的、可信的、稳定的遗传变异-临床表型相关的数据库。6）snp138　　　　for the dbSNP database (version 138).
-注意：　　(i) 第一个命令中不包含 –webfrom annovar 选项, 因此是从the UCSC Genome Browser annotation database下载文件的；　　(ii) –buildver hg19 选项是针对hg19这一版的基因组的；　　(iii) 运行上面命令后，在 humandb&#x2F; 目录下会多几个以 hg19为前缀的文件。
-1.2 table_annovar.pl注释variants输入下列命令，用之前下载好的注释数据库来注释vcf格式文件中的variants。ANNOVAR 所有注释结果都在 vcf 文件 INFO 列添加key-value。输出的csv文件将包含输入的5列主要信息以及各个数据库里的注释。
-perl table_annovar.pl  humandb&#x2F; –outfile final –buildver hg19  –protocol refGene,cytoBand,1000g2014oct_eur,1000g2014oct_afr,exac03,ljb26_all,clinvar_20140929,snp138  –operation g,r,f,f,f,f,f,f  –vcfinput 参考输入的vcf文件的名称　　–protocol 选项后跟注释来源数据库的准确名称　　–operation选项后跟注释的类型:　　　　g 表示基于基因的注释（gene-based annotation）；　　　　r 表示基于区域的注释（region-based annotation）；　　　　f 表示基于筛选子的注释（ filter-based annotation）；　　–outfile 选项是指定输出文件的前缀
-关键步骤：　　1、确保注释数据库的名称正确并且是按你想要在输出文件中显示的顺序排列的；　　2、确保 –operation指定的注释类型顺序和–protocol指定的数据库顺序是一致的；　　3、确保每个protocal名称或注释类型之间只有一个逗号，并且没有空白。
-final.hg19_multianno.vcf.输出文件应该是以个VCF格式文件，INFO那列以 key&#x3D;value 形式、 ;分割成几个小区域. eg:Func.refGene&#x3D;intronic;Gene.refGene&#x3D;SAMD11. 每个键值对代表一个ANNOVAR注释信息。输出文件可以用为VCF格式文件设计的基因分析软件进一步处理。
-final.hg19_multianno.txt. 每一行代表一个variant 。用tab分隔，多余列为加上的注释信息，顺序按 –protocol选项所设定的注释类型argument。
-
-用Annovar注释人类以外的基因组（Gene-based annotation）Annovar常被用在人类基因组的注释上，其实，它也可以对人类以外的基因组数据进行注释。annovar一般只包含人类基因组注释数据库，其他的物种需要自己进行建立注释信息。
-
-2.1 以注释小鼠基因组为例一般如果你想看是否有某种物种,如小鼠mm9的注释库时，命令行运行
-perl annotate_variation.pl -builder mm9 -downdb avdblist -webfrom annovar .&#x2F;会生成一个mm9开头的文件，里面包含小鼠mm9有多少注释数据库，然后自己可以构建一个mousedb数据库 先在annovar文件夹里面创建mousedb文件夹（名字可自取），命令mkdir mousedb 然后使用annovar文件夹下的perl程序annotate_variation.pl
-perl annotate_variation.pl -downdb -buildver mm9 -webfrom annovar refGene mousedb&#x2F;这个命令能实现的是帮忙下载mm9的refGene的文件，保存在mousedb文件下，自动解压后文件名为mm9_refGene.txt。 然后程序会提示使用以下两个命令继续建库
-annotate_variation.pl –buildver mm9 –downdb seq mousedb&#x2F;mm9_seqretrieve_seq_from_fasta.pl mousedb&#x2F;mm9_refGene.txt -seqdir mousedb&#x2F;mm9_seq -format refGene -outfile mousedb&#x2F;mm9_refGeneMrna.fa同样在annovar文件下运行这两个perl程序
-perl annotate_variation.pl –buildver mm9 –downdb seq mousedb&#x2F;mm9_seq通过这个命令，会在mousedb下创建文件夹mm9_seq，并且在里面下载mm9的基因组文件chromFa.tar.gz，perl程序帮忙解压后是按染色体分开的fasta格式文件。 然后继续运行perl程序
-perl retrieve_seq_from_fasta.pl mousedb&#x2F;mm9_refGene.txt -seqdir mousedb&#x2F;mm9_seq -format refGene -outfile mousedb&#x2F;mm9_refGeneMrna.fa该程序会会在mousedb下创建mm9_refGeneMrna.fa文件，是根据mm9_refGene.txt的信息，重新构建成的老鼠转录表达基因fasta格式文件 这样老鼠mm9 annovar gene based注释库就弄好了 以文本文件test.input为案例进行测试 生成test.input的txt格式文件，根据annovar官网介绍，只要这最基本的五列信息就可以进行注释，五列分别染色体名称，染色体上的位置，染色体上的位置，参考基因组碱基，变异碱基。
-1       19215217        19215217        T       C
-1       33803084        33803084        A       G
-1       33803198        33803198        A       G
-1       37499237        37499237        T       C
-1       37499238        37499238        T       C
-1       37500003        37500003        T       C
-1       43826936        43826936        T       C
-1       58853960        58853960        A       G
-1       58854487        58854487        A       G
-1       60436865        60436865        T       C
-
-然后使用perl程序进行gene based的注释
-perl annotate_variation.pl -out test -build mm9 test.input mousedb注释后会生成test.variant_function，test.exonic_variant_function和test.log文件，前两个即为所需要的文件。用这个例子输出test.exonic_variant_function文件输出为空文件，因为这些位点没有在exonic区域的，所以没有结果。如果有位点在exonic中，则在test.exonic_variant_function中会更具体的描述为同义突变还是非同义突变
-intronic        Tfap2b  1       19215217        19215217        T       C
-UTR3            Bag2    1       33803084        33803084        A       G
-UTR3            Bag2    1       33803198        33803198        A       G
-UTR3            Mgat4a  1       37499237        37499237        T       C
-UTR3            Mgat4a  1       37499238        37499238        T       C
-UTR3            Mgat4a  1       37500003        37500003        T       C
-intronic        Uxs1    1       43826936        43826936        T       C
-intronic        Casp8   1       58853960        58853960        A       G
-intronic        Casp8   1       58854487        58854487        A       G
-intronic        Cyp20a1 1       60436865        60436865        T       C
-
-2.2 以注释大猩猩基因组（with the genome build identifier as panTro2.）为例。对于gene-based annotation， ANNOVAR需要 genePred format 的 gene definition file和 FASTA format 的 transcript sequence file；
-第一步：输入以下命令，下载大猩猩基因组定义文件（ gene definition file）及序列的 FASTA 文件到chimpdb&#x2F;目录
-perl annotate_variation.pl –downdb –buildver panTro2 gene chimpdb&#x2F;perl annotate_variation.pl –downdb –buildver panTro2 seq chimpdb&#x2F;panTro2_seq运行过程中，出现下列提示&#96;&#96;&#96;html—————————ADDITIONAL PROCEDURE—————————NOTICE: the FASTA file for the genome is not available to download but can be generated by the ANNOVAR software.PLEASE RUN THE FOLLOWING TWO COMMANDS CONSECUTIVELY TO GENERATE THE FASTA FILES (you may need to change -seqdir to -seqfile for some genomes):
-annotate_variation.pl --buildver panTro2 --downdb seq chimpdb/panTro2_seq
-retrieve_seq_from_fasta.pl chimpdb/panTro2_refGene.txt -seqdir chimpdb/panTro2_seq -format refGene -outfile chimpdb/panTro2_refGeneMrna.fa
-
-
-
-第二步：注意ANNOVAR数据库中只包含人类基因组已建好的转录本，不包含其他物种的。故需要按以下命令自行建立对应物种的transcript FASTA file
-
-perl retrieve_seq_from_fasta.pl chimpdb/panTro2_refGene.txt 
-  --seqdir chimpdb/panTro2_seq 
-  --format refGene 
-  --outfile chimpdb/panTro2_refGeneMrna.fa
---seqdir说明下载的序列文件的所在目录；
---format说明 gene definition file的格式.；
---outfile 指定输出mRNA 序列文件的名称；
-
-关键：跟在--outfile后的输出文件名应该是 _refGeneMrna.fa这种形式，否则下一步找不到正确的 transcript FASTA sequence file.
-
-第三步：注释variants，with the chimpanzee gene annotation:
-
-perl table_annovar.pl  chimpdb/ 
-  --vcfinput 
-  --outfile final 
-  --buildver panTro2 
-  --protocol refGene 
-  --operation g
- input VCF file；
-chimpdb/ directory of the downloaded data；
-
-第四步：输出结果文件核对。 final.panTro2_multianno.txt file. The gene annotation for chimpanzee is added after the input variants.
-
-关键：如果没有现成可用的gene definition file ，可以将基因预测工具产生的 GFF3 or GTF 文件转换成 gene definition file.
-
-&lt;div style=&quot;height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;&quot;&gt;&lt;/div&gt;
-
-
-## 三、构建自定义注释库
-ANNOVAR可以从服务器下载注释库，但是主要针对人类基因组，那么需要分析、注释其它的物种测序结果，怎么办呢，需要自建注释库。
-
-1 以注释长牡蛎基因组为例
-### 第一步：准备工作
-首先，需要参考基因组的序列和注释文件，这里是名为Cg长牡蛎
-
-GCF_902806645.1_cgigas_uk_roslin_v1_genomic.fna      # 长牡蛎 的参考基因组序列
-/home/wanglab/Ywh/adductor_muscle_scar/Crassostrea_gigas.cgigas_uk_roslin_v1.61.gtf       # 长牡蛎的注释文件，我这里是gtf
-ANNOVAR 建库需要 genePred 文件，因而需要准备几个转换 gtf 到 genePred 格式的软件
-
-gffread           # gff3 to gtf
-gtfToGenePred     # gtf to genePred
-gffread的下载地址，需要自行编译。编译过程会自行下载https://github.com/gpertea/gclib，也可以预先下载，然后 `make` 。
-```html
-git clone https://github.com/gpertea/gffread
-cd gffread
-make release
-
-推荐直接conda安装
- conda install gffreadgtfToGenePred的下载地址，已经编译好了，下载直接使用，他属于UCSC工具包，因而在conda环境安装gtfToGenePred的命令为
- conda install ucsc-gtftogenepredconda直接安装gtftogenepred没成功，需要加上UCSC前缀。
-第二步：建立注释库创建辣椒注释库的文件夹Cgigasdb，然后进去
-mkdir Cgigasdbcd Cgigasdb转换gff3 为 gtf，推荐使用GTF格式，因为有些GFF3格式文件转换可能不正确
-gffread Cgigas.gff -T -o Cgigas.gtf转换gtf 为 GenePred
-gtfToGenePred -genePredExt “&#x2F;home&#x2F;wanglab&#x2F;Ywh&#x2F;adductor_muscle_scar&#x2F;ReSeq_Data&#x2F;DZQD2023092909&#x2F;annovar&#x2F;Cgigasdb&#x2F;GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gtf” Cg_refGene.txt建立注释库
-perl ..&#x2F;retrieve_seq_from_fasta.pl –format refGene –seqfile GCF_902806645.1_cgigas_uk_roslin_v1_genomic.fna –outfile Cg_refGeneMrna.fa Cg_refGene.txt这样我们的建库就完成了，获得两个重要的文件
-Cgigas_refGeneMrna.faCgigas_refGene.txt强调：关于文件的命名，按照常规逻辑，这两个文件肯定不能随便命名，不然annovar无法识别！摸索了一下，前缀就是下面build参数使用的名字，这里就是Cgigas，下面注释就要使用“-build Cgigas”这个参数，对于基于基因注释的txt文件命名就是refGene，连起来就是 Cgigas_refGene.txt。而fa文件前缀一样，后面有稍稍差别为refGeneMrna，连起来就是Cgigas_refGeneMrna.fa。
-第三步：转换需要注释的vcf文件BB3.HC.vcf是HaplotypeCaller得到的vcf文件，转换成适用annovar的文件格式。得到的BB3.avinput就是我们需要注释的文件
-perl convert2annovar.pl -format vcf4 BB3.HC.vcf &gt; BB3.avinput
-# 将您的TSV转换为Annovar的avinput格式
-awk 'NR>1 &#123;print $1"\t"$2"\t"$2"\t"$3"\t"$4&#125;' /home/wanglab/Ywh/adductor_muscle_scar/Variants/filtered_variants_thr0p7_20250902_162128.tsv > filtered_variants_thr0p7_20250902_162128.avinput
-
-ANNOVAR主要使用convert2annovar.pl程序进行转换，转换后文件是精简过的，主要包含前面提到的5列内容，如果要将原格式的文件的所有内容都包含在转换后的.avinput文件中，可以使用-includeinfo参数；如果需要分开每个sample输出单一的.avinput文件，可以使用-allsample参数，等等。
-ANNOVAR还主要支持以下格式转换：
-SAMtools pileup formatComplete Genomics formatGFF3-SOLiD calling formatSOAPsnp calling formatMAQ calling formatCASAVA calling format
-第四步：annotate_variation注释# 一步完成注释和表格输出
-perl table_annovar.pl filtered_variants_thr0p7_20250902_162128.avinput Cgigasdb/ \
-   -buildver Cg \
-   -out filtered_variants_thr0p7_20250902_162128 \
-   -remove \
-   -protocol refGene \
-   -operation g \
-   -nastring . \
-   -csvout
-
--geneanno -dbtype refGene是默认值，可以省略，那么命令也可以写成
-得到结果文件：
-BB3.exonic_variant_function     # 外显子区域突变的功能、类型等BB3.variant_function            # 突变的基因及位置BB3.log                         # 日志文件第五步：table_annovar.pl注释
-table_annovar.pl是ANNOVAR多个脚本的封装，可以一次性完成三种类型的注释。
-我这里只有regGene类型的注释库，那么注释命令为
-perl table_annovar.pl  
-  BB3.avinput pepperdb/  
-  -buildver zunla               # 使用zunla注释库
-  -out BB3 
-  -remove                       # 清除所有临时文件
-  -protocol refGene             # 注释库类型为refgene
-  -operation g                  # 操作子为g
-  -nastring .                   # 缺省值用“.”代替
-  -csvout                       # 输出csv文件
-
-table_annovar.pl也可以不经过转换，直接对vcf文件进行注释，添加-vcfinput参数就行，注释的内容将会放在vcf文件的“INFO”那一栏。但是需要注意的是不能和-csvout参数同时使用，命令如下
-perl table_annovar.pl 
-  BB3.HC.vcf 
-  pepperdb/  
-  -buildver zunla 
-  -out BB3 
-  -protocol refGene 
-  -operation g 
-  -nastring .  
-  -vcfinput 
-  -polish
-
-所以，两种输入格式
-VCF文件：用 -vcfinput指定avinput每行代表一个位点前5列依次为：chromosome, start position, end position, the reference nucleotides, the observed nucleotidesreference nucleotides：不知道时可设置为0observed nucleotides: insertion,deletion,block subsititution可用-表示其余列：可有可无，如果有，在输出文件中会原样输出。more BB3.avinput
-1       948921  948921  T       C       comments: rs15842, a SNP in 5' UTR of ISG15
-1       13211293        13211294        TC      -       comments: rs59770105, a 2-bp deletion
-1       11403596        11403596        -       AT      comments: rs35561142, a 2-bp insertion
-1       105492231       105492231       A       ATAAA   comments: rs10552169, a block substitution
-1       67705958        67705958        G       A       comments: rs11209026 (R381Q), a SNP in IL23R associated 
-
-cat example&#x2F;ex1.avinput
-1   948921  948921  T   C   comments: rs15842, a SNP in 5' UTR of ISG15
-1   1404001 1404001 G   T   comments: rs149123833, a SNP in 3' UTR of ATAD3C
-1   5935162 5935162 A   T   comments: rs1287637, a splice site variant in NPHP4
-1   162736463   162736463   C   T   comments: rs1000050, a SNP in Illumina SNP arrays
-1   84875173    84875173    C   T   comments: rs6576700 or SNP_A-1780419, a SNP in Affymetrix SNP arrays
-1   13211293    13211294    TC  -   comments: rs59770105, a 2-bp deletion
-1   11403596    11403596    -   AT  comments: rs35561142, a 2-bp insertion
-1   105492231   105492231   A   ATAAA   comments: rs10552169, a block substitution
-1   67705958    67705958    G   A   comments: rs11209026 (R381Q), a SNP in IL23R associated with Crohn's disease
-2   234183368   234183368   A   G   comments: rs2241880 (T300A), a SNP in the ATG16L1 associated with Crohn's disease
-
-该格式每列以tab分割，最重要的地方为前5列，分别是:
-染色体(Chromosome)起始位置(Start)结束位置(End)参考等位基因(Reference Allele)替代等位基因(Alternative Allele)剩下为注释部分（可选）。ANNOVAR主要也是依靠这5处信息对数据库进行比对，进而注释变异。
-报错：
-chmod 777 table_annovar.pl问题依旧！
-没办法，只能跑去table_annovar.pl脚本的444行看一下具体代码
-1.  #generate gene anno
-2.  my $sc;
-3.  $sc = $SC_PREFIX .  "annotate_variation.pl -geneanno -buildver $buildver -dbtype $protocol -outfile $tempfile.$protocol -exonsort -nofirstcodondel $queryfile $dbloc";  #20191010: add -nofirstcodondel
-4.  $argument and $sc .=  " $argument";
-5.  $intronhgvs and $sc .=  " -splicing_threshold $intronhgvs";
-
-7.  if  ($thread)  &amp;#123;
-8.  $sc .=  " -thread $thread";
-9.  &amp;#125;
-10.  if  ($maxgenethread)  &amp;#123;
-11.  $sc .=  " -maxgenethread $maxgenethread";
-12.  &amp;#125;
-
-14.  print STDERR "\nNOTICE: Running with system command \n";
-15.  system ($sc)  and  die  "Error running system command: \n";
-
-444行的内容为system ($sc) and die “Error running system command: \n”;看得出来，这里执行了system系统命令，往上查找变量$sc的值，发现这里调用了annotate_variation.pl脚本，同样
-chmod 777 annotate_variation.pl为了避免别的脚本权限问题，干脆全部777
-chmod 777 *成功解决权限问题。
-注释完的结果合并到原文件
-# 步骤1: 为原始文件添加行号
-awk 'NR==1 &amp;#123;print "LineNumber\t"$0&amp;#125; NR>1 &amp;#123;print NR-1"\t"$0&amp;#125;' /home/wanglab/Ywh/adductor_muscle_scar/Variants/filtered_variants_thr0p7_20250902_162128.tsv > original_with_linenum.tsv
-
-# 步骤2: 为注释文件添加行号
-awk 'NR==1 &amp;#123;print "LineNumber\t"$0&amp;#125; NR>1 &amp;#123;print NR-1"\t"$0&amp;#125;' filtered_variants_thr0p7_20250902_162128.Cg_multianno.csv > anno_with_linenum.tsv
-
-# 步骤3: 基于行号合并
-join -t $'\t' -1 1 -2 1 original_with_linenum.tsv anno_with_linenum.tsv > merged_result.tsv
-
-# 步骤4: 清理临时文件
-rm original_with_linenum.tsv anno_with_linenum.tsv
-
-2 以构建拟南芥（Arabidopsis thaliana）的注释所需文件为例第一步：准备下载Arabidopsis 的 GTF file 和 genome FASTA file，到 ‘atdb’目录下。解压文件。 地址
-mkdir atdb                                                                                                                                                
-cd atdb         
-wget ftp://ftp.ensemblgenomes.org/pub/release-27/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz                    
-wget ftp://ftp.ensemblgenomes.org/pub/release-27/plants/gtf/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.27.gtf.gz                                                                                                                                                                                                                   
-gunzip Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz             
-gunzip Arabidopsis_thaliana.TAIR10.27.gtf.gz  
-
-**第二步：用 gtfToGenePred 工具将 GTF file 转换 GenePred file
-gtfToGenePred -genePredExt Arabidopsis_thaliana.TAIR10.27.gtf AT_refGene.txt用retrieve_seq_from_fasta.pl生成 transcript FASTA file
-perl ..&#x2F;retrieve_seq_from_fasta.pl –format refGene –seqfile Arabidopsis_thaliana.TAIR10.27.dna.genome.fa AT_refGene.txt AT_refGeneMrna.faAfter this step, the annotation database files needed for gene-based annotation are ready. Now you can annotate a given VCF file using the procedure starting from B(iii). Please note that the ‘–buildver’ argument should be set to ‘AT’.参考http://annovar.openbioinformatics.org/en/latest/user-guide/gene/ for more details.bases and other arguments are the same as in the human genome annotation.
-总脚本如下
-下载物种基因序列、注释文件
-wget -c ftp://ftp.ensemblgenomes.org/pub/release-27/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz
-wget -c ftp://ftp.ensemblgenomes.org/pub/release-27/plants/gtf/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.27.gtf.gz
-gzip -d Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz
-gzip -d Arabidopsis_thaliana.TAIR10.27.gtf.gz
-
-#gtf文件格式转换
-wget -c http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/gtfToGenePred
-gtfToGenePred -genePredExt Arabidopsis_thaliana.TAIR10.27.gtf AT_refGene.txt
- 
-# 另一种格式转换方法，https://github.com/chengcz/pyGTF
-
-# 使用软件包提供脚本build物种数据库，数据库buildver为AT，名称为refGene
-perl retrieve_seq_from_fasta.pl --format refGene --seqfile Arabidopsis_thaliana.TAIR10.27.dna.genome.fa AT_refGene.txt --out AT_refGeneMrna.fa
-
-五、批量注释&#x2F;home&#x2F;jmzeng&#x2F;bio-soft&#x2F;annovar&#x2F;convert2annovar.pl -format vcf4  Sample3.varscan.snp.vcf &gt; Sample3.annovar&#x2F;home&#x2F;jmzeng&#x2F;bio-soft&#x2F;annovar&#x2F;convert2annovar.pl -format vcf4  Sample4.varscan.snp.vcf &gt; Sample4.annovar&#x2F;home&#x2F;jmzeng&#x2F;bio-soft&#x2F;annovar&#x2F;convert2annovar.pl -format vcf4  Sample5.varscan.snp.vcf &gt; Sample5.annovar然后用下面这个脚本批量注释
-image001Reading gene annotation from &#x2F;home&#x2F;jmzeng&#x2F;bio-soft&#x2F;annovar&#x2F;humandb&#x2F;hg19_refGene.txt … Done with 50914 transcripts (including 11516 without coding sequence annotation) for 26271 unique genes
-最后查看结果可知，真正在外显子上面的突变并不多
-23515 Sample3.anno.exonic_variant_function23913 Sample4.anno.exonic_variant_function24009 Sample5.anno.exonic_variant_functionannovar软件就是把我们得到的十万多个snp分类了，看看这些snp分别是基因的哪些位置，是否引起蛋白突变
-downstreamexonicexonic;splicingintergenicintronicncRNA_exonicncRNA_intronicncRNA_splicingncRNA_UTR3ncRNA_UTR5splicingupstreamupstream;downstreamUTR3UTR5UTR5;UTR3六、一步到位：table_annovar.pl 可以同时进行3种注释perl table_annovar.pl example&#x2F;ex1.avinput humandb&#x2F; -buildver hg19 -out myanno -remove -protocol refGene,cytoBand,exac03,avsnp147,dbnsfp30a -operation gx,r,f,f,f -nastring . -csvout -polish -xref example&#x2F;gene_xref.txt#-remove: remove all temporary files#-operation:g,gene-based; gx,gene-based with cross-reference annotation (from -xref argument);r, region-based; f,filter-based.#-nastring：没有对应注释，则输出.#-csvout:结果用,分隔；去掉则采用默认，用Tab分隔#-xref: whether a known genetic disease is caused by defects in this gene (this information was suffplied in the  example&#x2F;gene_xref.txt file in the command line) 这一项没有也OK
-其中（每种数据库对应的类型参考官网）g,gene-based,对应数据库为refGene,ensGene等r,region-based,对应数据库为cytoBand等f,filter-based,对应数据库为exac03,avsnp147,dbnsfp30a等
-3种注释分开进行：annotate_variation.pl1 gene-basedperl annotate_variation.pl -geneanno -dbtype refGene -buildver hg19 example&#x2F;ex1.avinput humandb&#x2F;  
-结果文件在example&#x2F;中，ex1.avinput.variant_function和ex1.avinput.exonic_variant_function（1）ex1.avinput.variant_function
-[root@localhost example]# head ex1.avinput.variant_functionUTR5    ISG15(NM_005101:c.-33T&gt;C)       1       948921  948921  T       C       comments: rs15842, a SNP in 5’ UTR of ISG15UTR3    ATAD3C(NM_001039211:c.*91G&gt;T)   1       1404001 1404001 G       T       comments: rs149123833, a SNP in 3’ UTR of ATAD3C
-第1列：variant effects,将变异分类，如intergenic, intronic, non-synonymous SNP, frameshift deletion, large-scale duplication等第2列：基因名，Symbol，括号中为NM_22222,为refGene编号其余列：输入文件ex1.avinput的内容
-（2）ex1.avinput.exonic_variant_function
-[root@localhost example]# head  ex1.avinput.exonic_variant_functionline9   nonsynonymous SNV       IL23R:NM_144701:exon9:c.G1142A:p.R381Q, 1       67705958        67705958       GA       comments: rs11209026 (R381Q), a SNP in IL23R associated with Crohn’s diseaseline10  nonsynonymous SNV       ATG16L1:NM_017974:exon8:c.A841G:p.T281A,ATG16L1:NM_001190267:exon9:c.A550G:p.T184A,ATG16L1:NM_030803:exon9:c.A898G:p.T300A,ATG16L1:NM_001190266:exon9:c.A646G:p.T216A,ATG16L1:NM_198890:exon5:c.A409G:p.T137A,  2       234183368       234183368       A       G       comments: rs2241880 (T300A), a SNP in the ATG16L1 associated with Crohn’s diseaseline11  nonsynonymous SNV       NOD2:NM_022162:exon4:c.C2104T:p.R702W,NOD2:NM_001293557:exon3:c.C2023T:p.R675W,16       50745926        50745926        C       T       comments: rs2066844 (R702W), a non-synonymous SNP in NOD2
-第1列：该变异在input文件的行号第2列：对编码基因的影响，frameshift,nonsynonymous等第3列：被影响的基因或转录本,其中NM_22222,为refGene编号其余列：同输入文件
-用awk操作时，分隔符设定为\t；不设置时，空格也被当做分隔符，会造成错位
-[root@localhost example]# head  ex1.avinput.exonic_variant_function|awk -F ‘\t’ ‘{print $2}’nonsynonymous SNVnonsynonymous SNVnonsynonymous SNVnonsynonymous SNVframeshift insertionframeshift deletionframeshift deletionstoplossstopgainframeshift substitution
-[root@localhost example]# head  ex1.avinput.exonic_variant_function|awk ‘{print $2}’nonsynonymousnonsynonymousnonsynonymousnonsynonymousframeshiftframeshiftframeshiftstoplossstopgainframeshift
-2 region-basedperl annotate_variation.pl -regionanno -dbtype cytoBand -buildver hg19 example&#x2F;ex1.avinput humandb&#x2F; 
-鉴定各变异的cytogenetic band,如1p36.33结果文件在example中，ex1.avinput.hg19_cytoBand
-[root@localhost example]# more ex1.avinput.hg19_cytoBandcytoBand        1p36.33 1       948921  948921  T       C       comments: rs15842, a SNP in 5’ UTR of ISG15cytoBand        1p36.33 1       1404001 1404001 G       T       comments: rs149123833, a SNP in 3’ UTR of ATAD3CcytoBand        1p36.31 1       5935162 5935162 A       T       comments: rs1287637, a splice site variant in NPHP4cytoBand        1q23.3  1       162736463       162736463       C       T       comments: rs1000050, a SNP in Illumina SNP arrays第1列：cytoBand第2列：1p21.1其余列：同输入文件
-3 ilterperl annotate_variation.pl -filter -dbtype exac03 -buildver hg19 example&#x2F;ex1.avinput humandb&#x2F;结果文件在example&#x2F;中,ex1.avinput.hg19_exac03_filtered(exac03中没有报道的位点）和ex1.avinput.hg19_exac03_dropped（exac03中报道的位点，包含其等位基因频率）
-
-比较两个文件的重复值，保留后者重复项
-awk 'BEGIN &amp;#123;OFS="\t"&amp;#125; 
-     NR==FNR &amp;#123;if(FNR>1) start_values[$3] = 1; next&amp;#125; 
-     FNR==1 &amp;#123;print; next&amp;#125; 
-     $2 in start_values' annovar/merged_result.tsv filtered_variants_thr0p7_20250916_203336.tsv > filtered_filtered_variants_thr0p7_20250916_203336.tsv
-
-
-https://www.jianshu.com/p/84c818207240https://www.plob.org/article/9976.html
-snpEffhttps://www.bioinfo-scrounger.com/archives/268/
-重要http://www.bio-info-trainee.com/2028.htmlhttps://www.jianshu.com/p/cea3b179b8a9
-ANNOVAR注释变异VCF结果说明https://www.omicsclass.com/article/464https://www.omicsclass.com/article/804http://blog.sina.com.cn/s/blog_71df25810102ybtt.html
-Hui Y, Kai W. Genomic variant annotation and prioritization with ANNOVAR and wANNOVAR[J]. Nature Protocols, 2015, 10(10).
-]]></content>
-      <categories>
-        <category>重测序</category>
       </categories>
   </entry>
 </search>
