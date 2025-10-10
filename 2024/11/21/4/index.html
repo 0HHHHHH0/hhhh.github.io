@@ -1,0 +1,426 @@
+<!DOCTYPE html><html lang="zh-Hans" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>UZ801 随身wifi 刷debain 搭Blog | HHHH’s Blog</title><meta name="author" content="HHHH"><meta name="copyright" content="HHHH"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="在随身WiFi上部署个人博客完整指南0、写在前面感谢酷安社区里的 @handsomehacker @梦太晓 大佬的分享，本文很多部分都是参考自他们。   要想在随身WiFi部署个人博客，首先需要将你的随身WiFi刷成Debian系统，这个不是本文的重点，在此不再赘述，请确保你已经完成了Debian系统的安装。 本文主要分成以下两个部分：  Typecho博客的部署 基于frp的内网穿透  基于fr">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UZ801 随身wifi 刷debain 搭Blog">
+<meta property="og:url" content="https://0hhhhhh0.github.io/2024/11/21/4/index.html">
+<meta property="og:site_name" content="HHHH’s Blog">
+<meta property="og:description" content="在随身WiFi上部署个人博客完整指南0、写在前面感谢酷安社区里的 @handsomehacker @梦太晓 大佬的分享，本文很多部分都是参考自他们。   要想在随身WiFi部署个人博客，首先需要将你的随身WiFi刷成Debian系统，这个不是本文的重点，在此不再赘述，请确保你已经完成了Debian系统的安装。 本文主要分成以下两个部分：  Typecho博客的部署 基于frp的内网穿透  基于fr">
+<meta property="og:locale">
+<meta property="og:image" content="https://0hhhhhh0.github.io/uploads/avatar.png">
+<meta property="article:published_time" content="2024-11-21T15:05:00.000Z">
+<meta property="article:modified_time" content="2025-10-05T11:44:49.000Z">
+<meta property="article:author" content="HHHH">
+<meta property="article:tag" content="Interesting">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://0hhhhhh0.github.io/uploads/avatar.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "UZ801 随身wifi 刷debain 搭Blog",
+  "url": "https://0hhhhhh0.github.io/2024/11/21/4/",
+  "image": "https://0hhhhhh0.github.io/uploads/avatar.png",
+  "datePublished": "2024-11-21T15:05:00.000Z",
+  "dateModified": "2025-10-05T11:44:49.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "HHHH",
+      "url": "https://0HHHHHH0.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/uploads/avatar.png"><link rel="canonical" href="https://0hhhhhh0.github.io/2024/11/21/4/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: undefined,
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'UZ801 随身wifi 刷debain 搭Blog',
+  isHighlightShrink: true,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/js/prism/prism.css"><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="HHHH’s Blog" type="application/atom+xml">
+</head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (false) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="web_bg" style="background-color: #fbfdff;"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/uploads/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">1</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">8</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Link</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><img class="site-icon" src="/uploads/avatar.png" alt="Logo"><span class="site-name">HHHH’s Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">UZ801 随身wifi 刷debain 搭Blog</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Link</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">UZ801 随身wifi 刷debain 搭Blog</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2024-11-21T15:05:00.000Z" title="Created 2024-11-21 23:05:00">2024-11-21</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2025-10-05T11:44:49.000Z" title="Updated 2025-10-05 19:44:49">2025-10-05</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E9%BB%98%E8%AE%A4%E5%88%86%E7%B1%BB/">默认分类</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div><section class="main-hero-waves-area waves-area"><svg class="waves-svg" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto"><defs><path id="gentle-wave" d="M -160 44 c 30 0 58 -18 88 -18 s 58 18 88 18 s 58 -18 88 -18 s 58 18 88 18 v 44 h -352 Z"></path></defs><g class="parallax"><use href="#gentle-wave" x="48" y="0"></use><use href="#gentle-wave" x="48" y="3"></use><use href="#gentle-wave" x="48" y="5"></use><use href="#gentle-wave" x="48" y="7"></use></g></svg></section></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div class="ai-summary"><div class="ai-explanation" style="display: block;" data-summary="这里是清羽AI，这篇文章详细介绍了如何在UZ801随身WiFi设备上刷入Debian系统并部署个人博客的全过程。文章主要分为两部分：首先讲解通过一键安装脚本快速部署Typecho博客系统，包括Nginx、PHP和MySQL环境的配置；其次重点介绍了基于frp实现内网穿透的技术方案，从服务器端和客户端的软件下载、配置文件修改、权限设置到启动命令和开机自启功能，全方位指导用户如何将本地博客映射到公网访问。文章作者特别感谢了酷安社区的技术分享，并提供了完整的Shell脚本内容和技术参考链接，适合有一定Linux基础的用户跟随操作。">AI正在绞尽脑汁想思路ING···</div><div class="ai-title"> <div class="ai-title-left"> <i class="fa-brands fa-slack"></i><div class="ai-title-text">AI摘要</div></div><div class="ai-tag" id="ai-tag">deepseek-ai/DeepSeek-V3</div></div></div><h1 id="在随身WiFi上部署个人博客完整指南"><a href="#在随身WiFi上部署个人博客完整指南" class="headerlink" title="在随身WiFi上部署个人博客完整指南"></a>在随身WiFi上部署个人博客完整指南</h1><h2 id="0、写在前面"><a href="#0、写在前面" class="headerlink" title="0、写在前面"></a>0、写在前面</h2><p>感谢酷安社区里的 @handsomehacker @梦太晓 大佬的分享，本文很多部分都是参考自他们。</p>
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+<p>要想在随身WiFi部署个人博客，首先需要将你的随身WiFi刷成Debian系统，这个不是本文的重点，在此不再赘述，请确保你已经完成了Debian系统的安装。</p>
+<p>本文主要分成以下两个部分：</p>
+<ul>
+<li>Typecho博客的部署</li>
+<li>基于frp的内网穿透</li>
+</ul>
+<p>基于frp的内网穿透需要准备一台具有公网IP的服务器，如果没有只能完成本地博客的部署。</p>
+<p>建议在开始前切换为超级用户，可使用如下命令：</p>
+<pre><code class="bash">su
+</code></pre>
+<p>根据提示输入密码即可。</p>
+<h2 id="1、Typecho博客的部署"><a href="#1、Typecho博客的部署" class="headerlink" title="1、Typecho博客的部署"></a>1、Typecho博客的部署</h2><blockquote>
+<p>本节摘自自 @梦太晓 的分享<br>酷安原文链接：<code>https://www.coolapk.com/feed/42368631?shareKey=NTM2MmFmODQzYjM2NjQ3OWY0OGY~&amp;shareUid=4402655&amp;shareFrom=com.coolapk.market_12.0.7</code></p>
+</blockquote>
+<h3 id="1-1-一键安装Typecho博客"><a href="#1-1-一键安装Typecho博客" class="headerlink" title="1.1 一键安装Typecho博客"></a>1.1 一键安装Typecho博客</h3><pre><code class="bash">wget -O /root/install_typecho.sh https://www.coolapk.com/link?url=https%3A%2F%2Fimtx-bucket.oss-cn-shenzhen.aliyuncs.com%2Flinux%2Fsh%2Ftypecho%2Finstall_typecho.sh &amp;&amp; chmod +x /root/install_typecho.sh &amp;&amp; /root/install_typecho.sh
+</code></pre>
+<p><strong>install_typecho.sh 脚本内容：</strong></p>
+<pre><code class="bash">#!/bin/bash
+echo &quot;这个脚本是【安装typecho博客】，会同时安装Nginx PHP MySQL(MariaDB)，确定要运行吗？&quot;
+echo &quot;【建议提前切换至root用户   sudo -i】&quot;
+echo &quot;【建议提前更新源           apt update】&quot;
+read -p &quot;输入yes确认运行 输入其他退出：&quot; yesOrNo
+echo &quot;你的输入是： &quot; $yesOrNo
+if [ $&#123;yesOrNo&#125; = &quot;yes&quot; ];then
+    echo &quot;输入【正确】，继续往下执行&quot;
+else
+    echo &quot;输入【错误】，即将退出脚本&quot;
+    exit 0
+fi
+
+echo &quot;【开始安装typecho博客】: &quot;`date &quot;+%F %T&quot;`
+
+# 安装Nginx
+apt install -y nginx
+
+# 安装PHP及部分扩展
+apt install -y php php-fpm php-mysqli php-mbstring
+
+# 安装MySQL
+apt install -y mariadb-server
+
+# 安装解压工具
+apt install -y zip
+
+# 创建数据库，数据库名typecho
+# 添加用户到MySQL数据库中，用户名typecho  密码typecho，登录主机为localhost(仅允许本机登录，无法远程登录)
+# 授予typecho用户，管理typecho数据库的一切权限
+# 刷新数据库用户权限等，让其生效
+mysql -u root -p密码  
+&gt; 本节参考自：`https://blog.csdn.net/qq_36981760/article/details/115713179`
+
+### 2.1 frp下载地址
+
+下载地址：`https://github.com/fatedier/frp/releases`
+
+选择合适的版本进行下载即可。
+
+分别在服务器和随身WiFi进行下载，可以使用如下命令分别下载（请确认是amd还是arm）：
+
+```bash
+# 服务器
+wget https://github.com/fatedier/frp/releases/download/v0.49.0/frp_0.49.0_linux_amd64.tar.gz
+
+# 随身WiFi
+wget https://github.com/fatedier/frp/releases/download/v0.49.0/frp_0.49.0_linux_arm64.tar.gz
+</code></pre>
+<h3 id="2-2-frp软件的解压"><a href="#2-2-frp软件的解压" class="headerlink" title="2.2 frp软件的解压"></a>2.2 frp软件的解压</h3><p>分别进行解压，解压命令：</p>
+<pre><code class="bash">tar -zxvf 压缩包.tar.gz
+</code></pre>
+<p>解压后如下：</p>
+<pre><code>frp_0.49.0_linux_amd64/
+├── frpc
+├── frpc.ini
+├── frpc_full.ini
+├── frps
+├── frps.ini
+└── frps_full.ini
+</code></pre>
+<p>这里服务器端和客户端都放在了<code>/usr/local/frp/</code>目录下。</p>
+<h3 id="2-3-frp添加权限"><a href="#2-3-frp添加权限" class="headerlink" title="2.3 frp添加权限"></a>2.3 frp添加权限</h3><pre><code class="bash"># 服务器端添加权限
+cd /usr/local/frp
+sudo chmod 777 frps
+
+# 客户端添加权限
+cd /usr/local/frp
+sudo chmod 777 frpc
+</code></pre>
+<h3 id="2-4-服务器端frp配置文件及frp启动"><a href="#2-4-服务器端frp配置文件及frp启动" class="headerlink" title="2.4 服务器端frp配置文件及frp启动"></a>2.4 服务器端frp配置文件及frp启动</h3><p><strong>服务器端配置：</strong></p>
+<pre><code class="bash"># 打开服务器端配置文件
+vim ./frps.ini
+</code></pre>
+<p><strong>我的填写内容如下：</strong></p>
+<pre><code class="ini">[common]
+bind_port = 7000
+dashboard_port = 7500
+dashboard_user = admin
+dashboard_pwd = admin
+vhost_http_port = 7002
+vhost_https_port = 7003
+max_pool_count = 50
+token = aaa123
+tcp_mux = true
+log_file = /usr/local/frp/frps.log
+log_level = info
+log_max_days = 3
+authentication_timeout = 0
+subdomain_host = xxx.xx.xxx.xx
+privilege_mode = true
+</code></pre>
+<blockquote>
+<p>注意：删掉配置文件中所有注释<br>服务器端开放对应端口</p>
+</blockquote>
+<p><strong>frp的启动：</strong></p>
+<pre><code class="bash"># 前台启动
+./frps -c ./frps.ini
+
+# 后台启动
+./frps -c ./frps.ini &amp;
+</code></pre>
+<h3 id="2-5-客户端frp配置文件及frp启动"><a href="#2-5-客户端frp配置文件及frp启动" class="headerlink" title="2.5 客户端frp配置文件及frp启动"></a>2.5 客户端frp配置文件及frp启动</h3><p><strong>客户端配置：</strong></p>
+<pre><code class="bash"># 打开客户端配置文件
+vim ./frpc.ini
+</code></pre>
+<p><strong>我的填写内容如下：</strong></p>
+<pre><code class="ini">[common]
+server_addr = 10.10.xxx.xxx
+server_port = 7000
+token = aaa123
+tcp_mux = true
+log_file = /usr/local/frp/frpc.log
+log_level = info
+log_max_days = 3
+authentication_timeout = 0
+
+[ssh]
+type = tcp
+local_ip = 192.168.xxx.xxx
+local_port = 22
+remote_port = 7001
+
+[web01]
+type = http
+local_ip = 192.168.xxx.xxx
+local_port = 80
+subdomain_host = xxx.xx.xxx.xx
+</code></pre>
+<blockquote>
+<p>注意：删掉配置文件中所有注释</p>
+</blockquote>
+<p><strong>frp的启动：</strong></p>
+<pre><code class="bash"># 前台启动
+./frpc -c ./frpc.ini
+
+# 后台启动
+./frpc -c ./frpc.ini &amp;
+</code></pre>
+<h3 id="2-6-阶段小结"><a href="#2-6-阶段小结" class="headerlink" title="2.6 阶段小结"></a>2.6 阶段小结</h3><p>完成上述步骤之后即完成了基础的配置，可以通过访问：</p>
+<pre><code class="bash"># 公网IP:穿透的http端口
+xxx.xx.xxx.xx:7002
+</code></pre>
+<p>来访问我们内网的个人博客。</p>
+<h3 id="2-7-设置frp开机自启"><a href="#2-7-设置frp开机自启" class="headerlink" title="2.7 设置frp开机自启"></a>2.7 设置frp开机自启</h3><p><strong>服务器端：</strong></p>
+<pre><code class="bash"># 需要先 cd 到 frp 解压目录
+# 复制文件
+cp frps /usr/local/bin/frps
+mkdir /etc/frp
+cp frps.ini /etc/frp/frps.ini
+
+# 编写 frp service 文件，以 ubuntu 为例
+vim /usr/lib/systemd/system/frps.service  # 有时候需要手动创建system文件夹
+</code></pre>
+<p><strong>frps.service内容如下：</strong></p>
+<pre><code class="ini">[Unit]
+Description=frps
+After=network.target
+
+[Service]
+TimeoutStartSec=30
+ExecStart=/usr/local/bin/frps -c /etc/frp/frps.ini
+ExecStop=/bin/kill $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p><strong>启动 frp 并设置开机启动：</strong></p>
+<pre><code class="bash">systemctl enable frps
+systemctl start frps
+systemctl status frps
+
+# 部分服务器上,可能需要加 .service 后缀来操作,即:
+systemctl enable frps.service
+systemctl start frps.service
+systemctl status frps.service
+</code></pre>
+<p><strong>客户端：</strong></p>
+<pre><code class="bash"># 需要先 cd frp 解压目录
+# 复制文件
+cp frpc /usr/local/bin/frpc
+mkdir /etc/frp
+cp frpc.ini /etc/frp/frpc.ini
+
+# 编写 frp service 文件，以 centos7 为例
+vim /usr/lib/systemd/system/frpc.service  # 有时候需要手动创建system文件夹
+</code></pre>
+<p><strong>frpc.service内容如下：</strong></p>
+<pre><code class="ini">[Unit]
+Description=frpc
+After=network.target
+
+[Service]
+TimeoutStartSec=30
+ExecStart=/usr/local/bin/frpc -c /etc/frp/frpc.ini
+ExecStop=/bin/kill $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p><strong>启动 frp 并设置开机启动：</strong></p>
+<pre><code class="bash">systemctl enable frpc
+systemctl start frpc
+systemctl status frpc
+
+# 部分服务器上,可以需要加 .service 后缀来操作,即:
+systemctl enable frpc.service
+systemctl start frpc.service
+systemctl status frpc.service
+</code></pre>
+<h2 id="3、总结"><a href="#3、总结" class="headerlink" title="3、总结"></a>3、总结</h2><p>至此完成了个人博客的部署以及内网穿透操作，因为写的仓促，难免存在错误，有问题及时交流。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://0HHHHHH0.github.io">HHHH</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://0hhhhhh0.github.io/2024/11/21/4/">https://0hhhhhh0.github.io/2024/11/21/4/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-share"><div class="social-share" data-image="/uploads/avatar.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2024/11/21/5/" title="内网穿透"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">内网穿透</div></div><div class="info-2"><div class="info-item-1">前言对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。 经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息： 免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）免费隧道：4条流量：不限制并发：不限制除此之外访问地址并不会强制变化官网链接  https://www.chmlfrp.cn  使用教程这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。 注册&#x2F;登录没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面： 创建隧道随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道） 然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载） 然后填写相应隧道...</div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/uploads/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">HHHH</div><div class="author-info-description">总有人间一两风，填我十万八千梦</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">1</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">8</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/0HHHHHH0"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/0hhhhhh0" target="_blank" title="fab fa-github"><i class="GitHub"></i></a><a class="social-icon" href="mailto:695460776@qq.com" target="_blank" title="fa fa-envelope"><i class="E-Mail"></i></a><a class="social-icon" href="https://x.com/your-user-name" target="_blank" title="fab fa-twitter"><i class="Twitter"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">随便逛逛!</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9C%A8%E9%9A%8F%E8%BA%ABWiFi%E4%B8%8A%E9%83%A8%E7%BD%B2%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E5%AE%8C%E6%95%B4%E6%8C%87%E5%8D%97"><span class="toc-number">1.</span> <span class="toc-text">在随身WiFi上部署个人博客完整指南</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0%E3%80%81%E5%86%99%E5%9C%A8%E5%89%8D%E9%9D%A2"><span class="toc-number">1.1.</span> <span class="toc-text">0、写在前面</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1%E3%80%81Typecho%E5%8D%9A%E5%AE%A2%E7%9A%84%E9%83%A8%E7%BD%B2"><span class="toc-number">1.2.</span> <span class="toc-text">1、Typecho博客的部署</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-%E4%B8%80%E9%94%AE%E5%AE%89%E8%A3%85Typecho%E5%8D%9A%E5%AE%A2"><span class="toc-number">1.2.1.</span> <span class="toc-text">1.1 一键安装Typecho博客</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-frp%E8%BD%AF%E4%BB%B6%E7%9A%84%E8%A7%A3%E5%8E%8B"><span class="toc-number">1.2.2.</span> <span class="toc-text">2.2 frp软件的解压</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-frp%E6%B7%BB%E5%8A%A0%E6%9D%83%E9%99%90"><span class="toc-number">1.2.3.</span> <span class="toc-text">2.3 frp添加权限</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AFfrp%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8F%8Afrp%E5%90%AF%E5%8A%A8"><span class="toc-number">1.2.4.</span> <span class="toc-text">2.4 服务器端frp配置文件及frp启动</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-5-%E5%AE%A2%E6%88%B7%E7%AB%AFfrp%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%8F%8Afrp%E5%90%AF%E5%8A%A8"><span class="toc-number">1.2.5.</span> <span class="toc-text">2.5 客户端frp配置文件及frp启动</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-6-%E9%98%B6%E6%AE%B5%E5%B0%8F%E7%BB%93"><span class="toc-number">1.2.6.</span> <span class="toc-text">2.6 阶段小结</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-7-%E8%AE%BE%E7%BD%AEfrp%E5%BC%80%E6%9C%BA%E8%87%AA%E5%90%AF"><span class="toc-number">1.2.7.</span> <span class="toc-text">2.7 设置frp开机自启</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3%E3%80%81%E6%80%BB%E7%BB%93"><span class="toc-number">1.3.</span> <span class="toc-text">3、总结</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/10/09/Hexo_Butterfly_%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="Hexo + Butterfly 个人博客搭建">Hexo + Butterfly 个人博客搭建</a><time datetime="2025-10-09T14:45:00.000Z" title="Created 2025-10-09 22:45:00">2025-10-09</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/09/25/56/" title="410随身WiFi棒子Debian刷入青龙教程">410随身WiFi棒子Debian刷入青龙教程</a><time datetime="2025-09-25T11:26:00.000Z" title="Created 2025-09-25 19:26:00">2025-09-25</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/09/17/55/" title="基因结构">基因结构</a><time datetime="2025-09-17T14:24:00.000Z" title="Created 2025-09-17 22:24:00">2025-09-17</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/09/16/53/" title="ANNOVAR | 变异注释">ANNOVAR | 变异注释</a><time datetime="2025-09-16T13:43:00.000Z" title="Created 2025-09-16 21:43:00">2025-09-16</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/09/03/50/" title="Typecho快速修改文章图片和文件链接地址">Typecho快速修改文章图片和文件链接地址</a><time datetime="2025-09-03T07:20:00.000Z" title="Created 2025-09-03 15:20:00">2025-09-03</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By HHHH</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.1</a></span></div></div><div class="container" id="jsi-flying-fish-container"><script src="js/fish.js"></script></div><style>   @media only screen and (max-width: 767px){
+   #sidebar_search_box input[type=text]{width:calc(100% - 24px)}
+}</style></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.1"></script><script src="/js/main.js?v=5.5.1"></script><div class="js-pjax"></div><script src="/js/prism/prism.js" async></script><script type="text/javascript" src="/js/jquery.min.js"></script><script type="text/javascript" src="/js/fish.js" defer data-pjax></script><script type="text/javascript" src="/js/busuanzi.pure.mini.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>

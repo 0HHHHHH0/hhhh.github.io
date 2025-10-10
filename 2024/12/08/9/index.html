@@ -1,0 +1,231 @@
+<!DOCTYPE html><html lang="zh-Hans" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>记一次清空SMART修复群晖报故障的硬盘 | HHHH’s Blog</title><meta name="author" content="HHHH"><meta name="copyright" content="HHHH"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐    好，让我们进入正题，凡事都有个前因后果，先说说起因 前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但">
+<meta property="og:type" content="article">
+<meta property="og:title" content="记一次清空SMART修复群晖报故障的硬盘">
+<meta property="og:url" content="https://0hhhhhh0.github.io/2024/12/08/9/index.html">
+<meta property="og:site_name" content="HHHH’s Blog">
+<meta property="og:description" content="事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐    好，让我们进入正题，凡事都有个前因后果，先说说起因 前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但">
+<meta property="og:locale">
+<meta property="og:image" content="https://0hhhhhh0.github.io/uploads/avatar.png">
+<meta property="article:published_time" content="2024-12-08T04:56:00.000Z">
+<meta property="article:modified_time" content="2025-07-31T03:33:18.000Z">
+<meta property="article:author" content="HHHH">
+<meta property="article:tag" content="Interesting">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://0hhhhhh0.github.io/uploads/avatar.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "记一次清空SMART修复群晖报故障的硬盘",
+  "url": "https://0hhhhhh0.github.io/2024/12/08/9/",
+  "image": "https://0hhhhhh0.github.io/uploads/avatar.png",
+  "datePublished": "2024-12-08T04:56:00.000Z",
+  "dateModified": "2025-07-31T03:33:18.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "HHHH",
+      "url": "https://0HHHHHH0.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/uploads/avatar.png"><link rel="canonical" href="https://0hhhhhh0.github.io/2024/12/08/9/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: undefined,
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '记一次清空SMART修复群晖报故障的硬盘',
+  isHighlightShrink: true,
+  isToc: false,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/js/prism/prism.css"><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="HHHH’s Blog" type="application/atom+xml">
+</head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
+  const $loadingBox = document.getElementById('loading-box')
+  const $body = document.body
+  const preloader = {
+    endLoading: () => {
+      if ($loadingBox.classList.contains('loaded')) return
+      $body.style.overflow = ''
+      $loadingBox.classList.add('loaded')
+    },
+    initLoading: () => {
+      $body.style.overflow = 'hidden'
+      $loadingBox.classList.remove('loaded')
+    }
+  }
+
+  preloader.initLoading()
+
+  if (document.readyState === 'complete') {
+    preloader.endLoading()
+  } else {
+    window.addEventListener('load', preloader.endLoading)
+    document.addEventListener('DOMContentLoaded', preloader.endLoading)
+    // Add timeout protection: force end after 7 seconds
+    setTimeout(preloader.endLoading, 7000)
+  }
+
+  if (false) {
+    btf.addGlobalFn('pjaxSend', preloader.initLoading, 'preloader_init')
+    btf.addGlobalFn('pjaxComplete', preloader.endLoading, 'preloader_end')
+  }
+})()</script><div id="web_bg" style="background-color: #fbfdff;"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/uploads/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">1</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">8</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Link</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><img class="site-icon" src="/uploads/avatar.png" alt="Logo"><span class="site-name">HHHH’s Blog</span></a><a class="nav-page-title" href="/"><span class="site-name">记一次清空SMART修复群晖报故障的硬盘</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  Back to Home</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-user"></i><span> About</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Link</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">记一次清空SMART修复群晖报故障的硬盘</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2024-12-08T04:56:00.000Z" title="Created 2024-12-08 12:56:00">2024-12-08</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2025-07-31T03:33:18.000Z" title="Updated 2025-07-31 11:33:18">2025-07-31</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E9%BB%98%E8%AE%A4%E5%88%86%E7%B1%BB/">默认分类</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div><section class="main-hero-waves-area waves-area"><svg class="waves-svg" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto"><defs><path id="gentle-wave" d="M -160 44 c 30 0 58 -18 88 -18 s 58 18 88 18 s 58 -18 88 -18 s 58 18 88 18 v 44 h -352 Z"></path></defs><g class="parallax"><use href="#gentle-wave" x="48" y="0"></use><use href="#gentle-wave" x="48" y="3"></use><use href="#gentle-wave" x="48" y="5"></use><use href="#gentle-wave" x="48" y="7"></use></g></svg></section></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><div class="ai-summary"><div class="ai-explanation" style="display: block;" data-summary="这里是清羽AI，这篇文章记录了作者如何通过USB转TTL工具清零希捷硬盘的SMART参数，从而修复群晖系统报告的硬盘故障。文章详细描述了操作步骤，包括连接TTL线、进入希捷F3工厂模式、使用/1和N1命令清零SMART数据等，同时也提醒读者这是一项有风险的操作，可能导致数据丢失。作者特别强调二手硬盘市场存在SMART清零的风险，建议谨慎选择硬盘，并指出清零后的硬盘不宜存放重要数据。文章还提到固件锁的限制以及可能需要专业设备如PC3000才能彻底清除G表，最终目的是让读者了解硬盘SMART可被清零的事实，同时警示不要利用此技术欺骗他人。">AI正在绞尽脑汁想思路ING···</div><div class="ai-title"> <div class="ai-title-left"> <i class="fa-brands fa-slack"></i><div class="ai-title-text">AI摘要</div></div><div class="ai-tag" id="ai-tag">deepseek-ai/DeepSeek-V3</div></div></div><p>事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐</p>
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+
+<p>好，让我们进入正题，凡事都有个前因后果，先说说起因</p>
+<p>前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但是用SeaTools扫描，各种长短检测都能通过，希捷这又是什么操作</p>
+<p>HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红<br><img src="/images/9/762531194.png" alt="m4f55w5m.png"><br>最后用MHDD扫描过后，发现硬盘并没有坏块，那么是什么原因导致的B8 End_to_End计数增加呢？各种说法都有，有说是硬盘上的缓存坏掉了，有说是SATA线接触不良导致，有说是缓存到磁盘的数据包校验出错，反正各种说法都有，具体硬盘SMART里如何判断这个值的，估计也只有硬盘厂家知道，所以就不要纠结了。但是就这样淘汰掉一块2T的硬盘？是不是太浪费了？记一次清空SMART修复群晖报故障的硬盘 </p>
+<p>垃圾佬没别的本事，就是爱折腾，于是先尝试了低格整块硬盘，插回群晖还是报故障，看来只能祭出本垃圾佬的终极大杀器USB转TTL神器和给神器属性加成的TTL杜邦线了，没错，就是下面这俩玩意，马粑粑家几块钱一个，随便挑随便选记一次清空SMART修复群晖报故障的硬盘 </p>
+<p>如果你的电脑是第一次插入USB转TTL神器，要先安装驱动，并像下图这样在属性里设置好端口的波特率为38400</p>
+<p>安装好驱动的USB转TTL安装好驱动的USB转TTL</p>
+<p>端口的设置，第一项要设置为 <strong>38400</strong> 端口的设置<br><img src="/images/9/413614975.png" alt="m4f59zrr.png"><br>第一项要设置为 38400</p>
+<p>硬盘上TTL口的接法硬盘上TTL口的接法<br><img src="/images/9/231601982.png" alt="m4f5akz6.png"></p>
+<p>USB转TTL的接法USB转TTL的接法<br><img src="http://hhhh.ywhywhywh.top/usr/uploads/2024/12/4065335586.png" alt="m4f5awqp.png"></p>
+<p>接好了之后，让我们先把USB转TTL插入电脑的USB口，打开你的putty，像下图这样设置，如果你的USB转TTL在电脑上识别出来是COM4或者COM5这样的，请按你自己的实际情况设置COM口，Speed设置为38400，然后点open</p>
+<p>putty设置putty设置</p>
+<p>这时你会看到一个黑麻麻的窗口，什么都没有记一次清空SMART修复群晖报故障的硬盘 别着急，这时我们再接上电源线，记住，只接电源线。</p>
+<p>不要接SATA数据线，不要接SATA数据线，不要接SATA数据线，重要的事情说三遍</p>
+<p>另外，接电源线最好是用电源上引出来的原生SATA电源线，尽量不要用4pin转SATA的电源转换线</p>
+<p>接上电源线后接上电源线后<br><img src="/images/9/2870995132.png" alt="m4f5bgip.png"></p>
+<p>当你接上硬盘电源线后再看Putty会发现有回显了，当停在(P)SATA Reset后，说明硬盘已经启动完成了，这是可以按Ctrl+z激活终端，这时就会进入到希捷硬盘的F3工厂模式</p>
+<p>按下Ctrl+z后进入F3工厂模式按下Ctrl+z后进入F3工厂模式<br><img src="/images/9/1842945658.png" alt="m4f5bqet.png"></p>
+<p>这时如果只是清零SMART那只要输入两个命令&#x2F;1和N1就能搞定</p>
+<p>输入&#x2F;1进入1模式<br><img src="/images/9/391565786.png" alt="m4f5c1cz.png"><br>输入&#x2F;1进入1模式</p>
+<p>在&#x2F;1模式下输入N1，看到回显Clear SMART is completed，这时硬盘的SMART值已经被清零了，这时你可以拔掉电源线和TTL线，关机把硬盘接回电源线和SATA线（其实你不关机也行，重新接回SATA线和电源线就行，我经常这样干</p>
+<p>这时在我们再用HDTune查看硬盘的SMART值会发现：马达启停次数，硬盘通电时间，马达旋转重试次数，点到点错误计数，接口CRC错误计数，等等等等的很多参数都已经变成0了</p>
+<p>这是我的硬盘清零后的效果这是我的硬盘清零后的效果</p>
+<p>看看我这个硬盘SMART清零后的效果，“启动&#x2F;停止次数”因为之前清零SMART后拔插过一次电源线，所以这里计数是1</p>
+<p>当然，有一些参数比如：原始读取错误率，磁头飞行时间等这些没有清零，这些都写在SMART的G-list里，要完全清掉需要在F3工厂模式里进入2模式停掉马达电机，清除G表，然后重建SMART和硬盘索引区到硬盘固件内才行</p>
+<p>这硬盘有固件锁<br><img src="/images/9/1367509578.png" alt="m4f5ehrp.png"></p>
+<p>这硬盘有固件锁</p>
+<p>但是如果你像上图我这块硬盘一样，在进入2模式输入Z想停止电机，返回Diagnostic Port Locked的话，说明这块硬盘有固件锁。被锁了固件是无法清零G表的，这也是希捷为了限制一些返厂硬盘和一些奸商通过改写G表来充当新硬盘坑人做的限制。当然，道高一尺魔高一丈，如果你有PC3000的软件和红卡或者MRT的话，固件锁其实也是可以解开的，这时候你就真的可以为所欲为了</p>
+<p>好了，本次折腾到此记录完毕，剩下的自然是把硬盘继续插回群晖里，把小姐姐们请回来</p>
+<p>仅以此文说明硬盘的SMART是可以清零的，硬盘SMART里的G表也是可以清零的，整个SMART是完全可以清除然后重建成刚出厂的样子的，甚至SMART还是可以通过工厂模式改写成你想要的任何样子的，所以二手硬盘水很深很深，请各位谨慎选择</p>
+<p>最后，此文仅以记录过程为目的，请某些头脑比较发达的朋友不要想着用学会了，拿旧硬盘把SMART清零了去坑人，既然有办法清零那肯定是有办法验出来的</p>
+<p>最后的最后，如果你只是本着不想浪费的原则，想清掉SMART上的错误，让这块硬盘继续发挥余热，建议最好清零SMART后的硬盘不要存放重要数据，同时注意时常关注一下硬盘状态，毕竟一块硬盘如果SMART某项报错了，那硬盘肯定是有一些问题的，所以如果有一天你硬盘里的小姐姐们灰飞烟灭了，千万别怪我没有提醒</p>
+<p>哦，还有个温馨提醒，USB转TTL的神器最好是选择CH340G芯片的，别选RS232的，别问我为什么，都是泪</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://0HHHHHH0.github.io">HHHH</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://0hhhhhh0.github.io/2024/12/08/9/">https://0hhhhhh0.github.io/2024/12/08/9/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-share"><div class="social-share" data-image="/uploads/avatar.png" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/07/24/18/" title="1.NPC内网穿透——Linux"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">1.NPC内网穿透——Linux</div></div><div class="info-2"><div class="info-item-1"> 历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。   要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。  用到的软件linux-npc.zip - 蓝奏云使用教程共两个步骤1.下载npc客户端后修改 npc.conf文件模板参考修改前 [common] server_addr=填写服务器IP地址:8024 conn_type=tcp vkey=唯一验证密钥  示例如下：修改前  修改后  2.在文件目录中执行以下命令需要修改ip和密钥（不要修改服务端口和删除空格）    基本使用 无配置文件模式（推荐）详细命令行参数  📌 适用于 快速连接 NPS 服务器所有配置均在 Web 管理端完成客户端仅需运行一条命令📌 普通连接（TCP 模式）  ./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp  📌 TLS 加密连接（安全模式）  ./npc -server=ip:8025 -vkey=web界...</div></div></div></a><a class="pagination-related" href="/2024/12/06/8/" title="GPT 学术优化"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">GPT 学术优化</div></div><div class="info-2"><div class="info-item-1">Installation安装方法I：直接运行 (Windows, Linux or MacOS)下载项目  git clone –depth&#x3D;1 https://github.com/binary-husky/gpt_academic.gitcd gpt_academic配置API_KEY等变量  在config.py中，配置API KEY等变量。特殊网络环境设置方法、Wiki-项目配置说明。 「 程序会优先检查是否存在名为config_private.py的私密配置文件，并用其中的配置覆盖config.py的同名配置。如您能理解以上读取逻辑，我们强烈建议您在config.py同路径下创建一个名为config_private.py的新配置文件，并使用config_private.py配置项目，从而确保自动更新时不会丢失配置 」。 「 支持通过环境变量配置项目，环境变量的书写格式参考docker-compose.yml文件或者我们的Wiki页面。配置读取优先级: 环境变量 &gt; config_private.py &gt; config.py 」。 安装依赖 （选择I...</div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/uploads/avatar.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">HHHH</div><div class="author-info-description">总有人间一两风，填我十万八千梦</div><div class="site-data"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">16</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">1</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">8</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/0HHHHHH0"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/0hhhhhh0" target="_blank" title="fab fa-github"><i class="GitHub"></i></a><a class="social-icon" href="mailto:695460776@qq.com" target="_blank" title="fa fa-envelope"><i class="E-Mail"></i></a><a class="social-icon" href="https://x.com/your-user-name" target="_blank" title="fab fa-twitter"><i class="Twitter"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">随便逛逛!</div></div><div class="sticky_layout"><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Posts</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/10/09/Hexo_Butterfly_%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="Hexo + Butterfly 个人博客搭建">Hexo + Butterfly 个人博客搭建</a><time datetime="2025-10-09T14:45:00.000Z" title="Created 2025-10-09 22:45:00">2025-10-09</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/09/25/56/" title="410随身WiFi棒子Debian刷入青龙教程">410随身WiFi棒子Debian刷入青龙教程</a><time datetime="2025-09-25T11:26:00.000Z" title="Created 2025-09-25 19:26:00">2025-09-25</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/09/17/55/" title="基因结构">基因结构</a><time datetime="2025-09-17T14:24:00.000Z" title="Created 2025-09-17 22:24:00">2025-09-17</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/09/16/53/" title="ANNOVAR | 变异注释">ANNOVAR | 变异注释</a><time datetime="2025-09-16T13:43:00.000Z" title="Created 2025-09-16 21:43:00">2025-09-16</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/09/03/50/" title="Typecho快速修改文章图片和文件链接地址">Typecho快速修改文章图片和文件链接地址</a><time datetime="2025-09-03T07:20:00.000Z" title="Created 2025-09-03 15:20:00">2025-09-03</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 By HHHH</span><span class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.1</a></span></div></div><div class="container" id="jsi-flying-fish-container"><script src="js/fish.js"></script></div><style>   @media only screen and (max-width: 767px){
+   #sidebar_search_box input[type=text]{width:calc(100% - 24px)}
+}</style></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.1"></script><script src="/js/main.js?v=5.5.1"></script><div class="js-pjax"></div><script src="/js/prism/prism.js" async></script><script type="text/javascript" src="/js/jquery.min.js"></script><script type="text/javascript" src="/js/fish.js" defer data-pjax></script><script type="text/javascript" src="/js/busuanzi.pure.mini.js"></script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
