@@ -160,7 +160,8 @@
   isToc: true,
   pageType: 'post'
 }</script><link rel="stylesheet" href="/css/style.css"><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="HHHH’s Blog" type="application/atom+xml">
-<link rel="stylesheet" href="/css/prism-vs.css" type="text/css"></head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
+<link rel="stylesheet" href="/css/prism-atom-dark.css" type="text/css">
+<link rel="stylesheet" href="/css/prism-line-numbers.css" type="text/css"></head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
   const $loadingBox = document.getElementById('loading-box')
   const $body = document.body
   const preloader = {
@@ -276,20 +277,20 @@
 <p>下面我们进行相关的FST分析</p>
 <h1 id="二、FST计算"><a href="#二、FST计算" class="headerlink" title="二、FST计算"></a>二、FST计算</h1><p>最头疼的一步，布置环境，安装分析所用的软件包。<br>plink1.9和plink2.0均未成功分析，遂使用vcftools进行处理。</p>
 <p>文件为 Filter.snp.vcf.gz，如果需要解压就使用下面方法</p>
-<pre class=" language-markdown"><code class="language-markdown">gunzip  Filter.snp.vcf.gz
-</code></pre>
+<pre class="line-numbers language-markdown"><code class="language-markdown">gunzip  Filter.snp.vcf.gz
+<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 <p>vcftools使用mamba构建新环境</p>
-<pre class=" language-markdown"><code class="language-markdown">conda install -n base -c conda-forge mamba  # 安装mamba
+<pre class="line-numbers language-markdown"><code class="language-markdown">conda install -n base -c conda-forge mamba  # 安装mamba
 mamba create -n vcftools_env -c bioconda vcftools
-</code></pre>
-<pre class=" language-markdown"><code class="language-markdown">vcftools --vcf Filter.snp.vcf \
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<pre class="line-numbers language-markdown"><code class="language-markdown">vcftools --vcf Filter.snp.vcf \
 <span class="token code keyword">         --weir-fst-pop BM.txt \</span>
 <span class="token code keyword">         --weir-fst-pop WM.txt \</span>
 <span class="token code keyword">         --out BM_vs_WM_fst</span>
-</code></pre>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
 <p>得出BM_vs_WM_fst.weir.fst文件</p>
 <p>然后在R中进行绘图。</p>
-<pre class=" language-R"><code class="language-R">library(ggplot2)
+<pre class="line-numbers language-R"><code class="language-R">library(ggplot2)
 fst %
   summarise(center = (min(pos_cum) + max(pos_cum)) / 2)
 
@@ -314,7 +315,7 @@ config(
 )
 
 p
-</code></pre>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 <p><img src="/images/19/3703765276.png" alt="mdvvhepw.png"><br>结果文件200多M，太大了，浏览器卡的几乎无法正常浏览，遂放弃。</p>
 <div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
 
@@ -323,7 +324,7 @@ p
 </blockquote>
 <p>画图结果显示SNP位点过多，需要再次处理</p>
 <p>文件其实已经是公司过滤过的数据了，数据量较大，再过滤一次。</p>
-<h2 id="1-使用-vcftools-或-bcftools-进行-SNP-过滤"><a href="#1-使用-vcftools-或-bcftools-进行-SNP-过滤" class="headerlink" title="1. 使用 vcftools 或 bcftools 进行 SNP 过滤"></a>1. 使用 vcftools 或 bcftools 进行 SNP 过滤</h2><pre class=" language-Bash"><code class="language-Bash"># 基本质量过滤
+<h2 id="1-使用-vcftools-或-bcftools-进行-SNP-过滤"><a href="#1-使用-vcftools-或-bcftools-进行-SNP-过滤" class="headerlink" title="1. 使用 vcftools 或 bcftools 进行 SNP 过滤"></a>1. 使用 vcftools 或 bcftools 进行 SNP 过滤</h2><pre class="line-numbers language-Bash"><code class="language-Bash"># 基本质量过滤
  vcftools --vcf  Filter.snp.vcf \
          --minQ 30 \
          --min-meanDP 10 \
@@ -348,14 +349,14 @@ plink --bfile filtered_plink \
       --within pop_info_fixed.tsv \
       --out fst_results \
       --allow-extra-chr
-</code></pre>
-<h2 id="3-筛选显著-FST-位点"><a href="#3-筛选显著-FST-位点" class="headerlink" title="3.筛选显著 FST 位点"></a>3.筛选显著 FST 位点</h2><pre class=" language-markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">##</span> 提取 FST > 0.05 的位点（阈值根据研究设定）</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h2 id="3-筛选显著-FST-位点"><a href="#3-筛选显著-FST-位点" class="headerlink" title="3.筛选显著 FST 位点"></a>3.筛选显著 FST 位点</h2><pre class="line-numbers language-markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">##</span> 提取 FST > 0.05 的位点（阈值根据研究设定）</span>
  awk '$5 > 0.05 <span class="token entity" title="&#123;">&amp;#123;</span>print $2<span class="token entity" title="&#125;">&amp;#125;</span>' fst<span class="token italic"><span class="token punctuation">_</span>results.fst > high<span class="token punctuation">_</span></span>fst_snps.txt 
 
 <span class="token title important"><span class="token punctuation">##</span> 统计高 FST 位点数量</span>
  wc -l high<span class="token italic"><span class="token punctuation">_</span>fst<span class="token punctuation">_</span></span>snps.txt
-</code></pre>
-<h2 id="4-可视化-FST-分布（R-代码）"><a href="#4-可视化-FST-分布（R-代码）" class="headerlink" title="4.可视化 FST 分布（R 代码）"></a>4.可视化 FST 分布（R 代码）</h2><pre class=" language-R"><code class="language-R">library(ggplot2)
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h2 id="4-可视化-FST-分布（R-代码）"><a href="#4-可视化-FST-分布（R-代码）" class="headerlink" title="4.可视化 FST 分布（R 代码）"></a>4.可视化 FST 分布（R 代码）</h2><pre class="line-numbers language-R"><code class="language-R">library(ggplot2)
 
 # 读取结果
 fst %
@@ -411,7 +412,7 @@ fst %
 # 5. 输出结果 --------------------------------------------------------------
 # 显示图表
 p
-</code></pre>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 <p><img src="/images/19/1902442139.png" alt="mdvwczfp.png"></p>
 <div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
 
