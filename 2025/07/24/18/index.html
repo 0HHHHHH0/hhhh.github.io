@@ -160,7 +160,7 @@
   isToc: true,
   pageType: 'post'
 }</script><link rel="stylesheet" href="/css/style.css"><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="HHHH’s Blog" type="application/atom+xml">
-</head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
+<link rel="stylesheet" href="/css/prism-atom-dark.css" type="text/css"></head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
   const $loadingBox = document.getElementById('loading-box')
   const $body = document.body
   const preloader = {
@@ -197,7 +197,7 @@
 <p>要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。</p>
 </blockquote>
 <p>用到的软件<br><a target="_blank" rel="noopener" href="https://kmxo.lanzoub.com/iF7O730413eb">linux-npc.zip - 蓝奏云</a><br><a target="_blank" rel="noopener" href="https://d-jy.net/docs/nps/?lang=zh#/use">使用教程</a><br>共两个步骤<br>1.下载npc客户端后修改 npc.conf文件<br>模板参考<br>修改前</p>
-<pre><code class="plaintext">[common]
+<pre class=" language-plaintext"><code class="language-plaintext">[common]
 server_addr=填写服务器IP地址:8024
 conn_type=tcp
 vkey=唯一验证密钥
@@ -226,7 +226,7 @@ vkey=唯一验证密钥
 <li>注册到系统服务（开机启动 &amp; 守护进程）<br>📌 适用于</li>
 </ol>
 <p>保证 NPC 在服务器重启后自动运行<br>无需手动启动，后台运行<br>Linux&#x2F;macOS</p>
-<pre><code class="plaintext"># 普通连接（TCP）
+<pre class=" language-plaintext"><code class="language-plaintext"># 普通连接（TCP）
 sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
 # TLS 加密连接（安全模式）
 sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off

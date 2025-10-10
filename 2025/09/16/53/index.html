@@ -160,7 +160,7 @@
   isToc: true,
   pageType: 'post'
 }</script><link rel="stylesheet" href="/css/style.css"><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="HHHH’s Blog" type="application/atom+xml">
-</head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
+<link rel="stylesheet" href="/css/prism-atom-dark.css" type="text/css"></head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
   const $loadingBox = document.getElementById('loading-box')
   const $body = document.body
   const preloader = {
@@ -209,7 +209,7 @@
 <ol>
 <li>用ANNOVAR注释人类基因组variants信息<br>1.1 下载所有需要的注释信息库<br>对于基于基因的注释的数据库已经在下好的 ANNOVAR package中了。如果要进行其他注释，需要按以下命令下载数据库到 ‘humandb&#x2F;’ 目录里：</li>
 </ol>
-<pre><code class="html">perl annotate_variation.pl --downdb --buildver hg19 cytoBand humandb/
+<pre class=" language-html"><code class="language-html">perl annotate_variation.pl --downdb --buildver hg19 cytoBand humandb/
 perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 1000g2014oct humandb/
 perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 exac03 humandb/
 perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 ljb26_all humandb/
@@ -237,7 +237,7 @@ perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 snp138 hum
 <p>annotate_variation.pl –buildver mm9 –downdb seq mousedb&#x2F;mm9_seq<br>retrieve_seq_from_fasta.pl mousedb&#x2F;mm9_refGene.txt -seqdir mousedb&#x2F;mm9_seq -format refGene -outfile mousedb&#x2F;mm9_refGeneMrna.fa<br>同样在annovar文件下运行这两个perl程序</p>
 <p>perl annotate_variation.pl –buildver mm9 –downdb seq mousedb&#x2F;mm9_seq<br>通过这个命令，会在mousedb下创建文件夹mm9_seq，并且在里面下载mm9的基因组文件chromFa.tar.gz，perl程序帮忙解压后是按染色体分开的fasta格式文件。 然后继续运行perl程序</p>
 <p>perl retrieve_seq_from_fasta.pl mousedb&#x2F;mm9_refGene.txt -seqdir mousedb&#x2F;mm9_seq -format refGene -outfile mousedb&#x2F;mm9_refGeneMrna.fa<br>该程序会会在mousedb下创建mm9_refGeneMrna.fa文件，是根据mm9_refGene.txt的信息，重新构建成的老鼠转录表达基因fasta格式文件 这样老鼠mm9 annovar gene based注释库就弄好了 以文本文件test.input为案例进行测试 生成test.input的txt格式文件，根据annovar官网介绍，只要这最基本的五列信息就可以进行注释，五列分别染色体名称，染色体上的位置，染色体上的位置，参考基因组碱基，变异碱基。</p>
-<pre><code class="html">1       19215217        19215217        T       C
+<pre class=" language-html"><code class="language-html">1       19215217        19215217        T       C
 1       33803084        33803084        A       G
 1       33803198        33803198        A       G
 1       37499237        37499237        T       C
@@ -250,7 +250,7 @@ perl annotate_variation.pl --downdb --webfrom annovar --buildver hg19 snp138 hum
 </code></pre>
 <p>然后使用perl程序进行gene based的注释</p>
 <p>perl annotate_variation.pl -out test -build mm9 test.input mousedb<br>注释后会生成test.variant_function，test.exonic_variant_function和test.log文件，前两个即为所需要的文件。用这个例子输出test.exonic_variant_function文件输出为空文件，因为这些位点没有在exonic区域的，所以没有结果。如果有位点在exonic中，则在test.exonic_variant_function中会更具体的描述为同义突变还是非同义突变</p>
-<pre><code class="html">intronic        Tfap2b  1       19215217        19215217        T       C
+<pre class=" language-html"><code class="language-html">intronic        Tfap2b  1       19215217        19215217        T       C
 UTR3            Bag2    1       33803084        33803084        A       G
 UTR3            Bag2    1       33803198        33803198        A       G
 UTR3            Mgat4a  1       37499237        37499237        T       C
@@ -329,13 +329,13 @@ make release
 <p>Cgigas_refGeneMrna.fa<br>Cgigas_refGene.txt<br>强调：关于文件的命名，按照常规逻辑，这两个文件肯定不能随便命名，不然annovar无法识别！摸索了一下，前缀就是下面build参数使用的名字，这里就是Cgigas，下面注释就要使用“-build Cgigas”这个参数，对于基于基因注释的txt文件命名就是refGene，连起来就是 Cgigas_refGene.txt。而fa文件前缀一样，后面有稍稍差别为refGeneMrna，连起来就是Cgigas_refGeneMrna.fa。</p>
 <h3 id="第三步：转换需要注释的vcf文件"><a href="#第三步：转换需要注释的vcf文件" class="headerlink" title="第三步：转换需要注释的vcf文件"></a>第三步：转换需要注释的vcf文件</h3><p>BB3.HC.vcf是HaplotypeCaller得到的vcf文件，转换成适用annovar的文件格式。得到的BB3.avinput就是我们需要注释的文件</p>
 <p>perl convert2annovar.pl -format vcf4 BB3.HC.vcf &gt; BB3.avinput</p>
-<pre><code class="C"># 将您的TSV转换为Annovar的avinput格式
-awk &#39;NR&gt;1 &#123;print $1&quot;\t&quot;$2&quot;\t&quot;$2&quot;\t&quot;$3&quot;\t&quot;$4&#125;&#39; /home/wanglab/Ywh/adductor_muscle_scar/Variants/filtered_variants_thr0p7_20250902_162128.tsv &gt; filtered_variants_thr0p7_20250902_162128.avinput
+<pre class=" language-C"><code class="language-C"># 将您的TSV转换为Annovar的avinput格式
+awk 'NR>1 &#123;print $1"\t"$2"\t"$2"\t"$3"\t"$4&#125;' /home/wanglab/Ywh/adductor_muscle_scar/Variants/filtered_variants_thr0p7_20250902_162128.tsv > filtered_variants_thr0p7_20250902_162128.avinput
 </code></pre>
 <p>ANNOVAR主要使用convert2annovar.pl程序进行转换，转换后文件是精简过的，主要包含前面提到的5列内容，如果要将原格式的文件的所有内容都包含在转换后的.avinput文件中，可以使用-includeinfo参数；如果需要分开每个sample输出单一的.avinput文件，可以使用-allsample参数，等等。</p>
 <p>ANNOVAR还主要支持以下格式转换：</p>
 <p>SAMtools pileup format<br>Complete Genomics format<br>GFF3-SOLiD calling format<br>SOAPsnp calling format<br>MAQ calling format<br>CASAVA calling format</p>
-<h2 id="第四步：annotate-variation注释"><a href="#第四步：annotate-variation注释" class="headerlink" title="第四步：annotate_variation注释"></a>第四步：annotate_variation注释</h2><pre><code class="C"># 一步完成注释和表格输出
+<h2 id="第四步：annotate-variation注释"><a href="#第四步：annotate-variation注释" class="headerlink" title="第四步：annotate_variation注释"></a>第四步：annotate_variation注释</h2><pre class=" language-C"><code class="language-C"># 一步完成注释和表格输出
 perl table_annovar.pl filtered_variants_thr0p7_20250902_162128.avinput Cgigasdb/ \
    -buildver Cg \
    -out filtered_variants_thr0p7_20250902_162128 \
@@ -350,7 +350,7 @@ perl table_annovar.pl filtered_variants_thr0p7_20250902_162128.avinput Cgigasdb/
 <p>BB3.exonic_variant_function     # 外显子区域突变的功能、类型等<br>BB3.variant_function            # 突变的基因及位置<br>BB3.log                         # 日志文件<br>第五步：table_annovar.pl注释</p>
 <p>table_annovar.pl是ANNOVAR多个脚本的封装，可以一次性完成三种类型的注释。</p>
 <p>我这里只有regGene类型的注释库，那么注释命令为</p>
-<pre><code class="html">perl table_annovar.pl  
+<pre class=" language-html"><code class="language-html">perl table_annovar.pl  
   BB3.avinput pepperdb/  
   -buildver zunla               # 使用zunla注释库
   -out BB3 
@@ -361,7 +361,7 @@ perl table_annovar.pl filtered_variants_thr0p7_20250902_162128.avinput Cgigasdb/
   -csvout                       # 输出csv文件
 </code></pre>
 <p>table_annovar.pl也可以不经过转换，直接对vcf文件进行注释，添加-vcfinput参数就行，注释的内容将会放在vcf文件的“INFO”那一栏。但是需要注意的是不能和-csvout参数同时使用，命令如下</p>
-<pre><code class="html">perl table_annovar.pl 
+<pre class=" language-html"><code class="language-html">perl table_annovar.pl 
   BB3.HC.vcf 
   pepperdb/  
   -buildver zunla 
@@ -374,63 +374,63 @@ perl table_annovar.pl filtered_variants_thr0p7_20250902_162128.avinput Cgigasdb/
 </code></pre>
 <p>所以，两种输入格式</p>
 <p>VCF文件：用 -vcfinput指定<br>avinput<br>每行代表一个位点<br>前5列依次为：chromosome, start position, end position, the reference nucleotides, the observed nucleotides<br>reference nucleotides：不知道时可设置为0<br>observed nucleotides: insertion,deletion,block subsititution可用-表示<br>其余列：可有可无，如果有，在输出文件中会原样输出。<br>more BB3.avinput</p>
-<pre><code class="html">1       948921  948921  T       C       comments: rs15842, a SNP in 5&#39; UTR of ISG15
+<pre class=" language-html"><code class="language-html">1       948921  948921  T       C       comments: rs15842, a SNP in 5' UTR of ISG15
 1       13211293        13211294        TC      -       comments: rs59770105, a 2-bp deletion
 1       11403596        11403596        -       AT      comments: rs35561142, a 2-bp insertion
 1       105492231       105492231       A       ATAAA   comments: rs10552169, a block substitution
 1       67705958        67705958        G       A       comments: rs11209026 (R381Q), a SNP in IL23R associated 
 </code></pre>
 <p>cat example&#x2F;ex1.avinput</p>
-<pre><code class="html">1   948921  948921  T   C   comments: rs15842, a SNP in 5&#39; UTR of ISG15
-1   1404001 1404001 G   T   comments: rs149123833, a SNP in 3&#39; UTR of ATAD3C
+<pre class=" language-html"><code class="language-html">1   948921  948921  T   C   comments: rs15842, a SNP in 5' UTR of ISG15
+1   1404001 1404001 G   T   comments: rs149123833, a SNP in 3' UTR of ATAD3C
 1   5935162 5935162 A   T   comments: rs1287637, a splice site variant in NPHP4
 1   162736463   162736463   C   T   comments: rs1000050, a SNP in Illumina SNP arrays
 1   84875173    84875173    C   T   comments: rs6576700 or SNP_A-1780419, a SNP in Affymetrix SNP arrays
 1   13211293    13211294    TC  -   comments: rs59770105, a 2-bp deletion
 1   11403596    11403596    -   AT  comments: rs35561142, a 2-bp insertion
 1   105492231   105492231   A   ATAAA   comments: rs10552169, a block substitution
-1   67705958    67705958    G   A   comments: rs11209026 (R381Q), a SNP in IL23R associated with Crohn&#39;s disease
-2   234183368   234183368   A   G   comments: rs2241880 (T300A), a SNP in the ATG16L1 associated with Crohn&#39;s disease
+1   67705958    67705958    G   A   comments: rs11209026 (R381Q), a SNP in IL23R associated with Crohn's disease
+2   234183368   234183368   A   G   comments: rs2241880 (T300A), a SNP in the ATG16L1 associated with Crohn's disease
 </code></pre>
 <p>该格式每列以tab分割，最重要的地方为前5列，分别是:</p>
 <p>染色体(Chromosome)<br>起始位置(Start)<br>结束位置(End)<br>参考等位基因(Reference Allele)<br>替代等位基因(Alternative Allele)<br>剩下为注释部分（可选）。<br>ANNOVAR主要也是依靠这5处信息对数据库进行比对，进而注释变异。</p>
 <p>报错：</p>
 <p>chmod 777 table_annovar.pl<br>问题依旧！</p>
 <p>没办法，只能跑去table_annovar.pl脚本的444行看一下具体代码</p>
-<pre><code class="html">1.  #generate gene anno
+<pre class=" language-html"><code class="language-html">1.  #generate gene anno
 2.  my $sc;
-3.  $sc = $SC_PREFIX .  &quot;annotate_variation.pl -geneanno -buildver $buildver -dbtype $protocol -outfile $tempfile.$protocol -exonsort -nofirstcodondel $queryfile $dbloc&quot;;  #20191010: add -nofirstcodondel
-4.  $argument and $sc .=  &quot; $argument&quot;;
-5.  $intronhgvs and $sc .=  &quot; -splicing_threshold $intronhgvs&quot;;
+3.  $sc = $SC_PREFIX .  "annotate_variation.pl -geneanno -buildver $buildver -dbtype $protocol -outfile $tempfile.$protocol -exonsort -nofirstcodondel $queryfile $dbloc";  #20191010: add -nofirstcodondel
+4.  $argument and $sc .=  " $argument";
+5.  $intronhgvs and $sc .=  " -splicing_threshold $intronhgvs";
 
-7.  if  ($thread)  &#123;
-8.  $sc .=  &quot; -thread $thread&quot;;
-9.  &#125;
-10.  if  ($maxgenethread)  &#123;
-11.  $sc .=  &quot; -maxgenethread $maxgenethread&quot;;
-12.  &#125;
+7.  if  ($thread)  <span class="token entity" title="&#123;">&amp;#123;</span>
+8.  $sc .=  " -thread $thread";
+9.  <span class="token entity" title="&#125;">&amp;#125;</span>
+10.  if  ($maxgenethread)  <span class="token entity" title="&#123;">&amp;#123;</span>
+11.  $sc .=  " -maxgenethread $maxgenethread";
+12.  <span class="token entity" title="&#125;">&amp;#125;</span>
 
-14.  print STDERR &quot;\nNOTICE: Running with system command \n&quot;;
-15.  system ($sc)  and  die  &quot;Error running system command: \n&quot;;
+14.  print STDERR "\nNOTICE: Running with system command \n";
+15.  system ($sc)  and  die  "Error running system command: \n";
 </code></pre>
 <p>444行的内容为system ($sc) and die “Error running system command: \n”;<br>看得出来，这里执行了system系统命令，往上查找变量$sc的值，发现这里调用了annotate_variation.pl脚本，同样</p>
 <p>chmod 777 annotate_variation.pl<br>为了避免别的脚本权限问题，干脆全部777</p>
 <p>chmod 777 *<br>成功解决权限问题。</p>
 <p>注释完的结果合并到原文件</p>
-<pre><code class="html"># 步骤1: 为原始文件添加行号
-awk &#39;NR==1 &#123;print &quot;LineNumber\t&quot;$0&#125; NR&gt;1 &#123;print NR-1&quot;\t&quot;$0&#125;&#39; /home/wanglab/Ywh/adductor_muscle_scar/Variants/filtered_variants_thr0p7_20250902_162128.tsv &gt; original_with_linenum.tsv
+<pre class=" language-html"><code class="language-html"># 步骤1: 为原始文件添加行号
+awk 'NR==1 <span class="token entity" title="&#123;">&amp;#123;</span>print "LineNumber\t"$0<span class="token entity" title="&#125;">&amp;#125;</span> NR>1 <span class="token entity" title="&#123;">&amp;#123;</span>print NR-1"\t"$0<span class="token entity" title="&#125;">&amp;#125;</span>' /home/wanglab/Ywh/adductor_muscle_scar/Variants/filtered_variants_thr0p7_20250902_162128.tsv > original_with_linenum.tsv
 
 # 步骤2: 为注释文件添加行号
-awk &#39;NR==1 &#123;print &quot;LineNumber\t&quot;$0&#125; NR&gt;1 &#123;print NR-1&quot;\t&quot;$0&#125;&#39; filtered_variants_thr0p7_20250902_162128.Cg_multianno.csv &gt; anno_with_linenum.tsv
+awk 'NR==1 <span class="token entity" title="&#123;">&amp;#123;</span>print "LineNumber\t"$0<span class="token entity" title="&#125;">&amp;#125;</span> NR>1 <span class="token entity" title="&#123;">&amp;#123;</span>print NR-1"\t"$0<span class="token entity" title="&#125;">&amp;#125;</span>' filtered_variants_thr0p7_20250902_162128.Cg_multianno.csv > anno_with_linenum.tsv
 
 # 步骤3: 基于行号合并
-join -t $&#39;\t&#39; -1 1 -2 1 original_with_linenum.tsv anno_with_linenum.tsv &gt; merged_result.tsv
+join -t $'\t' -1 1 -2 1 original_with_linenum.tsv anno_with_linenum.tsv > merged_result.tsv
 
 # 步骤4: 清理临时文件
 rm original_with_linenum.tsv anno_with_linenum.tsv
 </code></pre>
 <p>2 以构建拟南芥（Arabidopsis thaliana）的注释所需文件为例<br>第一步：准备<br>下载Arabidopsis 的 GTF file 和 genome FASTA file，到 ‘atdb’目录下。解压文件。 地址</p>
-<pre><code class="html">mkdir atdb                                                                                                                                                
+<pre class=" language-html"><code class="language-html">mkdir atdb                                                                                                                                                
 cd atdb         
 wget ftp://ftp.ensemblgenomes.org/pub/release-27/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz                    
 wget ftp://ftp.ensemblgenomes.org/pub/release-27/plants/gtf/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.27.gtf.gz                                                                                                                                                                                                                   
@@ -442,13 +442,13 @@ gunzip Arabidopsis_thaliana.TAIR10.27.gtf.gz
 <p>perl ..&#x2F;retrieve_seq_from_fasta.pl –format refGene –seqfile Arabidopsis_thaliana.TAIR10.27.dna.genome.fa AT_refGene.txt AT_refGeneMrna.fa<br>After this step, the annotation database files needed for gene-based annotation are ready. Now you can annotate a given VCF file using the procedure starting from B(iii). Please note that the ‘–buildver’ argument should be set to ‘AT’.<br>参考<a target="_blank" rel="noopener" href="http://annovar.openbioinformatics.org/en/latest/user-guide/gene/">http://annovar.openbioinformatics.org/en/latest/user-guide/gene/</a> for more details.bases and other arguments are the same as in the human genome annotation.</p>
 <p>总脚本如下</p>
 <p>下载物种基因序列、注释文件</p>
-<pre><code class="html">wget -c ftp://ftp.ensemblgenomes.org/pub/release-27/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz
+<pre class=" language-html"><code class="language-html">wget -c ftp://ftp.ensemblgenomes.org/pub/release-27/plants/fasta/arabidopsis_thaliana/dna/Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz
 wget -c ftp://ftp.ensemblgenomes.org/pub/release-27/plants/gtf/arabidopsis_thaliana/Arabidopsis_thaliana.TAIR10.27.gtf.gz
 gzip -d Arabidopsis_thaliana.TAIR10.27.dna.genome.fa.gz
 gzip -d Arabidopsis_thaliana.TAIR10.27.gtf.gz
 </code></pre>
 <p>#gtf文件格式转换</p>
-<pre><code class="html">wget -c http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/gtfToGenePred
+<pre class=" language-html"><code class="language-html">wget -c http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/gtfToGenePred
 gtfToGenePred -genePredExt Arabidopsis_thaliana.TAIR10.27.gtf AT_refGene.txt
  
 # 另一种格式转换方法，https://github.com/chengcz/pyGTF
@@ -478,10 +478,10 @@ perl retrieve_seq_from_fasta.pl --format refGene --seqfile Arabidopsis_thaliana.
 <p>3 ilter<br>perl annotate_variation.pl -filter -dbtype exac03 -buildver hg19 example&#x2F;ex1.avinput humandb&#x2F;<br>结果文件在example&#x2F;中,ex1.avinput.hg19_exac03_filtered(exac03中没有报道的位点）和ex1.avinput.hg19_exac03_dropped（exac03中报道的位点，包含其等位基因频率）</p>
 <hr>
 <p>比较两个文件的重复值，保留后者重复项</p>
-<pre><code class="html">awk &#39;BEGIN &#123;OFS=&quot;\t&quot;&#125; 
-     NR==FNR &#123;if(FNR&gt;1) start_values[$3] = 1; next&#125; 
-     FNR==1 &#123;print; next&#125; 
-     $2 in start_values&#39; annovar/merged_result.tsv filtered_variants_thr0p7_20250916_203336.tsv &gt; filtered_filtered_variants_thr0p7_20250916_203336.tsv
+<pre class=" language-html"><code class="language-html">awk 'BEGIN <span class="token entity" title="&#123;">&amp;#123;</span>OFS="\t"<span class="token entity" title="&#125;">&amp;#125;</span> 
+     NR==FNR <span class="token entity" title="&#123;">&amp;#123;</span>if(FNR>1) start_values[$3] = 1; next<span class="token entity" title="&#125;">&amp;#125;</span> 
+     FNR==1 <span class="token entity" title="&#123;">&amp;#123;</span>print; next<span class="token entity" title="&#125;">&amp;#125;</span> 
+     $2 in start_values' annovar/merged_result.tsv filtered_variants_thr0p7_20250916_203336.tsv > filtered_filtered_variants_thr0p7_20250916_203336.tsv
 </code></pre>
 <hr>
 <p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/84c818207240">https://www.jianshu.com/p/84c818207240</a><br><a target="_blank" rel="noopener" href="https://www.plob.org/article/9976.html">https://www.plob.org/article/9976.html</a></p>

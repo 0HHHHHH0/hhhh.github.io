@@ -160,7 +160,7 @@
   isToc: true,
   pageType: 'post'
 }</script><link rel="stylesheet" href="/css/style.css"><meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="HHHH’s Blog" type="application/atom+xml">
-</head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
+<link rel="stylesheet" href="/css/prism-atom-dark.css" type="text/css"></head><body><div id="loading-box"><div class="scarecrow"><div class="scarecrow__hat"><div class="scarecrow__ribbon"></div></div><div class="scarecrow__head"><div class="scarecrow__eye"></div><div class="scarecrow__eye"></div><div class="scarecrow__mouth"></div><div class="scarecrow__pipe"></div></div><div class="scarecrow__body"><div class="scarecrow__glove scarecrow__glove--l"></div><div class="scarecrow__sleeve scarecrow__sleeve--l"></div><div class="scarecrow__bow"></div><div class="scarecrow__shirt"></div><div class="scarecrow__coat"></div><div class="scarecrow__waistcoat"></div><div class="scarecrow__sleeve scarecrow__sleeve--r"></div><div class="scarecrow__glove scarecrow__glove--r"></div><div class="scarecrow__coattails"></div><div class="scarecrow__pants"></div></div><div class="scarecrow__arms"></div><div class="scarecrow__leg">  </div></div></div><script async="async">(()=>{
   const $loadingBox = document.getElementById('loading-box')
   const $body = document.body
   const preloader = {
@@ -201,66 +201,66 @@
 </ul>
 <p>基于frp的内网穿透需要准备一台具有公网IP的服务器，如果没有只能完成本地博客的部署。</p>
 <p>建议在开始前切换为超级用户，可使用如下命令：</p>
-<pre><code class="bash">su
+<pre class=" language-bash"><code class="language-bash"><span class="token function">su</span>
 </code></pre>
 <p>根据提示输入密码即可。</p>
 <h2 id="1、Typecho博客的部署"><a href="#1、Typecho博客的部署" class="headerlink" title="1、Typecho博客的部署"></a>1、Typecho博客的部署</h2><blockquote>
 <p>本节摘自自 @梦太晓 的分享<br>酷安原文链接：<code>https://www.coolapk.com/feed/42368631?shareKey=NTM2MmFmODQzYjM2NjQ3OWY0OGY~&amp;shareUid=4402655&amp;shareFrom=com.coolapk.market_12.0.7</code></p>
 </blockquote>
-<h3 id="1-1-一键安装Typecho博客"><a href="#1-1-一键安装Typecho博客" class="headerlink" title="1.1 一键安装Typecho博客"></a>1.1 一键安装Typecho博客</h3><pre><code class="bash">wget -O /root/install_typecho.sh https://www.coolapk.com/link?url=https%3A%2F%2Fimtx-bucket.oss-cn-shenzhen.aliyuncs.com%2Flinux%2Fsh%2Ftypecho%2Finstall_typecho.sh &amp;&amp; chmod +x /root/install_typecho.sh &amp;&amp; /root/install_typecho.sh
+<h3 id="1-1-一键安装Typecho博客"><a href="#1-1-一键安装Typecho博客" class="headerlink" title="1.1 一键安装Typecho博客"></a>1.1 一键安装Typecho博客</h3><pre class=" language-bash"><code class="language-bash"><span class="token function">wget</span> -O /root/install_typecho.sh https://www.coolapk.com/link?url<span class="token operator">=</span>https%3A%2F%2Fimtx-bucket.oss-cn-shenzhen.aliyuncs.com%2Flinux%2Fsh%2Ftypecho%2Finstall_typecho.sh <span class="token operator">&amp;&amp;</span> <span class="token function">chmod</span> +x /root/install_typecho.sh <span class="token operator">&amp;&amp;</span> /root/install_typecho.sh
 </code></pre>
 <p><strong>install_typecho.sh 脚本内容：</strong></p>
-<pre><code class="bash">#!/bin/bash
-echo &quot;这个脚本是【安装typecho博客】，会同时安装Nginx PHP MySQL(MariaDB)，确定要运行吗？&quot;
-echo &quot;【建议提前切换至root用户   sudo -i】&quot;
-echo &quot;【建议提前更新源           apt update】&quot;
-read -p &quot;输入yes确认运行 输入其他退出：&quot; yesOrNo
-echo &quot;你的输入是： &quot; $yesOrNo
-if [ $&#123;yesOrNo&#125; = &quot;yes&quot; ];then
-    echo &quot;输入【正确】，继续往下执行&quot;
-else
-    echo &quot;输入【错误】，即将退出脚本&quot;
-    exit 0
-fi
+<pre class=" language-bash"><code class="language-bash"><span class="token shebang important">#!/bin/bash</span>
+<span class="token keyword">echo</span> <span class="token string">"这个脚本是【安装typecho博客】，会同时安装Nginx PHP MySQL(MariaDB)，确定要运行吗？"</span>
+<span class="token keyword">echo</span> <span class="token string">"【建议提前切换至root用户   sudo -i】"</span>
+<span class="token keyword">echo</span> <span class="token string">"【建议提前更新源           apt update】"</span>
+<span class="token function">read</span> -p <span class="token string">"输入yes确认运行 输入其他退出："</span> yesOrNo
+<span class="token keyword">echo</span> <span class="token string">"你的输入是： "</span> <span class="token variable">$yesOrNo</span>
+<span class="token keyword">if</span> <span class="token punctuation">[</span> $<span class="token operator">&amp;</span><span class="token comment" spellcheck="true">#123;yesOrNo&amp;#125; = "yes" ];then</span>
+    <span class="token keyword">echo</span> <span class="token string">"输入【正确】，继续往下执行"</span>
+<span class="token keyword">else</span>
+    <span class="token keyword">echo</span> <span class="token string">"输入【错误】，即将退出脚本"</span>
+    <span class="token keyword">exit</span> 0
+<span class="token keyword">fi</span>
 
-echo &quot;【开始安装typecho博客】: &quot;`date &quot;+%F %T&quot;`
+<span class="token keyword">echo</span> <span class="token string">"【开始安装typecho博客】: "</span>`date <span class="token string">"+%F %T"</span>`
 
-# 安装Nginx
-apt install -y nginx
+<span class="token comment" spellcheck="true"># 安装Nginx</span>
+apt <span class="token function">install</span> -y nginx
 
-# 安装PHP及部分扩展
-apt install -y php php-fpm php-mysqli php-mbstring
+<span class="token comment" spellcheck="true"># 安装PHP及部分扩展</span>
+apt <span class="token function">install</span> -y php php-fpm php-mysqli php-mbstring
 
-# 安装MySQL
-apt install -y mariadb-server
+<span class="token comment" spellcheck="true"># 安装MySQL</span>
+apt <span class="token function">install</span> -y mariadb-server
 
-# 安装解压工具
-apt install -y zip
+<span class="token comment" spellcheck="true"># 安装解压工具</span>
+apt <span class="token function">install</span> -y <span class="token function">zip</span>
 
-# 创建数据库，数据库名typecho
-# 添加用户到MySQL数据库中，用户名typecho  密码typecho，登录主机为localhost(仅允许本机登录，无法远程登录)
-# 授予typecho用户，管理typecho数据库的一切权限
-# 刷新数据库用户权限等，让其生效
+<span class="token comment" spellcheck="true"># 创建数据库，数据库名typecho</span>
+<span class="token comment" spellcheck="true"># 添加用户到MySQL数据库中，用户名typecho  密码typecho，登录主机为localhost(仅允许本机登录，无法远程登录)</span>
+<span class="token comment" spellcheck="true"># 授予typecho用户，管理typecho数据库的一切权限</span>
+<span class="token comment" spellcheck="true"># 刷新数据库用户权限等，让其生效</span>
 mysql -u root -p密码  
-&gt; 本节参考自：`https://blog.csdn.net/qq_36981760/article/details/115713179`
+<span class="token operator">></span> 本节参考自：<span class="token variable"><span class="token variable">`</span>https://blog.csdn.net/qq_36981760/article/details/115713179<span class="token variable">`</span></span>
 
-### 2.1 frp下载地址
+<span class="token comment" spellcheck="true">### 2.1 frp下载地址</span>
 
-下载地址：`https://github.com/fatedier/frp/releases`
+下载地址：<span class="token variable"><span class="token variable">`</span>https://github.com/fatedier/frp/releases<span class="token variable">`</span></span>
 
 选择合适的版本进行下载即可。
 
 分别在服务器和随身WiFi进行下载，可以使用如下命令分别下载（请确认是amd还是arm）：
 
 ```bash
-# 服务器
-wget https://github.com/fatedier/frp/releases/download/v0.49.0/frp_0.49.0_linux_amd64.tar.gz
+<span class="token comment" spellcheck="true"># 服务器</span>
+<span class="token function">wget</span> https://github.com/fatedier/frp/releases/download/v0.49.0/frp_0.49.0_linux_amd64.tar.gz
 
-# 随身WiFi
-wget https://github.com/fatedier/frp/releases/download/v0.49.0/frp_0.49.0_linux_arm64.tar.gz
+<span class="token comment" spellcheck="true"># 随身WiFi</span>
+<span class="token function">wget</span> https://github.com/fatedier/frp/releases/download/v0.49.0/frp_0.49.0_linux_arm64.tar.gz
 </code></pre>
 <h3 id="2-2-frp软件的解压"><a href="#2-2-frp软件的解压" class="headerlink" title="2.2 frp软件的解压"></a>2.2 frp软件的解压</h3><p>分别进行解压，解压命令：</p>
-<pre><code class="bash">tar -zxvf 压缩包.tar.gz
+<pre class=" language-bash"><code class="language-bash"><span class="token function">tar</span> -zxvf 压缩包.tar.gz
 </code></pre>
 <p>解压后如下：</p>
 <pre><code>frp_0.49.0_linux_amd64/
@@ -272,151 +272,151 @@ wget https://github.com/fatedier/frp/releases/download/v0.49.0/frp_0.49.0_linux_
 └── frps_full.ini
 </code></pre>
 <p>这里服务器端和客户端都放在了<code>/usr/local/frp/</code>目录下。</p>
-<h3 id="2-3-frp添加权限"><a href="#2-3-frp添加权限" class="headerlink" title="2.3 frp添加权限"></a>2.3 frp添加权限</h3><pre><code class="bash"># 服务器端添加权限
-cd /usr/local/frp
-sudo chmod 777 frps
+<h3 id="2-3-frp添加权限"><a href="#2-3-frp添加权限" class="headerlink" title="2.3 frp添加权限"></a>2.3 frp添加权限</h3><pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 服务器端添加权限</span>
+<span class="token function">cd</span> /usr/local/frp
+<span class="token function">sudo</span> <span class="token function">chmod</span> 777 frps
 
-# 客户端添加权限
-cd /usr/local/frp
-sudo chmod 777 frpc
+<span class="token comment" spellcheck="true"># 客户端添加权限</span>
+<span class="token function">cd</span> /usr/local/frp
+<span class="token function">sudo</span> <span class="token function">chmod</span> 777 frpc
 </code></pre>
 <h3 id="2-4-服务器端frp配置文件及frp启动"><a href="#2-4-服务器端frp配置文件及frp启动" class="headerlink" title="2.4 服务器端frp配置文件及frp启动"></a>2.4 服务器端frp配置文件及frp启动</h3><p><strong>服务器端配置：</strong></p>
-<pre><code class="bash"># 打开服务器端配置文件
+<pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 打开服务器端配置文件</span>
 vim ./frps.ini
 </code></pre>
 <p><strong>我的填写内容如下：</strong></p>
-<pre><code class="ini">[common]
-bind_port = 7000
-dashboard_port = 7500
-dashboard_user = admin
-dashboard_pwd = admin
-vhost_http_port = 7002
-vhost_https_port = 7003
-max_pool_count = 50
-token = aaa123
-tcp_mux = true
-log_file = /usr/local/frp/frps.log
-log_level = info
-log_max_days = 3
-authentication_timeout = 0
-subdomain_host = xxx.xx.xxx.xx
-privilege_mode = true
+<pre class=" language-ini"><code class="language-ini"><span class="token selector">[common]</span>
+<span class="token constant">bind_port</span> <span class="token attr-value"><span class="token punctuation">=</span> 7000</span>
+<span class="token constant">dashboard_port</span> <span class="token attr-value"><span class="token punctuation">=</span> 7500</span>
+<span class="token constant">dashboard_user</span> <span class="token attr-value"><span class="token punctuation">=</span> admin</span>
+<span class="token constant">dashboard_pwd</span> <span class="token attr-value"><span class="token punctuation">=</span> admin</span>
+<span class="token constant">vhost_http_port</span> <span class="token attr-value"><span class="token punctuation">=</span> 7002</span>
+<span class="token constant">vhost_https_port</span> <span class="token attr-value"><span class="token punctuation">=</span> 7003</span>
+<span class="token constant">max_pool_count</span> <span class="token attr-value"><span class="token punctuation">=</span> 50</span>
+<span class="token constant">token</span> <span class="token attr-value"><span class="token punctuation">=</span> aaa123</span>
+<span class="token constant">tcp_mux</span> <span class="token attr-value"><span class="token punctuation">=</span> true</span>
+<span class="token constant">log_file</span> <span class="token attr-value"><span class="token punctuation">=</span> /usr/local/frp/frps.log</span>
+<span class="token constant">log_level</span> <span class="token attr-value"><span class="token punctuation">=</span> info</span>
+<span class="token constant">log_max_days</span> <span class="token attr-value"><span class="token punctuation">=</span> 3</span>
+<span class="token constant">authentication_timeout</span> <span class="token attr-value"><span class="token punctuation">=</span> 0</span>
+<span class="token constant">subdomain_host</span> <span class="token attr-value"><span class="token punctuation">=</span> xxx.xx.xxx.xx</span>
+<span class="token constant">privilege_mode</span> <span class="token attr-value"><span class="token punctuation">=</span> true</span>
 </code></pre>
 <blockquote>
 <p>注意：删掉配置文件中所有注释<br>服务器端开放对应端口</p>
 </blockquote>
 <p><strong>frp的启动：</strong></p>
-<pre><code class="bash"># 前台启动
+<pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 前台启动</span>
 ./frps -c ./frps.ini
 
-# 后台启动
-./frps -c ./frps.ini &amp;
+<span class="token comment" spellcheck="true"># 后台启动</span>
+./frps -c ./frps.ini <span class="token operator">&amp;</span>
 </code></pre>
 <h3 id="2-5-客户端frp配置文件及frp启动"><a href="#2-5-客户端frp配置文件及frp启动" class="headerlink" title="2.5 客户端frp配置文件及frp启动"></a>2.5 客户端frp配置文件及frp启动</h3><p><strong>客户端配置：</strong></p>
-<pre><code class="bash"># 打开客户端配置文件
+<pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 打开客户端配置文件</span>
 vim ./frpc.ini
 </code></pre>
 <p><strong>我的填写内容如下：</strong></p>
-<pre><code class="ini">[common]
-server_addr = 10.10.xxx.xxx
-server_port = 7000
-token = aaa123
-tcp_mux = true
-log_file = /usr/local/frp/frpc.log
-log_level = info
-log_max_days = 3
-authentication_timeout = 0
+<pre class=" language-ini"><code class="language-ini"><span class="token selector">[common]</span>
+<span class="token constant">server_addr</span> <span class="token attr-value"><span class="token punctuation">=</span> 10.10.xxx.xxx</span>
+<span class="token constant">server_port</span> <span class="token attr-value"><span class="token punctuation">=</span> 7000</span>
+<span class="token constant">token</span> <span class="token attr-value"><span class="token punctuation">=</span> aaa123</span>
+<span class="token constant">tcp_mux</span> <span class="token attr-value"><span class="token punctuation">=</span> true</span>
+<span class="token constant">log_file</span> <span class="token attr-value"><span class="token punctuation">=</span> /usr/local/frp/frpc.log</span>
+<span class="token constant">log_level</span> <span class="token attr-value"><span class="token punctuation">=</span> info</span>
+<span class="token constant">log_max_days</span> <span class="token attr-value"><span class="token punctuation">=</span> 3</span>
+<span class="token constant">authentication_timeout</span> <span class="token attr-value"><span class="token punctuation">=</span> 0</span>
 
-[ssh]
-type = tcp
-local_ip = 192.168.xxx.xxx
-local_port = 22
-remote_port = 7001
+<span class="token selector">[ssh]</span>
+<span class="token constant">type</span> <span class="token attr-value"><span class="token punctuation">=</span> tcp</span>
+<span class="token constant">local_ip</span> <span class="token attr-value"><span class="token punctuation">=</span> 192.168.xxx.xxx</span>
+<span class="token constant">local_port</span> <span class="token attr-value"><span class="token punctuation">=</span> 22</span>
+<span class="token constant">remote_port</span> <span class="token attr-value"><span class="token punctuation">=</span> 7001</span>
 
-[web01]
-type = http
-local_ip = 192.168.xxx.xxx
-local_port = 80
-subdomain_host = xxx.xx.xxx.xx
+<span class="token selector">[web01]</span>
+<span class="token constant">type</span> <span class="token attr-value"><span class="token punctuation">=</span> http</span>
+<span class="token constant">local_ip</span> <span class="token attr-value"><span class="token punctuation">=</span> 192.168.xxx.xxx</span>
+<span class="token constant">local_port</span> <span class="token attr-value"><span class="token punctuation">=</span> 80</span>
+<span class="token constant">subdomain_host</span> <span class="token attr-value"><span class="token punctuation">=</span> xxx.xx.xxx.xx</span>
 </code></pre>
 <blockquote>
 <p>注意：删掉配置文件中所有注释</p>
 </blockquote>
 <p><strong>frp的启动：</strong></p>
-<pre><code class="bash"># 前台启动
+<pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 前台启动</span>
 ./frpc -c ./frpc.ini
 
-# 后台启动
-./frpc -c ./frpc.ini &amp;
+<span class="token comment" spellcheck="true"># 后台启动</span>
+./frpc -c ./frpc.ini <span class="token operator">&amp;</span>
 </code></pre>
 <h3 id="2-6-阶段小结"><a href="#2-6-阶段小结" class="headerlink" title="2.6 阶段小结"></a>2.6 阶段小结</h3><p>完成上述步骤之后即完成了基础的配置，可以通过访问：</p>
-<pre><code class="bash"># 公网IP:穿透的http端口
+<pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 公网IP:穿透的http端口</span>
 xxx.xx.xxx.xx:7002
 </code></pre>
 <p>来访问我们内网的个人博客。</p>
 <h3 id="2-7-设置frp开机自启"><a href="#2-7-设置frp开机自启" class="headerlink" title="2.7 设置frp开机自启"></a>2.7 设置frp开机自启</h3><p><strong>服务器端：</strong></p>
-<pre><code class="bash"># 需要先 cd 到 frp 解压目录
-# 复制文件
-cp frps /usr/local/bin/frps
-mkdir /etc/frp
-cp frps.ini /etc/frp/frps.ini
+<pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 需要先 cd 到 frp 解压目录</span>
+<span class="token comment" spellcheck="true"># 复制文件</span>
+<span class="token function">cp</span> frps /usr/local/bin/frps
+<span class="token function">mkdir</span> /etc/frp
+<span class="token function">cp</span> frps.ini /etc/frp/frps.ini
 
-# 编写 frp service 文件，以 ubuntu 为例
-vim /usr/lib/systemd/system/frps.service  # 有时候需要手动创建system文件夹
+<span class="token comment" spellcheck="true"># 编写 frp service 文件，以 ubuntu 为例</span>
+vim /usr/lib/systemd/system/frps.service  <span class="token comment" spellcheck="true"># 有时候需要手动创建system文件夹</span>
 </code></pre>
 <p><strong>frps.service内容如下：</strong></p>
-<pre><code class="ini">[Unit]
-Description=frps
-After=network.target
+<pre class=" language-ini"><code class="language-ini"><span class="token selector">[Unit]</span>
+<span class="token constant">Description</span><span class="token attr-value"><span class="token punctuation">=</span>frps</span>
+<span class="token constant">After</span><span class="token attr-value"><span class="token punctuation">=</span>network.target</span>
 
-[Service]
-TimeoutStartSec=30
-ExecStart=/usr/local/bin/frps -c /etc/frp/frps.ini
-ExecStop=/bin/kill $MAINPID
+<span class="token selector">[Service]</span>
+<span class="token constant">TimeoutStartSec</span><span class="token attr-value"><span class="token punctuation">=</span>30</span>
+<span class="token constant">ExecStart</span><span class="token attr-value"><span class="token punctuation">=</span>/usr/local/bin/frps -c /etc/frp/frps.ini</span>
+<span class="token constant">ExecStop</span><span class="token attr-value"><span class="token punctuation">=</span>/bin/kill $MAINPID</span>
 
-[Install]
-WantedBy=multi-user.target
+<span class="token selector">[Install]</span>
+<span class="token constant">WantedBy</span><span class="token attr-value"><span class="token punctuation">=</span>multi-user.target</span>
 </code></pre>
 <p><strong>启动 frp 并设置开机启动：</strong></p>
-<pre><code class="bash">systemctl enable frps
+<pre class=" language-bash"><code class="language-bash">systemctl <span class="token function">enable</span> frps
 systemctl start frps
 systemctl status frps
 
-# 部分服务器上,可能需要加 .service 后缀来操作,即:
-systemctl enable frps.service
+<span class="token comment" spellcheck="true"># 部分服务器上,可能需要加 .service 后缀来操作,即:</span>
+systemctl <span class="token function">enable</span> frps.service
 systemctl start frps.service
 systemctl status frps.service
 </code></pre>
 <p><strong>客户端：</strong></p>
-<pre><code class="bash"># 需要先 cd frp 解压目录
-# 复制文件
-cp frpc /usr/local/bin/frpc
-mkdir /etc/frp
-cp frpc.ini /etc/frp/frpc.ini
+<pre class=" language-bash"><code class="language-bash"><span class="token comment" spellcheck="true"># 需要先 cd frp 解压目录</span>
+<span class="token comment" spellcheck="true"># 复制文件</span>
+<span class="token function">cp</span> frpc /usr/local/bin/frpc
+<span class="token function">mkdir</span> /etc/frp
+<span class="token function">cp</span> frpc.ini /etc/frp/frpc.ini
 
-# 编写 frp service 文件，以 centos7 为例
-vim /usr/lib/systemd/system/frpc.service  # 有时候需要手动创建system文件夹
+<span class="token comment" spellcheck="true"># 编写 frp service 文件，以 centos7 为例</span>
+vim /usr/lib/systemd/system/frpc.service  <span class="token comment" spellcheck="true"># 有时候需要手动创建system文件夹</span>
 </code></pre>
 <p><strong>frpc.service内容如下：</strong></p>
-<pre><code class="ini">[Unit]
-Description=frpc
-After=network.target
+<pre class=" language-ini"><code class="language-ini"><span class="token selector">[Unit]</span>
+<span class="token constant">Description</span><span class="token attr-value"><span class="token punctuation">=</span>frpc</span>
+<span class="token constant">After</span><span class="token attr-value"><span class="token punctuation">=</span>network.target</span>
 
-[Service]
-TimeoutStartSec=30
-ExecStart=/usr/local/bin/frpc -c /etc/frp/frpc.ini
-ExecStop=/bin/kill $MAINPID
+<span class="token selector">[Service]</span>
+<span class="token constant">TimeoutStartSec</span><span class="token attr-value"><span class="token punctuation">=</span>30</span>
+<span class="token constant">ExecStart</span><span class="token attr-value"><span class="token punctuation">=</span>/usr/local/bin/frpc -c /etc/frp/frpc.ini</span>
+<span class="token constant">ExecStop</span><span class="token attr-value"><span class="token punctuation">=</span>/bin/kill $MAINPID</span>
 
-[Install]
-WantedBy=multi-user.target
+<span class="token selector">[Install]</span>
+<span class="token constant">WantedBy</span><span class="token attr-value"><span class="token punctuation">=</span>multi-user.target</span>
 </code></pre>
 <p><strong>启动 frp 并设置开机启动：</strong></p>
-<pre><code class="bash">systemctl enable frpc
+<pre class=" language-bash"><code class="language-bash">systemctl <span class="token function">enable</span> frpc
 systemctl start frpc
 systemctl status frpc
 
-# 部分服务器上,可以需要加 .service 后缀来操作,即:
-systemctl enable frpc.service
+<span class="token comment" spellcheck="true"># 部分服务器上,可以需要加 .service 后缀来操作,即:</span>
+systemctl <span class="token function">enable</span> frpc.service
 systemctl start frpc.service
 systemctl status frpc.service
 </code></pre>
