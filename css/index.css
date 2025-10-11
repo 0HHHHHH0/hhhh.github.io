@@ -4493,13 +4493,9 @@ pre[class*='language-'] .token.italic {
 }
 #footer {
   position: relative;
-  background: var(--footer-bg, #49b1f5);
   background-attachment: local;
   background-position: bottom;
   background-size: cover;
-}
-[data-theme="dark"] #footer {
-  --footer-bg: #1a1a1a;
 }
 #footer #jsi-flying-fish-container {
   position: absolute;

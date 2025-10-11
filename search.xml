@@ -1,6 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>1.NPC内网穿透——Linux</title>
+    <url>/2025/07/24/18/</url>
+    <content><![CDATA[
+历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。
+
+
+要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。
+
+用到的软件linux-npc.zip - 蓝奏云使用教程共两个步骤1.下载npc客户端后修改 npc.conf文件模板参考修改前
+[common]
+server_addr=填写服务器IP地址:8024
+conn_type=tcp
+vkey=唯一验证密钥
+
+示例如下：修改前
+
+修改后
+
+2.在文件目录中执行以下命令需要修改ip和密钥（不要修改服务端口和删除空格）
+
+
+
+基本使用
+无配置文件模式（推荐）详细命令行参数
+
+📌 适用于
+快速连接 NPS 服务器所有配置均在 Web 管理端完成客户端仅需运行一条命令📌 普通连接（TCP 模式）
+ ./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp 
+📌 TLS 加密连接（安全模式）
+ ./npc -server=ip:8025 -vkey=web界面中显示的密钥 -type=tls 
+📌 连接多个服务端
+ ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls 
+📌 说明：
+默认端口 8024 为非 TLS 端口，用于普通 TCP 连接如果 -type=tls，必须使用 8025 作为 TLS 端口，否则连接失败
+
+注册到系统服务（开机启动 &amp; 守护进程）📌 适用于
+
+保证 NPC 在服务器重启后自动运行无需手动启动，后台运行Linux/macOS
+# 普通连接（TCP）
+sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
+# TLS 加密连接（安全模式）
+sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off
+# 连接多个服务端
+sudo ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls -log=off
+
+# 启动服务
+sudo npc start
+# 停止服务
+sudo npc stop
+# 卸载（修改参数时需要先卸载再重新注册）
+ sudo npc uninstall 
+
+
+
+后面就是开放相应的端口，实现远程访问。
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
     <title>2.重测序数据分析——初步整理</title>
     <url>/2025/07/31/19/</url>
     <content><![CDATA[
@@ -227,64 +288,166 @@ p
       </categories>
   </entry>
   <entry>
-    <title>1.NPC内网穿透——Linux</title>
-    <url>/2025/07/24/18/</url>
+    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
+    <url>/2025/08/02/25/</url>
     <content><![CDATA[
-历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。
+前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。
+
+1.提取SNP位点信息## 设置FST阈值（例如取WEIGHTED_FST &gt; 0.2）
+awk '$5 &gt; 0.2' fst_binned.windowed.weir.fst &gt; high_fst_windows.txt
+
+## 检查最高FST窗口
+sort -k5,5nr high_fst_windows.txt | head
 
 
-要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。
+## 从高FST结果生成BED格式（用于后续注释）
+awk '{print $1"\t"$2"\t"$3"\t"$5}' high_fst_windows.txt &gt; high_fst_regions.bed
 
-用到的软件linux-npc.zip - 蓝奏云使用教程共两个步骤1.下载npc客户端后修改 npc.conf文件模板参考修改前
-[common]
-server_addr=填写服务器IP地址:8024
-conn_type=tcp
-vkey=唯一验证密钥
+## 合并相邻窗口（如距离 merged_high_fst.bed
 
-示例如下：修改前
-
-修改后
-
-2.在文件目录中执行以下命令需要修改ip和密钥（不要修改服务端口和删除空格）
+2.对提取SNP位点注释然后提取与基因重叠的区域（需准备reference.gtf）
+## 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）
+bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
+awk -F'\t' '$8 == "gene" {print $1,$2,$3,$12}' OFS='\t' | \
+awk -F'[;\t]' '{gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4}' | sort | uniq &gt; fst_genes.txt
 
 
-
-基本使用
-无配置文件模式（推荐）详细命令行参数
-
-📌 适用于
-快速连接 NPS 服务器所有配置均在 Web 管理端完成客户端仅需运行一条命令📌 普通连接（TCP 模式）
- ./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp 
-📌 TLS 加密连接（安全模式）
- ./npc -server=ip:8025 -vkey=web界面中显示的密钥 -type=tls 
-📌 连接多个服务端
- ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls 
-📌 说明：
-默认端口 8024 为非 TLS 端口，用于普通 TCP 连接如果 -type=tls，必须使用 8025 作为 TLS 端口，否则连接失败
-
-注册到系统服务（开机启动 &amp; 守护进程）📌 适用于
-
-保证 NPC 在服务器重启后自动运行无需手动启动，后台运行Linux/macOS
-# 普通连接（TCP）
-sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
-# TLS 加密连接（安全模式）
-sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off
-# 连接多个服务端
-sudo ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls -log=off
-
-# 启动服务
-sudo npc start
-# 停止服务
-sudo npc stop
-# 卸载（修改参数时需要先卸载再重新注册）
- sudo npc uninstall 
+3.提取SNP位点所在基因的ID号awk -F'\t' '{
+  match($8, /ID=gene-([^;]+)/, id_arr);
+  match($8, /Name=([^;]+)/, name_arr);
+  if (id_arr[1] &amp;&amp; name_arr[1]) {
+    print $1, $2, $3, id_arr[1], name_arr[1];
+  }
+}' OFS='\t' fst_genes_annotated.bed &gt; fst_gene_ids_names.txt
 
 
 
-后面就是开放相应的端口，实现远程访问。
+
+下面为整理好的上述过程的脚本
+命名为# annotate_fst.sh 
+#!/bin/bash
+# 输入文件
+BED="merged_high_fst.bed"
+GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
+
+# 步骤1：提取基因（直接运行，若为空则需名称映射）
+bedtools intersect -a $BED -b $GFF -wa -wb | \
+awk -F'\t' '$8 == "gene" {print $1,$2,$3,$12}' OFS='\t' | \
+awk -F'[;\t]' '{gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4}' | sort | uniq &gt; fst_genes.txt
+
+# 步骤2：检查结果
+echo "=== 前10行基因 ==="
+head fst_genes.txt
+echo "=== 行数统计 ==="
+wc -l fst_genes.txt
+
+
+
+4.通过基因ID提取蛋白序列下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好
+grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
+
+
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq &gt; protein_ids.txt
+
+
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa &gt; proteins_extracted/fst_genes_proteins.faa
+
+grep "^&gt;" proteins_extracted/fst_genes_proteins.faa | wc -l
+
+发现不能完全匹配所有LOC，查看哪些没匹配到
+# 找所有LOC对应的protein_id
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq &gt; protein_ids_all.txt
+
+# 检查protein_ids.txt是否包含所有
+&gt; comm -23 protein_ids_all.txt protein_ids.txt &gt; missing_proteins.txt
+
+
+下面是上述命令整理好的查找脚本
+#!/bin/bash
+set -euo pipefail
+
+# 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）
+cut -f4 fst_gene_ids_names.txt | sort | uniq &gt; gene_loc_ids.txt
+
+# 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
+    grep "protein_id=" | \
+    sed -r 's/.*protein_id=([^;]+).*/\1/' | \
+    sort | uniq &gt; protein_ids.txt
+
+# 3. 使用seqkit提取对应的蛋白序列到指定文件
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa &gt; proteins_extracted/fst_genes_proteins.faa
+
+# 4. 统计提取到的蛋白数量，确认数量
+grep "^&gt;" proteins_extracted/fst_genes_proteins.faa | wc -l
+
+
+
+
+5.对提取的蛋白进行注释conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
+conda activate eggnog3_env
+
+
+emapper.py -h
+
+tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data
+
+
+emapper.py -i proteins_extracted/fst_genes_proteins.faa \
+  --output fst_proteins_annotation \
+  --data_dir ./data \
+  -m diamond \
+  --cpu 12 \
+  --override
+
+
+
+下面是R中的操作，主要进行KEGG和GO分析
+1.对前面注释的基因进行聚类分析详细内容见 Fst_2.ipynb结果如上，没有达到我的预期，操作也较麻烦。
+2.构建非模式物种注释包org.Cgigas.eg.db详细内容见 Fst_3.ipynb 
+library(tidyverse)
+library(AnnotationForge)
+library(readxl)
+
+emapper %
+  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
+                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
+                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
+
+emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
+  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
+dim(gene2go)    #查看数据维度。
+#[1] 1523399       3
+
+#提取GID与KO信息，这里只有2列信息
+gene2ko%
+ separate_rows(KO, sep = ',', convert = F) %&gt;%
+  dplyr::filter(!is.na(KO))
+dim(gene2ko)
+#[1] 30530     2
+
+#提取GID与Pathway信息，这里只有2列信息
+gene2pathway%
+separate_rows(Pathway, sep = ',', convert = F) %&gt;%
+  dplyr::filter(!is.na(Pathway))
+ dim(gene2pathway)
+#[1] 143056      2
+
+#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
+gene2symbol%
+  dplyr::filter(!is.na(Gene_Symbol))
+dim(gene2symbol)
+#[1] 4561    2
+
+## 删除 GO ID 中的空格、制表符、换行符
+
+gene2go$GO
+
 ]]></content>
       <categories>
-        <category>默认分类</category>
+        <category>重测序</category>
       </categories>
   </entry>
   <entry>
@@ -527,6 +690,245 @@ systemctl status frpc.service
       </categories>
   </entry>
   <entry>
+    <title>4.提取重测序数据中黑白肌痕组中各SNP的位点信息及基因型频率</title>
+    <url>/2025/08/03/32/</url>
+    <content><![CDATA[相关的sh文件内容如下：
+#!/bin/bash
+# 用法：./extract_chromosome_snps_no_split.sh   
+
+set -euo pipefail
+
+# 彩色日志函数，蓝色时间，绿色成功，红色错误，黄色警告
+log() {
+  local msg="$1"
+  local color="${2:-34}"  # 默认蓝色
+  echo -e "\033[1;${color}m[$(date '+%Y-%m-%d %H:%M:%S')]\033[0m $msg"
+}
+
+# 参数检查
+if [ $# -lt 3 ]; then
+  echo "Usage: $0   "
+  echo "Example: ./extract_chromosome_snps_no_split.sh NC_047567.1 input.vcf.gz results"
+  exit 1
+fi
+
+CHROM=$1
+VCF=$2
+PREFIX=$3
+GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
+
+# 检查工具
+command -v bcftools &gt;/dev/null || { log "ERROR: bcftools not found" 31; exit 1; }
+command -v bedtools &gt;/dev/null || { log "ERROR: bedtools not found" 31; exit 1; }
+command -v awk &gt;/dev/null || { log "ERROR: awk not found" 31; exit 1; }
+
+##########################
+# STEP 1: 提取基因坐标
+##########################
+log "STEP 1/5: Extracting gene coordinates for $CHROM..."
+
+GENE_BED="${PREFIX}_genes.bed"
+if [ -s "$GENE_BED" ]; then
+  lines=$(wc -l &lt; "$GENE_BED")
+  log "Found existing gene BED file ($GENE_BED, $lines lines), skipping extraction..." 33
+else
+  matched_gene_lines=$(grep -w "$CHROM" "$GFF" | awk -F'\t' '$3=="gene"')
+  if [ -z "$matched_gene_lines" ]; then
+    log "CRITICAL ERROR: No 'gene' lines found for chromosome '$CHROM'" 31
+    log "Possible reasons:" 31
+    log "1. Chromosome name不匹配 (如缺少'chr'前缀)" 31
+    log "2. GFF中没有gene类型注释" 31
+    log "Debug信息:" 31
+    log "-&gt; Chromosome 检查: $(grep -m1 "$CHROM" "$GFF" || echo '未找到')" 31
+    log "-&gt; 染色体中所有 feature 类型:" 31
+    grep -w "$CHROM" "$GFF" | awk -F'\t' '{print $3}' | sort | uniq -c
+    exit 1
+  fi
+
+  grep -w "$CHROM" "$GFF" | \
+    awk -F'\t' '$3=="gene"' | \
+    awk -F'\t' '{
+      split($9, a, ";");
+      gene_id="";
+      for (i in a) {
+        if (a[i] ~ /^gene=/) {
+          gsub(/^gene=/, "", a[i]); gene_id=a[i];
+        } else if (a[i] ~ /^ID=gene-/) {
+          gsub(/^ID=gene-/, "", a[i]); gene_id=a[i];
+        }
+      }
+      print $1, $4, $5, gene_id
+    }' OFS='\t' &gt; "$GENE_BED"
+
+  gene_count=$(wc -l &lt; "$GENE_BED")
+  if [ "$gene_count" -eq 0 ]; then
+    log "ERROR: Gene extraction failed! No gene records written." 31
+    exit 1
+  fi
+  log "Successfully extracted $gene_count genes to $GENE_BED" 32
+fi
+
+##########################
+# STEP 2: 提取染色体SNP
+##########################
+log "STEP 2/5: Extracting SNPs for $CHROM..."
+
+SNP_VCF="${PREFIX}_snps.vcf.gz"
+if [ -s "$SNP_VCF" ]; then
+  variants=$(bcftools view "$SNP_VCF" | grep -v '^#' | wc -l)
+  log "Found existing SNP file ($SNP_VCF) with $variants variants, skipping extraction..." 33
+else
+  bcftools view -r "$CHROM" "$VCF" -Oz -o "$SNP_VCF"
+  bcftools index "$SNP_VCF"
+  variants=$(bcftools view "$SNP_VCF" | grep -v '^#' | wc -l)
+  log "SNPs extracted to $SNP_VCF (Total variants: $variants)" 32
+fi
+
+##########################
+# STEP 3: 转换VCF格式为TSV
+##########################
+log "STEP 3/5: Converting VCF to table..."
+
+SNP_TSV="${PREFIX}_snps.tsv"
+if [ -s "$SNP_TSV" ]; then
+  lines=$(wc -l &lt; "$SNP_TSV")
+  log "Found existing SNP table ($SNP_TSV) with $lines lines, skipping conversion..." 33
+else
+  bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL[\t%GT:%AD]\n' "$SNP_VCF" &gt; "${SNP_TSV}.tmp"
+
+  # 添加表头（样本名）
+  echo -e "chromosome\tposition\tref\talt\tqual\t"$(bcftools query -l "$SNP_VCF" | tr '\n' '\t' | sed 's/\t$//') &gt; header.tsv
+  cat header.tsv "${SNP_TSV}.tmp" &gt; "$SNP_TSV"
+  rm header.tsv "${SNP_TSV}.tmp"
+
+  lines=$(wc -l &lt; "$SNP_TSV")
+  log "VCF converted to $SNP_TSV (Total lines: $lines)" 32
+fi
+
+##########################
+# STEP 4: SNP注释
+##########################
+log "STEP 4/5: Annotating SNPs with genes (single pass)..."
+
+ANNOTATED="${PREFIX}_annotated.tsv"
+if [ -s "$ANNOTATED" ]; then
+  lines=$(wc -l &lt; "$ANNOTATED")
+  log "Found existing annotated SNPs file ($ANNOTATED) with $lines lines, skipping annotation..." 33
+else
+  SNPS_BED=$(mktemp)
+  INTERSECT_OUT=$(mktemp)
+
+  # 转换TSV到BED格式（0-based）
+  awk -F'\t' 'BEGIN{OFS="\t"} NR&gt;1 {print $1,$2-1,$2,$0}' "$SNP_TSV" &gt; "$SNPS_BED"
+
+  log "Running bedtools intersect..." 33
+  bedtools intersect -a "$SNPS_BED" -b "$GENE_BED" -wa -wb &gt; "$INTERSECT_OUT"
+
+  # 提取最终结果，保留原始字段并加gene列
+  awk -F'\t' 'BEGIN{OFS="\t"} {
+    nf = NF;
+    for(i=4; i 0) ? bm_counts["00"]/bm_total*100 : 0;
+    bm_het_pct = (bm_total &gt; 0) ? bm_counts["01"]/bm_total*100 : 0;
+    bm_alt_pct = (bm_total &gt; 0) ? bm_counts["11"]/bm_total*100 : 0;
+    bm_other_pct = (bm_total &gt; 0) ? bm_counts["other"]/bm_total*100 : 0;
+    
+    wm_ref_pct = (wm_total &gt; 0) ? wm_counts["00"]/wm_total*100 : 0;
+    wm_het_pct = (wm_total &gt; 0) ? wm_counts["01"]/wm_total*100 : 0;
+    wm_alt_pct = (wm_total &gt; 0) ? wm_counts["11"]/wm_total*100 : 0;
+    wm_other_pct = (wm_total &gt; 0) ? wm_counts["other"]/wm_total*100 : 0;
+    
+    # 输出结果（现在总和应为100%）
+    print $1, $2, $3, $4, $5,
+          sprintf("%.3f", bm_ref_pct), sprintf("%.3f", bm_het_pct), sprintf("%.3f", bm_alt_pct), sprintf("%.3f", bm_other_pct), bm_total,
+          sprintf("%.3f", wm_ref_pct), sprintf("%.3f", wm_het_pct), sprintf("%.3f", wm_alt_pct), sprintf("%.3f", wm_other_pct), wm_total;
+  }' "$SNP_TSV" &gt; "$FREQ_OUT"
+  
+  lines=$(wc -l &lt; "$FREQ_OUT")
+  log "Genotype frequency table written to $FREQ_OUT ($((lines-1)) variant lines)" 32
+fi
+
+log "SUCCESS! Final results:" 32
+log "- Gene coordinates: ${GENE_BED}" 32
+log "- SNP VCF: ${PREFIX}_snps.vcf.gz" 32
+log "- Annotated SNPs: ${PREFIX}_annotated.tsv ($(wc -l &lt; ${PREFIX}_annotated.tsv) lines)" 32
+log "- Genotype frequencies: ${PREFIX}_genotype_freq.tsv ($(wc -l &lt; ${PREFIX}_genotype_freq.tsv) lines)" 32
+
+
+相关的指令如下
+dos2unix xxxxxx.sh
+
+rm -f NC_047567.1_results_*
+
+./extract_chromosome_snps.sh NC_047567.1 Filter.snp.vcf.gz NC_047567.1_results 8
+./extract_chromosome_snps_2.0.sh NC_047567.1 Filter.snp.vcf.gz NC_047567.1_results]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>5.各样本SNP位点信息可视化</title>
+    <url>/2025/08/03/40/</url>
+    <content><![CDATA[
+前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析
+
+需要用到的R包
+library(tidyverse)
+library(vcfR)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+下面以单个基因为例进行分析
+# 先读取数据（不自动解析列名）
+snp_data %
+  as.matrix()
+
+# 5. 可视化设置 ------------------------------------------------
+# 颜色映射
+gt_colors %
+  layout(
+    title = list(text = "SNP Genotype Heatmap", y = 0.98),
+    xaxis = list(
+      title = "Genomic Position",
+      rangeslider = list(visible = TRUE),  # 横向滚动条
+      type = "category",  # 防止数值排序
+      tickangle = 45
+    ),
+    yaxis = list(
+      title = list(text = "Sample", standoff = 30),
+      tickfont = list(size = 10),
+      automargin = TRUE,  # 自动调整边距
+      tickmode = "array",
+      tickvals = seq_len(nrow(heatmap_matrix)),
+      ticktext = rownames(heatmap_matrix)
+    ),
+    margin = list(
+      l = left_margin,  # 动态左边距
+      r = 50,
+      b = 100,
+      t = 100
+    )
+  )
+
+# 7. 输出结果 --------------------------------------------------
+# 在RStudio中直接查看
+print(fig)
+
+# 保存为HTML文件
+htmlwidgets::saveWidget(
+  widget = fig,
+  file = "snp_heatmap_complete.html",
+  title = "Interactive SNP Heatmap",
+  selfcontained = TRUE,
+  libdir = "lib"
+)
+输出结果如下
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
     <title>6.筛选组内一致率90%，组间有差异的SNP位点</title>
     <url>/2025/09/03/48/</url>
     <content><![CDATA[分析需求：请分析查找组间差异SNP &amp; Indel。需要找组内一致，组间具有差异的突变位点，样本一致率卡90%，即在大于90%的样本中突变型一致就认为是组内一致的突变。
@@ -664,66 +1066,39 @@ fig  # 在RStudio中查看
       </categories>
   </entry>
   <entry>
-    <title>5.各样本SNP位点信息可视化</title>
-    <url>/2025/08/03/40/</url>
-    <content><![CDATA[
-前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析
+    <title>内网穿透</title>
+    <url>/2024/11/21/5/</url>
+    <content><![CDATA[前言对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。
+经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息：
+免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）免费隧道：4条流量：不限制并发：不限制除此之外访问地址并不会强制变化官网链接
 
-需要用到的R包
-library(tidyverse)
-library(vcfR)
-library(data.table)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-下面以单个基因为例进行分析
-# 先读取数据（不自动解析列名）
-snp_data %
-  as.matrix()
+https://www.chmlfrp.cn
 
-# 5. 可视化设置 ------------------------------------------------
-# 颜色映射
-gt_colors %
-  layout(
-    title = list(text = "SNP Genotype Heatmap", y = 0.98),
-    xaxis = list(
-      title = "Genomic Position",
-      rangeslider = list(visible = TRUE),  # 横向滚动条
-      type = "category",  # 防止数值排序
-      tickangle = 45
-    ),
-    yaxis = list(
-      title = list(text = "Sample", standoff = 30),
-      tickfont = list(size = 10),
-      automargin = TRUE,  # 自动调整边距
-      tickmode = "array",
-      tickvals = seq_len(nrow(heatmap_matrix)),
-      ticktext = rownames(heatmap_matrix)
-    ),
-    margin = list(
-      l = left_margin,  # 动态左边距
-      r = 50,
-      b = 100,
-      t = 100
-    )
-  )
-
-# 7. 输出结果 --------------------------------------------------
-# 在RStudio中直接查看
-print(fig)
-
-# 保存为HTML文件
-htmlwidgets::saveWidget(
-  widget = fig,
-  file = "snp_heatmap_complete.html",
-  title = "Interactive SNP Heatmap",
-  selfcontained = TRUE,
-  libdir = "lib"
-)
-输出结果如下
+使用教程这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。
+注册/登录没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面：
+创建隧道随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道）
+然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载）
+然后填写相应隧道信息，如果没有特殊需求，一般只需要填写端口类型及内网端口。
+随后点击确定即可成功创建隧道
+启动隧道前往 “隧道管理 -&gt; 软件下载” 页面，下载对应你系统的软件。
+下载好后解压压缩包，一般来讲只需要这三个文件，其他文件可以删除，也可以选择保留。
+随后进入网站的 “隧道管理 -&gt; 配置文件” 页面，在此页面选择你创建隧道的节点，就可以获取到相应的配置文件。将获取的配置文件覆盖到文件夹的frpc.ini中：
+随后保存文件，然后在此文件夹创建一个 “启动.txt” 的文本档案，然后将.txt后缀改为.bat。（注意！此方法仅windows可用，且需要打开显示文件扩展名）
+右键 “启动.bat” ，点击编辑，输入以下代码：
+ &nbsp;./frpc -c frpc.ini 
+接下来是设置开机后台自启
+新建一个启动服务
+编辑该服务
+重新加载
+启动服务
+开始服务
+查看服务状态
+重启
+在弹出的cmd窗口中直接输入frpc即可启动
 ]]></content>
       <categories>
-        <category>重测序</category>
+        <category>折腾</category>
+        <category>WIFI</category>
       </categories>
   </entry>
   <entry>
@@ -826,112 +1201,6 @@ UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域�
  typecho_contents  是typecho存放文章的一个表(2)方法2
 选中 typecho_contents ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 text ，确认后执行即可批量修改。
 ]]></content>
-      <categories>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>内网穿透</title>
-    <url>/2024/11/21/5/</url>
-    <content><![CDATA[前言对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。
-经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息：
-免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）免费隧道：4条流量：不限制并发：不限制除此之外访问地址并不会强制变化官网链接
-
-https://www.chmlfrp.cn
-
-使用教程这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。
-注册/登录没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面：
-创建隧道随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道）
-然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载）
-然后填写相应隧道信息，如果没有特殊需求，一般只需要填写端口类型及内网端口。
-随后点击确定即可成功创建隧道
-启动隧道前往 “隧道管理 -&gt; 软件下载” 页面，下载对应你系统的软件。
-下载好后解压压缩包，一般来讲只需要这三个文件，其他文件可以删除，也可以选择保留。
-随后进入网站的 “隧道管理 -&gt; 配置文件” 页面，在此页面选择你创建隧道的节点，就可以获取到相应的配置文件。将获取的配置文件覆盖到文件夹的frpc.ini中：
-随后保存文件，然后在此文件夹创建一个 “启动.txt” 的文本档案，然后将.txt后缀改为.bat。（注意！此方法仅windows可用，且需要打开显示文件扩展名）
-右键 “启动.bat” ，点击编辑，输入以下代码：
- &nbsp;./frpc -c frpc.ini 
-接下来是设置开机后台自启
-新建一个启动服务
-编辑该服务
-重新加载
-启动服务
-开始服务
-查看服务状态
-重启
-在弹出的cmd窗口中直接输入frpc即可启动
-]]></content>
-      <categories>
-        <category>折腾</category>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>410随身WiFi棒子Debian刷入青龙教程</title>
-    <url>/2025/09/25/56/</url>
-    <content><![CDATA[备份教程刷Debian前请先备份（非常重要！！！）
-弄成砖了是可以刷回来的，大佬可忽略
-备份教程：	https://xiao54.com/linux/32.html视频教程：	https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1下载链接：	https://www.123pan.com/s/354uVv-z7YU3.html先进入fastboot模式，输入指令
-adb reboot bootloader
-
-410随身WiFi棒子Debian刷入青龙教程SSH账号密码解压要刷的Debian系统，然后点击一件刷入
-cmd登录地址:ssh root@10.42.0.1 密码:1313144
-SSH软件:IP:10.42.0.1 用户名:root 密码:1313144
-热点:4G-wifi 密码:12345678
-更新驱动更新驱动视频教程：https://player.bilibili.com/
-更新驱动前注意事项：需要安装vivo9008drivers.exe软件，如安装过请忽略
-1、在【Android Device】下查看有没有【Android Composite ADB Interface】这个驱动，如果不是，右键【更新驱动程序】-【浏览我的计算机以查找驱动程序软件】-【让我从计算机上的可用驱动程序列表中选取(L)】，选择【Android Composite ADB Interface或者USB Composite Device】-【下一步】
-2、插入棒子会显示一个未知设备或者RNDIS，不确定是那个就先拔掉棒子，然后重新插入
-3、下拉找到【网络适配器】-厂商下拉选择【Microsoft】型号下拉选择【基于远程 NDIS 的Internet 共享设备】-【下一步】-即可完成安装驱动
-网络编辑1、现在就用键盘上的方向键编辑，鼠标就不能用了
-nmtui
-
-2、把热点删除，因为他现在不支持WiFi和热点一起开启，所以要把热点删除连接WiFi给debian系统通网才能继续操作
-true &gt; /etc/apt/sources.list.d/mobian.list
-
-3、更新软件包
-sudo apt-get update
-
-4、更新curl wget
-apt install curl wget
-
-5、安装docker系统
-apt install docker.io
-
-6、docker设置随服务启动而自启动
-systemctl enable docker
-
-7、启动docker
-systemctl start docker
-
-给docker设置加速代理1、创建文件夹
-sudo mkdir -p /etc/docker
-
-2、填入加速代理
-如不能使用则代理失效了，请更换代理，更换里面的链接即可。
-sudo tee /etc/docker/daemon.json  /sys/kernel/debug/usb/ci_hdrc.0/role
-安装1panel代码
-```html
-curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_start.sh &amp;&amp; bash quick_start.sh
-
-近期商家为了成本emmmc质量都不太行下面这个指令查看寿命
-查看棒子颗粒寿命查看内存寿命如果显示是0x01寿命就很好，如果显示0+09等越来越远的寿命也就离挂不远了：
-cat /sys/class/mmc_host/mmc0/mmc0\:0001/life_time
-
-410随身WiFi棒子Debian刷入青龙教程关灯方法一1、先安装dialog
-apt install dialog
-
-2、然后执行一键命令
-curl -L gitee.com/ojf6ii/led-control-script/raw/master/led2.sh -o /bin/ledctl &amp;&amp; chmod 755 /bin/ledctl
-
-3、下载完成后输入指令即可打开界面
-ledctl关灯方法二1、打开文件夹
-vi /etc/rc.local
-
-2、粘贴以下代码保存设置开机自启关闭led，重启即可生效
-echo none &gt; /sys/class/leds/red\:os/trigger
-echo none &gt; /sys/class/leds/blue\:wifi/trigger
-echo none &gt; /sys/class/leds/green\:internet/trigger]]></content>
       <categories>
         <category>WIFI</category>
       </categories>
@@ -1223,108 +1492,6 @@ Hui Y, Kai W. Genomic variant annotation and prioritization with ANNOVAR and wAN
       </categories>
   </entry>
   <entry>
-    <title>GPT 学术优化</title>
-    <url>/2024/12/06/8/</url>
-    <content><![CDATA[Installation安装方法I：直接运行 (Windows, Linux or MacOS)下载项目
-
-git clone –depth=1 https://github.com/binary-husky/gpt_academic.gitcd gpt_academic配置API_KEY等变量
-
-在config.py中，配置API KEY等变量。特殊网络环境设置方法、Wiki-项目配置说明。
-「 程序会优先检查是否存在名为config_private.py的私密配置文件，并用其中的配置覆盖config.py的同名配置。如您能理解以上读取逻辑，我们强烈建议您在config.py同路径下创建一个名为config_private.py的新配置文件，并使用config_private.py配置项目，从而确保自动更新时不会丢失配置 」。
-「 支持通过环境变量配置项目，环境变量的书写格式参考docker-compose.yml文件或者我们的Wiki页面。配置读取优先级: 环境变量 &gt; config_private.py &gt; config.py 」。
-安装依赖
-（选择I: 如熟悉python, python推荐版本 3.9 ~ 3.11）备注：使用官方pip源或者阿里pip源, 临时换源方法：
-
-python -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
-
-
-python -m pip install -r requirements.txt
-
-（选择II: 使用Anaconda）步骤也是类似的 (https://www.bilibili.com/video/BV1rc411W7Dr)：
-conda create -n gptac_venv python=3.11    # 创建anaconda环境conda activate gptac_venv                 # 激活anaconda环境
-
-
-python -m pip install -r requirements.txt # 这个步骤和pip安装一样的步骤
-
-如果需要支持清华ChatGLM2/复旦MOSS/RWKV作为后端，请点击展开此处运行
-
-python main.py
-
-使用第三方API、Azure等、文心一言、星火等，见Wiki页面
-云服务器远程部署避坑指南。 请访问云服务器远程部署wiki
-在其他平台部署&amp;二级网址部署
-使用Sealos一键部署。使用WSL2（Windows Subsystem for Linux 子系统）。请访问部署wiki-2如何在二级网址（如http://localhost/subpath）下运行。请访问FastAPI运行说明
-Advanced UsageI：自定义新的便捷按钮（学术快捷键）现在已可以通过UI中的界面外观菜单中的自定义菜单添加新的便捷按钮。如果需要在代码中定义，请使用任意文本编辑器打开core_functional.py，添加如下条目即可：
-“超级英译中”: {    # 前缀，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等    “Prefix”: “请翻译把下面一段内容成中文，然后用一个markdown表格逐一解释文中出现的专有名词：\n\n”,
-# 后缀，会被加在你的输入之后。例如，配合前缀可以把你的输入内容用引号圈起来。
-"Suffix": "",
-
-},
-II：自定义函数插件编写强大的函数插件来执行任何你想得到的和想不到的任务。 本项目的插件编写、调试难度很低，只要您具备一定的python基础知识，就可以仿照我们提供的模板实现自己的插件功能。 详情请参考函数插件指南。
-⭐Latex/Arxiv论文翻译功能⭐ ===&gt;虚空终端（从自然语言输入中，理解用户意图+自动调用其他插件）步骤一：输入 “ 请调用插件翻译PDF论文，地址为https://openreview.net/pdf?id=rJl0r3R9KX ”步骤二：点击“虚空终端”
-模块化功能设计，简单的接口却能支持强大的功能
-译解其他开源项目
-装饰live2d的小功能（默认关闭，需要修改config.py）
-OpenAI图像生成
-基于mermaid的流图、脑图绘制
-已知问题某些浏览器翻译插件干扰此软件前端的运行官方Gradio目前有很多兼容性问题，请务必使用requirement.txt安装Gradio
-III：主题可以通过修改THEME选项（config.py）变更主题
-Chuanhu-Small-and-Beautiful 网址
-访问GPT-Academic的在线服务并支持我们V：参考与学习代码中参考了很多其他优秀项目中的设计，顺序不分先后：
-清华ChatGLM2-6B:https://github.com/THUDM/ChatGLM2-6B
-清华JittorLLMs:https://github.com/Jittor/JittorLLMs
-ChatPaper:https://github.com/kaixindelele/ChatPaper
-Edge-GPT:https://github.com/acheong08/EdgeGPT
-ChuanhuChatGPT:https://github.com/GaiZhenbiao/ChuanhuChatGPT
-Oobabooga one-click installer:https://github.com/oobabooga/one-click-installers
-More：https://github.com/gradio-app/gradiohttps://github.com/fghrsh/live2d_demo
-下载项目git命令下载
-
-git clone https://github.com/binary-husky/chatgpt_academic.git
-
-github下载 download zipChatGPT学术优化项目地址:https://github.com/binary-husky/chatgpt_academic
-安装项目环境这里是通过Anaconda Prompt创建环境
-创建环境
-
-conda create -n chatgpt-academic python=3.11.0
-
-输入y，回车安装！
-进入环境
-
-conda activate chatgpt-academic
-
-安装依赖先进入到项目的根目录
-
-python -m pip install -r requirements.txt
-
-PS：我这里是可以正常安装的，因为项目要求gradio&gt;= 3.23 ，有些可能报错。需要先下载python的whl文件再进行安装。地址https://pypi.org/project/gradio/#files
-下载保存到你的项目根目录，在通过
-
-pip install gradio-3.24.1-py3-none-any.whl
-
-当我们安装好gradio之后，把requirements.txt文件中gradio注释
-重新运行
-
-python -m pip install -r requirements.txt
-
-此致项目需要的环境就安装完成了！
-打开解压的项目这里以Vscode为例，配置config.py文件
-配置API_KEY打开你的科学上网助手，我这里使用是Clash是可以的（个人感觉路线选择美国的代理更好）进入https://platform.openai.com/account/api-keys
-将创建的秘钥复制到config.py文件的API_KEY变量，秘钥配置完成！
-配置代理网络的地址第一步：进入网址https://ipapi.co/json/第二步：打开开发者工具（Google浏览器快捷键Ctrl+Shift+i）,点击网络，按一下Ctrl+r，可以看到一个json文件
-第三步：点击json文件
-第四步：将这个地址复制到config.py文件中的proxies
-运行项目项目所需的环境、秘钥、代理全部配置好就可以运行项目了
-
-python main.py
-
-浏览器输入Running on local URL
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
     <title>基因结构</title>
     <url>/2025/09/17/55/</url>
     <content><![CDATA[结构图!!!
@@ -1458,6 +1625,216 @@ class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
 class Transcription,Splicing process;]]></content>
       <categories>
         <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>410随身WiFi棒子Debian刷入青龙教程</title>
+    <url>/2025/09/25/56/</url>
+    <content><![CDATA[备份教程刷Debian前请先备份（非常重要！！！）
+弄成砖了是可以刷回来的，大佬可忽略
+备份教程：	https://xiao54.com/linux/32.html视频教程：	https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1下载链接：	https://www.123pan.com/s/354uVv-z7YU3.html先进入fastboot模式，输入指令
+adb reboot bootloader
+
+410随身WiFi棒子Debian刷入青龙教程SSH账号密码解压要刷的Debian系统，然后点击一件刷入
+cmd登录地址:ssh root@10.42.0.1 密码:1313144
+SSH软件:IP:10.42.0.1 用户名:root 密码:1313144
+热点:4G-wifi 密码:12345678
+更新驱动更新驱动视频教程：https://player.bilibili.com/
+更新驱动前注意事项：需要安装vivo9008drivers.exe软件，如安装过请忽略
+1、在【Android Device】下查看有没有【Android Composite ADB Interface】这个驱动，如果不是，右键【更新驱动程序】-【浏览我的计算机以查找驱动程序软件】-【让我从计算机上的可用驱动程序列表中选取(L)】，选择【Android Composite ADB Interface或者USB Composite Device】-【下一步】
+2、插入棒子会显示一个未知设备或者RNDIS，不确定是那个就先拔掉棒子，然后重新插入
+3、下拉找到【网络适配器】-厂商下拉选择【Microsoft】型号下拉选择【基于远程 NDIS 的Internet 共享设备】-【下一步】-即可完成安装驱动
+网络编辑1、现在就用键盘上的方向键编辑，鼠标就不能用了
+nmtui
+
+2、把热点删除，因为他现在不支持WiFi和热点一起开启，所以要把热点删除连接WiFi给debian系统通网才能继续操作
+true &gt; /etc/apt/sources.list.d/mobian.list
+
+3、更新软件包
+sudo apt-get update
+
+4、更新curl wget
+apt install curl wget
+
+5、安装docker系统
+apt install docker.io
+
+6、docker设置随服务启动而自启动
+systemctl enable docker
+
+7、启动docker
+systemctl start docker
+
+给docker设置加速代理1、创建文件夹
+sudo mkdir -p /etc/docker
+
+2、填入加速代理
+如不能使用则代理失效了，请更换代理，更换里面的链接即可。
+sudo tee /etc/docker/daemon.json  /sys/kernel/debug/usb/ci_hdrc.0/role
+安装1panel代码
+```html
+curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_start.sh &amp;&amp; bash quick_start.sh
+
+近期商家为了成本emmmc质量都不太行下面这个指令查看寿命
+查看棒子颗粒寿命查看内存寿命如果显示是0x01寿命就很好，如果显示0+09等越来越远的寿命也就离挂不远了：
+cat /sys/class/mmc_host/mmc0/mmc0\:0001/life_time
+
+410随身WiFi棒子Debian刷入青龙教程关灯方法一1、先安装dialog
+apt install dialog
+
+2、然后执行一键命令
+curl -L gitee.com/ojf6ii/led-control-script/raw/master/led2.sh -o /bin/ledctl &amp;&amp; chmod 755 /bin/ledctl
+
+3、下载完成后输入指令即可打开界面
+ledctl关灯方法二1、打开文件夹
+vi /etc/rc.local
+
+2、粘贴以下代码保存设置开机自启关闭led，重启即可生效
+echo none &gt; /sys/class/leds/red\:os/trigger
+echo none &gt; /sys/class/leds/blue\:wifi/trigger
+echo none &gt; /sys/class/leds/green\:internet/trigger]]></content>
+      <categories>
+        <category>WIFI</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>openipc goke7205v200</title>
+    <url>/2024/12/03/7/</url>
+    <content><![CDATA[保存原始固件
+备份您的原始固件，请不要跳过这个步骤！OpenIPC U-Boot 会覆盖原始的加密分区，因此无法恢复为出厂固件，除非您拥有此特定摄像机的完整闪存备份！要创建完整的固件备份，请启动 TFTP 服务器并在引导加载程序 shell 中执行这些命令。
+
+ # Enter commands line by line! Do not copy and paste multiple lines at once!
+setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105
+mw.b 0x42000000 0xff 0x1000000
+sf probe 0; sf read 0x42000000 0x0 0x1000000
+tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
+# if there is no tftpput but tftp then run this instead
+ tftp 0x42000000 backup-gk7205v200-nor16m.bin 0x1000000
+
+有关详细信息，请参阅项目 wiki 中的安装说明。
+烧录完整的 OpenIPC 固件下载 OpenIPC 固件 (Ultimate)for Goke GK7205V200 with 16MB NOR flash
+完整的固件由引导加载程序、内核和根文件系统组成，也适用于使用编程器烧写闪存芯片。 请注意，完整固件不包含预设环境。你还需要添加自己的MAC地址、IP地址等设置。
+
+Enter commands line by line! Do not copy and paste multiple lines at once!setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105mw.b 0x42000000 0xff 0x1000000tftpboot 0x42000000 openipc-gk7205v200-ultimate-16mb.bin
+if there is no tftpboot but tftp then run this insteadtftp 0x42000000 openipc-gk7205v200-ultimate-16mb.binsf probe 0; sf lock 0;sf erase 0x0 0x1000000; sf write 0x42000000 0x0 0x1000000reset
+
+摄像机将自动重启并使用全新的引导加载程序启动。
+注意准备中断并进入引导程序的命令行。 在引导加载程序的命令行中，根据您的闪存大小和类型重新映射 ROM 分区。
+
+Enter commands line by line! Do not copy and paste multiple lines at once!run setnor16m
+
+恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。在端口 85 ( http://192.168.15.169:85/ ) 上打开摄像机的 Web 界面并使用登录root和密码12345登录。登录后将要求您设置自己的安全密码。通过以下方式访问摄像机ssh 或 UART 使用与上述相同的登录名和密码。
+
+打开web界面后，更新固件，更新完后调整majestic、sensor与设备型号对应。
+majesticopenipc未开源部分。
+]]></content>
+      <categories>
+        <category>折腾</category>
+      </categories>
+      <tags>
+        <tag>openipc</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>GPT 学术优化</title>
+    <url>/2024/12/06/8/</url>
+    <content><![CDATA[Installation安装方法I：直接运行 (Windows, Linux or MacOS)下载项目
+
+git clone –depth=1 https://github.com/binary-husky/gpt_academic.gitcd gpt_academic配置API_KEY等变量
+
+在config.py中，配置API KEY等变量。特殊网络环境设置方法、Wiki-项目配置说明。
+「 程序会优先检查是否存在名为config_private.py的私密配置文件，并用其中的配置覆盖config.py的同名配置。如您能理解以上读取逻辑，我们强烈建议您在config.py同路径下创建一个名为config_private.py的新配置文件，并使用config_private.py配置项目，从而确保自动更新时不会丢失配置 」。
+「 支持通过环境变量配置项目，环境变量的书写格式参考docker-compose.yml文件或者我们的Wiki页面。配置读取优先级: 环境变量 &gt; config_private.py &gt; config.py 」。
+安装依赖
+（选择I: 如熟悉python, python推荐版本 3.9 ~ 3.11）备注：使用官方pip源或者阿里pip源, 临时换源方法：
+
+python -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+
+
+python -m pip install -r requirements.txt
+
+（选择II: 使用Anaconda）步骤也是类似的 (https://www.bilibili.com/video/BV1rc411W7Dr)：
+conda create -n gptac_venv python=3.11    # 创建anaconda环境conda activate gptac_venv                 # 激活anaconda环境
+
+
+python -m pip install -r requirements.txt # 这个步骤和pip安装一样的步骤
+
+如果需要支持清华ChatGLM2/复旦MOSS/RWKV作为后端，请点击展开此处运行
+
+python main.py
+
+使用第三方API、Azure等、文心一言、星火等，见Wiki页面
+云服务器远程部署避坑指南。 请访问云服务器远程部署wiki
+在其他平台部署&amp;二级网址部署
+使用Sealos一键部署。使用WSL2（Windows Subsystem for Linux 子系统）。请访问部署wiki-2如何在二级网址（如http://localhost/subpath）下运行。请访问FastAPI运行说明
+Advanced UsageI：自定义新的便捷按钮（学术快捷键）现在已可以通过UI中的界面外观菜单中的自定义菜单添加新的便捷按钮。如果需要在代码中定义，请使用任意文本编辑器打开core_functional.py，添加如下条目即可：
+“超级英译中”: {    # 前缀，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等    “Prefix”: “请翻译把下面一段内容成中文，然后用一个markdown表格逐一解释文中出现的专有名词：\n\n”,
+# 后缀，会被加在你的输入之后。例如，配合前缀可以把你的输入内容用引号圈起来。
+"Suffix": "",
+
+},
+II：自定义函数插件编写强大的函数插件来执行任何你想得到的和想不到的任务。 本项目的插件编写、调试难度很低，只要您具备一定的python基础知识，就可以仿照我们提供的模板实现自己的插件功能。 详情请参考函数插件指南。
+⭐Latex/Arxiv论文翻译功能⭐ ===&gt;虚空终端（从自然语言输入中，理解用户意图+自动调用其他插件）步骤一：输入 “ 请调用插件翻译PDF论文，地址为https://openreview.net/pdf?id=rJl0r3R9KX ”步骤二：点击“虚空终端”
+模块化功能设计，简单的接口却能支持强大的功能
+译解其他开源项目
+装饰live2d的小功能（默认关闭，需要修改config.py）
+OpenAI图像生成
+基于mermaid的流图、脑图绘制
+已知问题某些浏览器翻译插件干扰此软件前端的运行官方Gradio目前有很多兼容性问题，请务必使用requirement.txt安装Gradio
+III：主题可以通过修改THEME选项（config.py）变更主题
+Chuanhu-Small-and-Beautiful 网址
+访问GPT-Academic的在线服务并支持我们V：参考与学习代码中参考了很多其他优秀项目中的设计，顺序不分先后：
+清华ChatGLM2-6B:https://github.com/THUDM/ChatGLM2-6B
+清华JittorLLMs:https://github.com/Jittor/JittorLLMs
+ChatPaper:https://github.com/kaixindelele/ChatPaper
+Edge-GPT:https://github.com/acheong08/EdgeGPT
+ChuanhuChatGPT:https://github.com/GaiZhenbiao/ChuanhuChatGPT
+Oobabooga one-click installer:https://github.com/oobabooga/one-click-installers
+More：https://github.com/gradio-app/gradiohttps://github.com/fghrsh/live2d_demo
+下载项目git命令下载
+
+git clone https://github.com/binary-husky/chatgpt_academic.git
+
+github下载 download zipChatGPT学术优化项目地址:https://github.com/binary-husky/chatgpt_academic
+安装项目环境这里是通过Anaconda Prompt创建环境
+创建环境
+
+conda create -n chatgpt-academic python=3.11.0
+
+输入y，回车安装！
+进入环境
+
+conda activate chatgpt-academic
+
+安装依赖先进入到项目的根目录
+
+python -m pip install -r requirements.txt
+
+PS：我这里是可以正常安装的，因为项目要求gradio&gt;= 3.23 ，有些可能报错。需要先下载python的whl文件再进行安装。地址https://pypi.org/project/gradio/#files
+下载保存到你的项目根目录，在通过
+
+pip install gradio-3.24.1-py3-none-any.whl
+
+当我们安装好gradio之后，把requirements.txt文件中gradio注释
+重新运行
+
+python -m pip install -r requirements.txt
+
+此致项目需要的环境就安装完成了！
+打开解压的项目这里以Vscode为例，配置config.py文件
+配置API_KEY打开你的科学上网助手，我这里使用是Clash是可以的（个人感觉路线选择美国的代理更好）进入https://platform.openai.com/account/api-keys
+将创建的秘钥复制到config.py文件的API_KEY变量，秘钥配置完成！
+配置代理网络的地址第一步：进入网址https://ipapi.co/json/第二步：打开开发者工具（Google浏览器快捷键Ctrl+Shift+i）,点击网络，按一下Ctrl+r，可以看到一个json文件
+第三步：点击json文件
+第四步：将这个地址复制到config.py文件中的proxies
+运行项目项目所需的环境、秘钥、代理全部配置好就可以运行项目了
+
+python main.py
+
+浏览器输入Running on local URL
+]]></content>
+      <categories>
+        <category>默认分类</category>
       </categories>
   </entry>
   <entry>
@@ -1619,383 +1996,6 @@ timezone
 ]]></content>
       <categories>
         <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>openipc goke7205v200</title>
-    <url>/2024/12/03/7/</url>
-    <content><![CDATA[保存原始固件
-备份您的原始固件，请不要跳过这个步骤！OpenIPC U-Boot 会覆盖原始的加密分区，因此无法恢复为出厂固件，除非您拥有此特定摄像机的完整闪存备份！要创建完整的固件备份，请启动 TFTP 服务器并在引导加载程序 shell 中执行这些命令。
-
- # Enter commands line by line! Do not copy and paste multiple lines at once!
-setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105
-mw.b 0x42000000 0xff 0x1000000
-sf probe 0; sf read 0x42000000 0x0 0x1000000
-tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
-# if there is no tftpput but tftp then run this instead
- tftp 0x42000000 backup-gk7205v200-nor16m.bin 0x1000000
-
-有关详细信息，请参阅项目 wiki 中的安装说明。
-烧录完整的 OpenIPC 固件下载 OpenIPC 固件 (Ultimate)for Goke GK7205V200 with 16MB NOR flash
-完整的固件由引导加载程序、内核和根文件系统组成，也适用于使用编程器烧写闪存芯片。 请注意，完整固件不包含预设环境。你还需要添加自己的MAC地址、IP地址等设置。
-
-Enter commands line by line! Do not copy and paste multiple lines at once!setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105mw.b 0x42000000 0xff 0x1000000tftpboot 0x42000000 openipc-gk7205v200-ultimate-16mb.bin
-if there is no tftpboot but tftp then run this insteadtftp 0x42000000 openipc-gk7205v200-ultimate-16mb.binsf probe 0; sf lock 0;sf erase 0x0 0x1000000; sf write 0x42000000 0x0 0x1000000reset
-
-摄像机将自动重启并使用全新的引导加载程序启动。
-注意准备中断并进入引导程序的命令行。 在引导加载程序的命令行中，根据您的闪存大小和类型重新映射 ROM 分区。
-
-Enter commands line by line! Do not copy and paste multiple lines at once!run setnor16m
-
-恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。在端口 85 ( http://192.168.15.169:85/ ) 上打开摄像机的 Web 界面并使用登录root和密码12345登录。登录后将要求您设置自己的安全密码。通过以下方式访问摄像机ssh 或 UART 使用与上述相同的登录名和密码。
-
-打开web界面后，更新固件，更新完后调整majestic、sensor与设备型号对应。
-majesticopenipc未开源部分。
-]]></content>
-      <categories>
-        <category>折腾</category>
-      </categories>
-      <tags>
-        <tag>openipc</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
-    <url>/2025/08/02/25/</url>
-    <content><![CDATA[
-前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。
-
-1.提取SNP位点信息## 设置FST阈值（例如取WEIGHTED_FST &gt; 0.2）
-awk '$5 &gt; 0.2' fst_binned.windowed.weir.fst &gt; high_fst_windows.txt
-
-## 检查最高FST窗口
-sort -k5,5nr high_fst_windows.txt | head
-
-
-## 从高FST结果生成BED格式（用于后续注释）
-awk '{print $1"\t"$2"\t"$3"\t"$5}' high_fst_windows.txt &gt; high_fst_regions.bed
-
-## 合并相邻窗口（如距离 merged_high_fst.bed
-
-2.对提取SNP位点注释然后提取与基因重叠的区域（需准备reference.gtf）
-## 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）
-bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
-awk -F'\t' '$8 == "gene" {print $1,$2,$3,$12}' OFS='\t' | \
-awk -F'[;\t]' '{gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4}' | sort | uniq &gt; fst_genes.txt
-
-
-3.提取SNP位点所在基因的ID号awk -F'\t' '{
-  match($8, /ID=gene-([^;]+)/, id_arr);
-  match($8, /Name=([^;]+)/, name_arr);
-  if (id_arr[1] &amp;&amp; name_arr[1]) {
-    print $1, $2, $3, id_arr[1], name_arr[1];
-  }
-}' OFS='\t' fst_genes_annotated.bed &gt; fst_gene_ids_names.txt
-
-
-
-
-下面为整理好的上述过程的脚本
-命名为# annotate_fst.sh 
-#!/bin/bash
-# 输入文件
-BED="merged_high_fst.bed"
-GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
-
-# 步骤1：提取基因（直接运行，若为空则需名称映射）
-bedtools intersect -a $BED -b $GFF -wa -wb | \
-awk -F'\t' '$8 == "gene" {print $1,$2,$3,$12}' OFS='\t' | \
-awk -F'[;\t]' '{gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4}' | sort | uniq &gt; fst_genes.txt
-
-# 步骤2：检查结果
-echo "=== 前10行基因 ==="
-head fst_genes.txt
-echo "=== 行数统计 ==="
-wc -l fst_genes.txt
-
-
-
-4.通过基因ID提取蛋白序列下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好
-grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
-
-
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq &gt; protein_ids.txt
-
-
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa &gt; proteins_extracted/fst_genes_proteins.faa
-
-grep "^&gt;" proteins_extracted/fst_genes_proteins.faa | wc -l
-
-发现不能完全匹配所有LOC，查看哪些没匹配到
-# 找所有LOC对应的protein_id
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.*protein_id=([^;]+).*/\1/' | sort | uniq &gt; protein_ids_all.txt
-
-# 检查protein_ids.txt是否包含所有
-&gt; comm -23 protein_ids_all.txt protein_ids.txt &gt; missing_proteins.txt
-
-
-下面是上述命令整理好的查找脚本
-#!/bin/bash
-set -euo pipefail
-
-# 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）
-cut -f4 fst_gene_ids_names.txt | sort | uniq &gt; gene_loc_ids.txt
-
-# 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
-    grep "protein_id=" | \
-    sed -r 's/.*protein_id=([^;]+).*/\1/' | \
-    sort | uniq &gt; protein_ids.txt
-
-# 3. 使用seqkit提取对应的蛋白序列到指定文件
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa &gt; proteins_extracted/fst_genes_proteins.faa
-
-# 4. 统计提取到的蛋白数量，确认数量
-grep "^&gt;" proteins_extracted/fst_genes_proteins.faa | wc -l
-
-
-
-
-5.对提取的蛋白进行注释conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
-conda activate eggnog3_env
-
-
-emapper.py -h
-
-tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data
-
-
-emapper.py -i proteins_extracted/fst_genes_proteins.faa \
-  --output fst_proteins_annotation \
-  --data_dir ./data \
-  -m diamond \
-  --cpu 12 \
-  --override
-
-
-
-下面是R中的操作，主要进行KEGG和GO分析
-1.对前面注释的基因进行聚类分析详细内容见 Fst_2.ipynb结果如上，没有达到我的预期，操作也较麻烦。
-2.构建非模式物种注释包org.Cgigas.eg.db详细内容见 Fst_3.ipynb 
-library(tidyverse)
-library(AnnotationForge)
-library(readxl)
-
-emapper %
-  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
-                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
-                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
-
-emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
-  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
-dim(gene2go)    #查看数据维度。
-#[1] 1523399       3
-
-#提取GID与KO信息，这里只有2列信息
-gene2ko%
- separate_rows(KO, sep = ',', convert = F) %&gt;%
-  dplyr::filter(!is.na(KO))
-dim(gene2ko)
-#[1] 30530     2
-
-#提取GID与Pathway信息，这里只有2列信息
-gene2pathway%
-separate_rows(Pathway, sep = ',', convert = F) %&gt;%
-  dplyr::filter(!is.na(Pathway))
- dim(gene2pathway)
-#[1] 143056      2
-
-#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
-gene2symbol%
-  dplyr::filter(!is.na(Gene_Symbol))
-dim(gene2symbol)
-#[1] 4561    2
-
-## 删除 GO ID 中的空格、制表符、换行符
-
-gene2go$GO
-
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>4.提取重测序数据中黑白肌痕组中各SNP的位点信息及基因型频率</title>
-    <url>/2025/08/03/32/</url>
-    <content><![CDATA[相关的sh文件内容如下：
-#!/bin/bash
-# 用法：./extract_chromosome_snps_no_split.sh   
-
-set -euo pipefail
-
-# 彩色日志函数，蓝色时间，绿色成功，红色错误，黄色警告
-log() {
-  local msg="$1"
-  local color="${2:-34}"  # 默认蓝色
-  echo -e "\033[1;${color}m[$(date '+%Y-%m-%d %H:%M:%S')]\033[0m $msg"
-}
-
-# 参数检查
-if [ $# -lt 3 ]; then
-  echo "Usage: $0   "
-  echo "Example: ./extract_chromosome_snps_no_split.sh NC_047567.1 input.vcf.gz results"
-  exit 1
-fi
-
-CHROM=$1
-VCF=$2
-PREFIX=$3
-GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
-
-# 检查工具
-command -v bcftools &gt;/dev/null || { log "ERROR: bcftools not found" 31; exit 1; }
-command -v bedtools &gt;/dev/null || { log "ERROR: bedtools not found" 31; exit 1; }
-command -v awk &gt;/dev/null || { log "ERROR: awk not found" 31; exit 1; }
-
-##########################
-# STEP 1: 提取基因坐标
-##########################
-log "STEP 1/5: Extracting gene coordinates for $CHROM..."
-
-GENE_BED="${PREFIX}_genes.bed"
-if [ -s "$GENE_BED" ]; then
-  lines=$(wc -l &lt; "$GENE_BED")
-  log "Found existing gene BED file ($GENE_BED, $lines lines), skipping extraction..." 33
-else
-  matched_gene_lines=$(grep -w "$CHROM" "$GFF" | awk -F'\t' '$3=="gene"')
-  if [ -z "$matched_gene_lines" ]; then
-    log "CRITICAL ERROR: No 'gene' lines found for chromosome '$CHROM'" 31
-    log "Possible reasons:" 31
-    log "1. Chromosome name不匹配 (如缺少'chr'前缀)" 31
-    log "2. GFF中没有gene类型注释" 31
-    log "Debug信息:" 31
-    log "-&gt; Chromosome 检查: $(grep -m1 "$CHROM" "$GFF" || echo '未找到')" 31
-    log "-&gt; 染色体中所有 feature 类型:" 31
-    grep -w "$CHROM" "$GFF" | awk -F'\t' '{print $3}' | sort | uniq -c
-    exit 1
-  fi
-
-  grep -w "$CHROM" "$GFF" | \
-    awk -F'\t' '$3=="gene"' | \
-    awk -F'\t' '{
-      split($9, a, ";");
-      gene_id="";
-      for (i in a) {
-        if (a[i] ~ /^gene=/) {
-          gsub(/^gene=/, "", a[i]); gene_id=a[i];
-        } else if (a[i] ~ /^ID=gene-/) {
-          gsub(/^ID=gene-/, "", a[i]); gene_id=a[i];
-        }
-      }
-      print $1, $4, $5, gene_id
-    }' OFS='\t' &gt; "$GENE_BED"
-
-  gene_count=$(wc -l &lt; "$GENE_BED")
-  if [ "$gene_count" -eq 0 ]; then
-    log "ERROR: Gene extraction failed! No gene records written." 31
-    exit 1
-  fi
-  log "Successfully extracted $gene_count genes to $GENE_BED" 32
-fi
-
-##########################
-# STEP 2: 提取染色体SNP
-##########################
-log "STEP 2/5: Extracting SNPs for $CHROM..."
-
-SNP_VCF="${PREFIX}_snps.vcf.gz"
-if [ -s "$SNP_VCF" ]; then
-  variants=$(bcftools view "$SNP_VCF" | grep -v '^#' | wc -l)
-  log "Found existing SNP file ($SNP_VCF) with $variants variants, skipping extraction..." 33
-else
-  bcftools view -r "$CHROM" "$VCF" -Oz -o "$SNP_VCF"
-  bcftools index "$SNP_VCF"
-  variants=$(bcftools view "$SNP_VCF" | grep -v '^#' | wc -l)
-  log "SNPs extracted to $SNP_VCF (Total variants: $variants)" 32
-fi
-
-##########################
-# STEP 3: 转换VCF格式为TSV
-##########################
-log "STEP 3/5: Converting VCF to table..."
-
-SNP_TSV="${PREFIX}_snps.tsv"
-if [ -s "$SNP_TSV" ]; then
-  lines=$(wc -l &lt; "$SNP_TSV")
-  log "Found existing SNP table ($SNP_TSV) with $lines lines, skipping conversion..." 33
-else
-  bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL[\t%GT:%AD]\n' "$SNP_VCF" &gt; "${SNP_TSV}.tmp"
-
-  # 添加表头（样本名）
-  echo -e "chromosome\tposition\tref\talt\tqual\t"$(bcftools query -l "$SNP_VCF" | tr '\n' '\t' | sed 's/\t$//') &gt; header.tsv
-  cat header.tsv "${SNP_TSV}.tmp" &gt; "$SNP_TSV"
-  rm header.tsv "${SNP_TSV}.tmp"
-
-  lines=$(wc -l &lt; "$SNP_TSV")
-  log "VCF converted to $SNP_TSV (Total lines: $lines)" 32
-fi
-
-##########################
-# STEP 4: SNP注释
-##########################
-log "STEP 4/5: Annotating SNPs with genes (single pass)..."
-
-ANNOTATED="${PREFIX}_annotated.tsv"
-if [ -s "$ANNOTATED" ]; then
-  lines=$(wc -l &lt; "$ANNOTATED")
-  log "Found existing annotated SNPs file ($ANNOTATED) with $lines lines, skipping annotation..." 33
-else
-  SNPS_BED=$(mktemp)
-  INTERSECT_OUT=$(mktemp)
-
-  # 转换TSV到BED格式（0-based）
-  awk -F'\t' 'BEGIN{OFS="\t"} NR&gt;1 {print $1,$2-1,$2,$0}' "$SNP_TSV" &gt; "$SNPS_BED"
-
-  log "Running bedtools intersect..." 33
-  bedtools intersect -a "$SNPS_BED" -b "$GENE_BED" -wa -wb &gt; "$INTERSECT_OUT"
-
-  # 提取最终结果，保留原始字段并加gene列
-  awk -F'\t' 'BEGIN{OFS="\t"} {
-    nf = NF;
-    for(i=4; i 0) ? bm_counts["00"]/bm_total*100 : 0;
-    bm_het_pct = (bm_total &gt; 0) ? bm_counts["01"]/bm_total*100 : 0;
-    bm_alt_pct = (bm_total &gt; 0) ? bm_counts["11"]/bm_total*100 : 0;
-    bm_other_pct = (bm_total &gt; 0) ? bm_counts["other"]/bm_total*100 : 0;
-    
-    wm_ref_pct = (wm_total &gt; 0) ? wm_counts["00"]/wm_total*100 : 0;
-    wm_het_pct = (wm_total &gt; 0) ? wm_counts["01"]/wm_total*100 : 0;
-    wm_alt_pct = (wm_total &gt; 0) ? wm_counts["11"]/wm_total*100 : 0;
-    wm_other_pct = (wm_total &gt; 0) ? wm_counts["other"]/wm_total*100 : 0;
-    
-    # 输出结果（现在总和应为100%）
-    print $1, $2, $3, $4, $5,
-          sprintf("%.3f", bm_ref_pct), sprintf("%.3f", bm_het_pct), sprintf("%.3f", bm_alt_pct), sprintf("%.3f", bm_other_pct), bm_total,
-          sprintf("%.3f", wm_ref_pct), sprintf("%.3f", wm_het_pct), sprintf("%.3f", wm_alt_pct), sprintf("%.3f", wm_other_pct), wm_total;
-  }' "$SNP_TSV" &gt; "$FREQ_OUT"
-  
-  lines=$(wc -l &lt; "$FREQ_OUT")
-  log "Genotype frequency table written to $FREQ_OUT ($((lines-1)) variant lines)" 32
-fi
-
-log "SUCCESS! Final results:" 32
-log "- Gene coordinates: ${GENE_BED}" 32
-log "- SNP VCF: ${PREFIX}_snps.vcf.gz" 32
-log "- Annotated SNPs: ${PREFIX}_annotated.tsv ($(wc -l &lt; ${PREFIX}_annotated.tsv) lines)" 32
-log "- Genotype frequencies: ${PREFIX}_genotype_freq.tsv ($(wc -l &lt; ${PREFIX}_genotype_freq.tsv) lines)" 32
-
-
-相关的指令如下
-dos2unix xxxxxx.sh
-
-rm -f NC_047567.1_results_*
-
-./extract_chromosome_snps.sh NC_047567.1 Filter.snp.vcf.gz NC_047567.1_results 8
-./extract_chromosome_snps_2.0.sh NC_047567.1 Filter.snp.vcf.gz NC_047567.1_results]]></content>
-      <categories>
-        <category>重测序</category>
       </categories>
   </entry>
   <entry>

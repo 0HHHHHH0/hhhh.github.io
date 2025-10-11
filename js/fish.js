@@ -52,7 +52,7 @@ var RENDERER = {
 		this.height = this.$container.height();
 		this.fishCount = this.FISH_COUNT * this.width / 500 * this.height / 500;
 		this.$canvas.attr({width : this.width, height : this.height});
-		this.reverse = true;
+		this.reverse = false;
 		
 		this.fishes.push(new FISH(this));
 		this.createSurfacePoints();
