@@ -866,6 +866,69 @@ systemctl status frpc.service<span aria-hidden="true" class="line-numbers-rows">
       </categories>
   </entry>
   <entry>
+    <title>5.各样本SNP位点信息可视化</title>
+    <url>/2025/08/03/40/</url>
+    <content><![CDATA[<blockquote>
+<p>前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析</p>
+</blockquote>
+<p>需要用到的R包</p>
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">library(tidyverse)
+library(vcfR)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyr)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>下面以单个基因为例进行分析</p>
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">#</span> 先读取数据（不自动解析列名）</span>
+snp_data %
+  as.matrix()
+
+<span class="token title important"><span class="token punctuation">#</span> 5. 可视化设置 ------------------------------------------------</span>
+<span class="token title important"><span class="token punctuation">#</span> 颜色映射</span>
+gt_colors %
+  layout(
+    title = list(text = "SNP Genotype Heatmap", y = 0.98),
+    xaxis = list(
+      title = "Genomic Position",
+      rangeslider = list(visible = TRUE),  # 横向滚动条
+      type = "category",  # 防止数值排序
+      tickangle = 45
+    ),
+    yaxis = list(
+      title = list(text = "Sample", standoff = 30),
+      tickfont = list(size = 10),
+      automargin = TRUE,  # 自动调整边距
+      tickmode = "array",
+      tickvals = seq_len(nrow(heatmap_matrix)),
+      ticktext = rownames(heatmap_matrix)
+    ),
+    margin = list(
+      l = left_margin,  # 动态左边距
+      r = 50,
+      b = 100,
+      t = 100
+    )
+  )
+
+<span class="token title important"><span class="token punctuation">#</span> 7. 输出结果 --------------------------------------------------</span>
+<span class="token title important"><span class="token punctuation">#</span> 在RStudio中直接查看</span>
+print(fig)
+
+<span class="token title important"><span class="token punctuation">#</span> 保存为HTML文件</span>
+htmlwidgets::saveWidget(
+  widget = fig,
+  file = "snp_heatmap_complete.html",
+  title = "Interactive SNP Heatmap",
+  selfcontained = TRUE,
+  libdir = "lib"
+)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>输出结果如下<br><img src="/images/40/2532418108.png" alt="mdvqrk99.png"></p>
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
     <title>6.筛选组内一致率90%，组间有差异的SNP位点</title>
     <url>/2025/09/03/48/</url>
     <content><![CDATA[<p><strong>分析需求：</strong><br>请分析查找组间差异SNP &amp; Indel。需要找组内一致，组间具有差异的突变位点，样本一致率卡90%，即在大于90%的样本中突变型一致就认为是组内一致的突变。</p>
@@ -999,69 +1062,6 @@ fig  # 在RStudio中查看
 <span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>]]></content>
       <categories>
         <category>默认分类</category>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>5.各样本SNP位点信息可视化</title>
-    <url>/2025/08/03/40/</url>
-    <content><![CDATA[<blockquote>
-<p>前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析</p>
-</blockquote>
-<p>需要用到的R包</p>
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">library(tidyverse)
-library(vcfR)
-library(data.table)
-library(ggplot2)
-library(dplyr)
-library(tidyr)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-<p>下面以单个基因为例进行分析</p>
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">#</span> 先读取数据（不自动解析列名）</span>
-snp_data %
-  as.matrix()
-
-<span class="token title important"><span class="token punctuation">#</span> 5. 可视化设置 ------------------------------------------------</span>
-<span class="token title important"><span class="token punctuation">#</span> 颜色映射</span>
-gt_colors %
-  layout(
-    title = list(text = "SNP Genotype Heatmap", y = 0.98),
-    xaxis = list(
-      title = "Genomic Position",
-      rangeslider = list(visible = TRUE),  # 横向滚动条
-      type = "category",  # 防止数值排序
-      tickangle = 45
-    ),
-    yaxis = list(
-      title = list(text = "Sample", standoff = 30),
-      tickfont = list(size = 10),
-      automargin = TRUE,  # 自动调整边距
-      tickmode = "array",
-      tickvals = seq_len(nrow(heatmap_matrix)),
-      ticktext = rownames(heatmap_matrix)
-    ),
-    margin = list(
-      l = left_margin,  # 动态左边距
-      r = 50,
-      b = 100,
-      t = 100
-    )
-  )
-
-<span class="token title important"><span class="token punctuation">#</span> 7. 输出结果 --------------------------------------------------</span>
-<span class="token title important"><span class="token punctuation">#</span> 在RStudio中直接查看</span>
-print(fig)
-
-<span class="token title important"><span class="token punctuation">#</span> 保存为HTML文件</span>
-htmlwidgets::saveWidget(
-  widget = fig,
-  file = "snp_heatmap_complete.html",
-  title = "Interactive SNP Heatmap",
-  selfcontained = TRUE,
-  libdir = "lib"
-)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-<p>输出结果如下<br><img src="/images/40/2532418108.png" alt="mdvqrk99.png"></p>
-]]></content>
-      <categories>
         <category>重测序</category>
       </categories>
   </entry>
@@ -1698,6 +1698,44 @@ echo none &gt; /sys/class/leds/green\:internet/trigger<span aria-hidden="true" c
       </categories>
   </entry>
   <entry>
+    <title>openipc goke7205v200</title>
+    <url>/2024/12/03/7/</url>
+    <content><![CDATA[<h1 id="保存原始固件"><a href="#保存原始固件" class="headerlink" title="保存原始固件"></a>保存原始固件</h1><hr>
+<h2 id="备份您的原始固件，请不要跳过这个步骤！"><a href="#备份您的原始固件，请不要跳过这个步骤！" class="headerlink" title="备份您的原始固件，请不要跳过这个步骤！"></a>备份您的原始固件，请不要跳过这个步骤！</h2><p>OpenIPC U-Boot 会覆盖原始的加密分区，因此无法恢复为出厂固件，除非您拥有此特定摄像机的完整闪存备份！要创建完整的固件备份，请启动 TFTP 服务器并在引导加载程序 shell 中执行这些命令。</p>
+<blockquote>
+<pre class="line-numbers language-Python" data-language="Python"><code class="language-Python"> # Enter commands line by line! Do not copy and paste multiple lines at once!
+setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105
+mw.b 0x42000000 0xff 0x1000000
+sf probe 0; sf read 0x42000000 0x0 0x1000000
+tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
+# if there is no tftpput but tftp then run this instead
+ tftp 0x42000000 backup-gk7205v200-nor16m.bin 0x1000000<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+</blockquote>
+<p>有关详细信息，请参阅项目 wiki 中的安装说明。</p>
+<h1 id="烧录完整的-OpenIPC-固件"><a href="#烧录完整的-OpenIPC-固件" class="headerlink" title="烧录完整的 OpenIPC 固件"></a>烧录完整的 OpenIPC 固件</h1><h2 id="下载-OpenIPC-固件-Ultimate"><a href="#下载-OpenIPC-固件-Ultimate" class="headerlink" title="下载 OpenIPC 固件 (Ultimate)"></a>下载 OpenIPC 固件 (Ultimate)</h2><p>for Goke GK7205V200 with 16MB NOR flash</p>
+<p>完整的固件由引导加载程序、内核和根文件系统组成，也适用于使用编程器烧写闪存芯片。 请注意，完整固件不包含预设环境。你还需要添加自己的MAC地址、IP地址等设置。</p>
+<blockquote>
+<h1 id="Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once"><a href="#Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once" class="headerlink" title="Enter commands line by line! Do not copy and paste multiple lines at once!"></a>Enter commands line by line! Do not copy and paste multiple lines at once!</h1><p>setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105<br>mw.b 0x42000000 0xff 0x1000000<br>tftpboot 0x42000000 openipc-gk7205v200-ultimate-16mb.bin</p>
+<h1 id="if-there-is-no-tftpboot-but-tftp-then-run-this-instead"><a href="#if-there-is-no-tftpboot-but-tftp-then-run-this-instead" class="headerlink" title="if there is no tftpboot but tftp then run this instead"></a>if there is no tftpboot but tftp then run this instead</h1><p>tftp 0x42000000 openipc-gk7205v200-ultimate-16mb.bin<br>sf probe 0; sf lock 0;<br>sf erase 0x0 0x1000000; sf write 0x42000000 0x0 0x1000000<br>reset</p>
+</blockquote>
+<p>摄像机将自动重启并使用全新的引导加载程序启动。</p>
+<p>注意准备中断并进入引导程序的命令行。 在引导加载程序的命令行中，根据您的闪存大小和类型重新映射 ROM 分区。</p>
+<blockquote>
+<h1 id="Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once-1"><a href="#Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once-1" class="headerlink" title="Enter commands line by line! Do not copy and paste multiple lines at once!"></a>Enter commands line by line! Do not copy and paste multiple lines at once!</h1><p>run setnor16m</p>
+</blockquote>
+<h1 id="恭喜！此时，您已经安装了-OpenIPC-固件-Ultimate-。"><a href="#恭喜！此时，您已经安装了-OpenIPC-固件-Ultimate-。" class="headerlink" title="恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。"></a>恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。</h1><p>在端口 85 ( <a href="http://192.168.15.169:85/">http://192.168.15.169:85/</a> ) 上打开摄像机的 Web 界面并使用登录root和密码12345登录。登录后将要求您设置自己的安全密码。通过以下方式访问摄像机ssh 或 UART 使用与上述相同的登录名和密码。</p>
+<hr>
+<p>打开web界面后，更新固件，更新完后调整majestic、sensor与设备型号对应。</p>
+<h1 id="majestic"><a href="#majestic" class="headerlink" title="majestic"></a>majestic</h1><p>openipc未开源部分。</p>
+]]></content>
+      <categories>
+        <category>折腾</category>
+      </categories>
+      <tags>
+        <tag>openipc</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>GPT 学术优化</title>
     <url>/2024/12/06/8/</url>
     <content><![CDATA[<h1 id="Installation"><a href="#Installation" class="headerlink" title="Installation"></a>Installation</h1><p>安装方法I：直接运行 (Windows, Linux or MacOS)<br>下载项目</p>
@@ -1798,44 +1836,6 @@ echo none &gt; /sys/class/leds/green\:internet/trigger<span aria-hidden="true" c
       <categories>
         <category>默认分类</category>
       </categories>
-  </entry>
-  <entry>
-    <title>openipc goke7205v200</title>
-    <url>/2024/12/03/7/</url>
-    <content><![CDATA[<h1 id="保存原始固件"><a href="#保存原始固件" class="headerlink" title="保存原始固件"></a>保存原始固件</h1><hr>
-<h2 id="备份您的原始固件，请不要跳过这个步骤！"><a href="#备份您的原始固件，请不要跳过这个步骤！" class="headerlink" title="备份您的原始固件，请不要跳过这个步骤！"></a>备份您的原始固件，请不要跳过这个步骤！</h2><p>OpenIPC U-Boot 会覆盖原始的加密分区，因此无法恢复为出厂固件，除非您拥有此特定摄像机的完整闪存备份！要创建完整的固件备份，请启动 TFTP 服务器并在引导加载程序 shell 中执行这些命令。</p>
-<blockquote>
-<pre class="line-numbers language-Python" data-language="Python"><code class="language-Python"> # Enter commands line by line! Do not copy and paste multiple lines at once!
-setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105
-mw.b 0x42000000 0xff 0x1000000
-sf probe 0; sf read 0x42000000 0x0 0x1000000
-tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
-# if there is no tftpput but tftp then run this instead
- tftp 0x42000000 backup-gk7205v200-nor16m.bin 0x1000000<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-</blockquote>
-<p>有关详细信息，请参阅项目 wiki 中的安装说明。</p>
-<h1 id="烧录完整的-OpenIPC-固件"><a href="#烧录完整的-OpenIPC-固件" class="headerlink" title="烧录完整的 OpenIPC 固件"></a>烧录完整的 OpenIPC 固件</h1><h2 id="下载-OpenIPC-固件-Ultimate"><a href="#下载-OpenIPC-固件-Ultimate" class="headerlink" title="下载 OpenIPC 固件 (Ultimate)"></a>下载 OpenIPC 固件 (Ultimate)</h2><p>for Goke GK7205V200 with 16MB NOR flash</p>
-<p>完整的固件由引导加载程序、内核和根文件系统组成，也适用于使用编程器烧写闪存芯片。 请注意，完整固件不包含预设环境。你还需要添加自己的MAC地址、IP地址等设置。</p>
-<blockquote>
-<h1 id="Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once"><a href="#Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once" class="headerlink" title="Enter commands line by line! Do not copy and paste multiple lines at once!"></a>Enter commands line by line! Do not copy and paste multiple lines at once!</h1><p>setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105<br>mw.b 0x42000000 0xff 0x1000000<br>tftpboot 0x42000000 openipc-gk7205v200-ultimate-16mb.bin</p>
-<h1 id="if-there-is-no-tftpboot-but-tftp-then-run-this-instead"><a href="#if-there-is-no-tftpboot-but-tftp-then-run-this-instead" class="headerlink" title="if there is no tftpboot but tftp then run this instead"></a>if there is no tftpboot but tftp then run this instead</h1><p>tftp 0x42000000 openipc-gk7205v200-ultimate-16mb.bin<br>sf probe 0; sf lock 0;<br>sf erase 0x0 0x1000000; sf write 0x42000000 0x0 0x1000000<br>reset</p>
-</blockquote>
-<p>摄像机将自动重启并使用全新的引导加载程序启动。</p>
-<p>注意准备中断并进入引导程序的命令行。 在引导加载程序的命令行中，根据您的闪存大小和类型重新映射 ROM 分区。</p>
-<blockquote>
-<h1 id="Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once-1"><a href="#Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once-1" class="headerlink" title="Enter commands line by line! Do not copy and paste multiple lines at once!"></a>Enter commands line by line! Do not copy and paste multiple lines at once!</h1><p>run setnor16m</p>
-</blockquote>
-<h1 id="恭喜！此时，您已经安装了-OpenIPC-固件-Ultimate-。"><a href="#恭喜！此时，您已经安装了-OpenIPC-固件-Ultimate-。" class="headerlink" title="恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。"></a>恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。</h1><p>在端口 85 ( <a href="http://192.168.15.169:85/">http://192.168.15.169:85/</a> ) 上打开摄像机的 Web 界面并使用登录root和密码12345登录。登录后将要求您设置自己的安全密码。通过以下方式访问摄像机ssh 或 UART 使用与上述相同的登录名和密码。</p>
-<hr>
-<p>打开web界面后，更新固件，更新完后调整majestic、sensor与设备型号对应。</p>
-<h1 id="majestic"><a href="#majestic" class="headerlink" title="majestic"></a>majestic</h1><p>openipc未开源部分。</p>
-]]></content>
-      <categories>
-        <category>折腾</category>
-      </categories>
-      <tags>
-        <tag>openipc</tag>
-      </tags>
   </entry>
   <entry>
     <title>记一次清空SMART修复群晖报故障的硬盘</title>
