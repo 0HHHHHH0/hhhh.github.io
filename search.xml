@@ -1,230 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>1.NPC内网穿透——Linux</title>
-    <url>/2025/07/24/18/</url>
-    <content><![CDATA[<blockquote>
-<p>历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。</p>
-</blockquote>
-<blockquote>
-<p>要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。</p>
-</blockquote>
-<p>用到的软件<br><a href="https://kmxo.lanzoub.com/iF7O730413eb">linux-npc.zip - 蓝奏云</a><br><a href="https://d-jy.net/docs/nps/?lang=zh#/use">使用教程</a><br>共两个步骤<br>1.下载npc客户端后修改 npc.conf文件<br>模板参考<br>修改前</p>
-<pre class="line-numbers language-none"><code class="language-none">[common]
-server_addr=填写服务器IP地址:8024
-conn_type=tcp
-vkey=唯一验证密钥
-<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
-<p>示例如下：<br>修改前</p>
-<p><img src="/images/18/953241429.png" alt="mdqu8nxa.png"></p>
-<p>修改后</p>
-<p><img src="/images/18/1669145814.png" alt="mdqu91bc.png"></p>
-<p>2.在文件目录中执行以下命令需要修改ip和密钥<br>（不要修改服务端口和删除空格）</p>
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-
-<h1 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h1><ol>
-<li>无配置文件模式（推荐）<br>详细命令行参数</li>
-</ol>
-<p>📌 适用于</p>
-<p>快速连接 NPS 服务器<br>所有配置均在 Web 管理端完成<br>客户端仅需运行一条命令<br>📌 普通连接（TCP 模式）</p>
-<p> <code>./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp</code> </p>
-<p>📌 TLS 加密连接（安全模式）</p>
-<p> <code>./npc -server=ip:8025 -vkey=web界面中显示的密钥 -type=tls</code> </p>
-<p>📌 连接多个服务端</p>
-<p> <code>./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls</code> </p>
-<p>📌 说明：</p>
-<p>默认端口 8024 为非 TLS 端口，用于普通 TCP 连接<br>如果 -type=tls，必须使用 8025 作为 TLS 端口，否则连接失败</p>
-<ol start="2">
-<li>注册到系统服务（开机启动 &amp; 守护进程）<br>📌 适用于</li>
-</ol>
-<p>保证 NPC 在服务器重启后自动运行<br>无需手动启动，后台运行<br>Linux/macOS</p>
-<pre class="line-numbers language-none"><code class="language-none"># 普通连接（TCP）
-sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
-# TLS 加密连接（安全模式）
-sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off
-# 连接多个服务端
-sudo ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls -log=off
-
-# 启动服务
-sudo npc start
-# 停止服务
-sudo npc stop
-# 卸载（修改参数时需要先卸载再重新注册）
- sudo npc uninstall <span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-<p>后面就是开放相应的端口，实现远程访问。</p>
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
-    <url>/2025/08/02/25/</url>
-    <content><![CDATA[<blockquote>
-<p>前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。</p>
-</blockquote>
-<h1 id="1-提取SNP位点信息"><a href="#1-提取SNP位点信息" class="headerlink" title="1.提取SNP位点信息"></a>1.提取SNP位点信息</h1><pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">##</span> 设置FST阈值（例如取WEIGHTED_FST &gt; 0.2）</span>
-awk '$5 &gt; 0.2' fst_binned.windowed.weir.fst &gt; high_fst_windows.txt
-
-<span class="token title important"><span class="token punctuation">##</span> 检查最高FST窗口</span>
-sort -k5,5nr high_fst_windows.txt | head
-
-
-<span class="token title important"><span class="token punctuation">##</span> 从高FST结果生成BED格式（用于后续注释）</span>
-awk '{print $1"\t"$2"\t"$3"\t"$5}' high_fst_windows.txt &gt; high_fst_regions.bed
-
-<span class="token title important"><span class="token punctuation">##</span> 合并相邻窗口（如距离 merged_high_fst.bed</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<h1 id="2-对提取SNP位点注释"><a href="#2-对提取SNP位点注释" class="headerlink" title="2.对提取SNP位点注释"></a>2.对提取SNP位点注释</h1><p>然后提取与基因重叠的区域（需准备reference.gtf）</p>
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">##</span> 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）</span>
-bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
-awk -F'\t' '$8 == "gene" {print $1,$2,$3,$12}' OFS='\t' | \
-awk -F'[;\t]' '{gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4}' | sort | uniq &gt; fst_genes.txt
-<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
-
-<h1 id="3-提取SNP位点所在基因的ID号"><a href="#3-提取SNP位点所在基因的ID号" class="headerlink" title="3.提取SNP位点所在基因的ID号"></a>3.提取SNP位点所在基因的ID号</h1><pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">awk -F'\t' '{
-  match($8, /ID=gene-([^;]+)/, id_arr);
-  match($8, /Name=([^;]+)/, name_arr);
-  if (id_arr[1] &amp;&amp; name_arr[1]) {
-    print $1, $2, $3, id_arr[1], name_arr[1];
-  }
-}' OFS='\t' fst_genes_annotated.bed &gt; fst_gene_ids_names.txt<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-
-<p>下面为整理好的上述过程的脚本</p>
-<p>命名为<code># annotate_fst.sh</code> </p>
-<pre class="line-numbers language-Bash" data-language="Bash"><code class="language-Bash">#!/bin/bash
-# 输入文件
-BED="merged_high_fst.bed"
-GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
-
-# 步骤1：提取基因（直接运行，若为空则需名称映射）
-bedtools intersect -a $BED -b $GFF -wa -wb | \
-awk -F'\t' '$8 == "gene" {print $1,$2,$3,$12}' OFS='\t' | \
-awk -F'[;\t]' '{gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4}' | sort | uniq &gt; fst_genes.txt
-
-# 步骤2：检查结果
-echo "=== 前10行基因 ==="
-head fst_genes.txt
-echo "=== 行数统计 ==="
-wc -l fst_genes.txt<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-<h1 id="4-通过基因ID提取蛋白序列"><a href="#4-通过基因ID提取蛋白序列" class="headerlink" title="4.通过基因ID提取蛋白序列"></a>4.通过基因ID提取蛋白序列</h1><p>下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好</p>
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
-
-
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.<span class="token italic"><span class="token punctuation">*</span><span class="token content">protein_id=([^;]+).</span><span class="token punctuation">*</span></span>/\1/' | sort | uniq &gt; protein_ids.txt
-
-
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa &gt; proteins_extracted/fst_genes_proteins.faa
-
-grep "^&gt;" proteins_extracted/fst_genes_proteins.faa | wc -l
-<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-<p>发现不能完全匹配所有LOC，查看哪些没匹配到</p>
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">#</span> 找所有LOC对应的protein_id</span>
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
-sed -r 's/.<span class="token italic"><span class="token punctuation">*</span><span class="token content">protein_id=([^;]+).</span><span class="token punctuation">*</span></span>/\1/' | sort | uniq &gt; protein_ids_all.txt
-
-<span class="token title important"><span class="token punctuation">#</span> 检查protein_ids.txt是否包含所有</span>
-<span class="token blockquote punctuation">&gt;</span> comm -23 protein_ids_all.txt protein_ids.txt &gt; missing_proteins.txt<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-
-<p>下面是上述命令整理好的查找脚本</p>
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">#</span>!/bin/bash</span>
-set -euo pipefail
-
-<span class="token title important"><span class="token punctuation">#</span> 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）</span>
-cut -f4 fst_gene_ids_names.txt | sort | uniq &gt; gene_loc_ids.txt
-
-<span class="token title important"><span class="token punctuation">#</span> 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id</span>
-grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
-    grep "protein_id=" | \
-    sed -r 's/.<span class="token italic"><span class="token punctuation">*</span><span class="token content">protein_id=([^;]+).</span><span class="token punctuation">*</span></span>/\1/' | \
-    sort | uniq &gt; protein_ids.txt
-
-<span class="token title important"><span class="token punctuation">#</span> 3. 使用seqkit提取对应的蛋白序列到指定文件</span>
-seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa &gt; proteins_extracted/fst_genes_proteins.faa
-
-<span class="token title important"><span class="token punctuation">#</span> 4. 统计提取到的蛋白数量，确认数量</span>
-grep "^&gt;" proteins_extracted/fst_genes_proteins.faa | wc -l<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-<h1 id="5-对提取的蛋白进行注释"><a href="#5-对提取的蛋白进行注释" class="headerlink" title="5.对提取的蛋白进行注释"></a>5.对提取的蛋白进行注释</h1><pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
-conda activate eggnog3_env
-
-
-emapper.py -h
-
-tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">emapper.py -i proteins_extracted/fst_genes_proteins.faa \
-  --output fst_proteins_annotation \
-  --data_dir ./data \
-  -m diamond \
-  --cpu 12 \
-  --override<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-<p>下面是R中的操作，主要进行KEGG和GO分析</p>
-<h1 id="1-对前面注释的基因进行聚类分析"><a href="#1-对前面注释的基因进行聚类分析" class="headerlink" title="1.对前面注释的基因进行聚类分析"></a>1.对前面注释的基因进行聚类分析</h1><p>详细内容见 <a href="http://192.168.1.101/usr/uploads/2025/08/706163015.ipynb">Fst_2.ipynb</a><br><img src="/images/25/2038951127.png" alt="mdvyq9m6.png"><br>结果如上，没有达到我的预期，操作也较麻烦。</p>
-<h1 id="2-构建非模式物种注释包org-Cgigas-eg-db"><a href="#2-构建非模式物种注释包org-Cgigas-eg-db" class="headerlink" title="2.构建非模式物种注释包org.Cgigas.eg.db"></a>2.构建非模式物种注释包org.Cgigas.eg.db</h1><p>详细内容见 <a href="http://192.168.1.101/usr/uploads/2025/08/3120321603.ipynb">Fst_3.ipynb</a> </p>
-<pre><code class="markdown">library(tidyverse)
-library(AnnotationForge)
-library(readxl)
-
-emapper %
-  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
-                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
-                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
-
-emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
-  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
-dim(gene2go)    #查看数据维度。
-#[1] 1523399       3
-
-#提取GID与KO信息，这里只有2列信息
-gene2ko%
- separate_rows(KO, sep = ',', convert = F) %&gt;%
-  dplyr::filter(!is.na(KO))
-dim(gene2ko)
-#[1] 30530     2
-
-#提取GID与Pathway信息，这里只有2列信息
-gene2pathway%
-separate_rows(Pathway, sep = ',', convert = F) %&gt;%
-  dplyr::filter(!is.na(Pathway))
- dim(gene2pathway)
-#[1] 143056      2
-
-#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
-gene2symbol%
-  dplyr::filter(!is.na(Gene_Symbol))
-dim(gene2symbol)
-#[1] 4561    2
-
-## 删除 GO ID 中的空格、制表符、换行符
-
-gene2go$GO
-</code></pre>
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
     <title>2.重测序数据分析——初步整理</title>
     <url>/2025/07/31/19/</url>
     <content><![CDATA[<blockquote>
@@ -451,105 +227,6 @@ p<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><s
       </categories>
   </entry>
   <entry>
-    <title>5.各样本SNP位点信息可视化</title>
-    <url>/2025/08/03/40/</url>
-    <content><![CDATA[<blockquote>
-<p>前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析</p>
-</blockquote>
-<p>需要用到的R包</p>
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">library(tidyverse)
-library(vcfR)
-library(data.table)
-library(ggplot2)
-library(dplyr)
-library(tidyr)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-<p>下面以单个基因为例进行分析</p>
-<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">#</span> 先读取数据（不自动解析列名）</span>
-snp_data %
-  as.matrix()
-
-<span class="token title important"><span class="token punctuation">#</span> 5. 可视化设置 ------------------------------------------------</span>
-<span class="token title important"><span class="token punctuation">#</span> 颜色映射</span>
-gt_colors %
-  layout(
-    title = list(text = "SNP Genotype Heatmap", y = 0.98),
-    xaxis = list(
-      title = "Genomic Position",
-      rangeslider = list(visible = TRUE),  # 横向滚动条
-      type = "category",  # 防止数值排序
-      tickangle = 45
-    ),
-    yaxis = list(
-      title = list(text = "Sample", standoff = 30),
-      tickfont = list(size = 10),
-      automargin = TRUE,  # 自动调整边距
-      tickmode = "array",
-      tickvals = seq_len(nrow(heatmap_matrix)),
-      ticktext = rownames(heatmap_matrix)
-    ),
-    margin = list(
-      l = left_margin,  # 动态左边距
-      r = 50,
-      b = 100,
-      t = 100
-    )
-  )
-
-<span class="token title important"><span class="token punctuation">#</span> 7. 输出结果 --------------------------------------------------</span>
-<span class="token title important"><span class="token punctuation">#</span> 在RStudio中直接查看</span>
-print(fig)
-
-<span class="token title important"><span class="token punctuation">#</span> 保存为HTML文件</span>
-htmlwidgets::saveWidget(
-  widget = fig,
-  file = "snp_heatmap_complete.html",
-  title = "Interactive SNP Heatmap",
-  selfcontained = TRUE,
-  libdir = "lib"
-)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-<p>输出结果如下<br><img src="/images/40/2532418108.png" alt="mdvqrk99.png"></p>
-]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>内网穿透</title>
-    <url>/2024/11/21/5/</url>
-    <content><![CDATA[<p>前言<br>对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。</p>
-<p>经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息：</p>
-<p>免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）<br>免费隧道：4条<br>流量：不限制<br>并发：不限制<br>除此之外访问地址并不会强制变化<br>官网链接</p>
-<blockquote>
-<p><a href="https://www.chmlfrp.cn/">https://www.chmlfrp.cn</a></p>
-</blockquote>
-<p>使用教程<br>这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。</p>
-<p>注册/登录<br>没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面：</p>
-<p>创建隧道<br>随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道）</p>
-<p>然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载）</p>
-<p>然后填写相应隧道信息，如果没有特殊需求，一般只需要填写端口类型及内网端口。</p>
-<p>随后点击确定即可成功创建隧道</p>
-<p>启动隧道<br>前往 “隧道管理 -&gt; 软件下载” 页面，下载对应你系统的软件。</p>
-<p>下载好后解压压缩包，一般来讲只需要这三个文件，其他文件可以删除，也可以选择保留。</p>
-<p>随后进入网站的 “隧道管理 -&gt; 配置文件” 页面，在此页面选择你创建隧道的节点，就可以获取到相应的配置文件。将获取的配置文件覆盖到文件夹的frpc.ini中：</p>
-<p>随后保存文件，然后在此文件夹创建一个 “启动.txt” 的文本档案，然后将.txt后缀改为.bat。（注意！此方法仅windows可用，且需要打开显示文件扩展名）</p>
-<p>右键 “启动.bat” ，点击编辑，输入以下代码：</p>
-<p> <code>&nbsp;./frpc -c frpc.ini</code> </p>
-<p>接下来是设置开机后台自启</p>
-<p>新建一个启动服务</p>
-<p>编辑该服务</p>
-<p>重新加载</p>
-<p>启动服务</p>
-<p>开始服务</p>
-<p>查看服务状态</p>
-<p>重启</p>
-<p>在弹出的cmd窗口中直接输入frpc即可启动</p>
-]]></content>
-      <categories>
-        <category>折腾</category>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
     <title>4.提取重测序数据中黑白肌痕组中各SNP的位点信息及基因型频率</title>
     <url>/2025/08/03/32/</url>
     <content><![CDATA[<p>相关的sh文件内容如下：</p>
@@ -722,247 +399,6 @@ rm -f NC_047567.1_results_*
 ./extract_chromosome_snps.sh NC_047567.1 Filter.snp.vcf.gz NC_047567.1_results 8
 ./extract_chromosome_snps_2.0.sh NC_047567.1 Filter.snp.vcf.gz NC_047567.1_results<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>]]></content>
       <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Typecho快速修改文章图片和文件链接地址</title>
-    <url>/2025/09/03/50/</url>
-    <content><![CDATA[<p>说明<br>为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。</p>
-<hr>
-<h2 id="1-安装"><a href="#1-安装" class="headerlink" title="1.安装"></a>1.安装</h2><p>如果您使用的是基于 Debian 或 Ubuntu 的 Linux 系统，可以尝试使用 apt-get 命令。例如：</p>
-<blockquote>
-<p>sudo apt-get update<br>sudo apt-get install phpmyadmin</p>
-</blockquote>
-<hr>
-<p>The phpmyadmin package must have a database installed and configured before it c<br>with dbconfig-common.</p>
-<p>If you are an advanced database administrator and know that you want to perform<br>database has already been installed and configured, you should refuse this optio<br>most likely be provided in /usr/share/doc/phpmyadmin.</p>
-<p>Otherwise, you should probably choose this option.</p>
-<p>Configure database for phpmyadmin with dbconfig-common? [yes/no] yes</p>
-<p>Please provide a password for phpmyadmin to register with the database server. I<br>generated.</p>
-<p>MySQL application password for phpmyadmin:</p>
-<p>Password confirmation:</p>
-<p>Determining localhost credentials from /etc/mysql/debian.cnf: succeeded.<br>请选择要自动配置以运行 phpMyAdmin 的网络服务器。</p>
-<ol>
-<li>apache2  2. lighttpd</li>
-</ol>
-<p>(Enter the items or ranges you want to select, separated by spaces.)</p>
-<p>要自动重新配置的网络服务器： 2</p>
-<p>dbconfig-common: writing config to /etc/dbconfig-common/phpmyadmin.conf</p>
-<p>Creating config file /etc/dbconfig-common/phpmyadmin.conf with new version</p>
-<p>Creating config file /etc/phpmyadmin/config-db.php with new version<br>checking privileges on database phpmyadmin for phpmyadmin@localhost: user creati<br>granting access to database phpmyadmin for phpmyadmin@localhost: success.<br>verifying access for phpmyadmin@localhost: success.<br>creating database phpmyadmin: success.<br>verifying database phpmyadmin exists: success.<br>populating database via sql…  done.<br>dbconfig-common: flushing administrative password<br>Lighttpd not installed, skipping<br>正在处理用于 libc-bin (2.31-13+deb11u2) 的触发器 …<br>ldconfig: /lib/libusbgx.so.2 is not a symbolic link</p>
-<p>正在处理用于 php7.4-fpm (7.4.33-1+deb11u9) 的触发器 …<br>正在处理用于 php7.4-cli (7.4.33-1+deb11u9) 的触发器 …</p>
-<hr>
-<p>选择了 lighttpd (选项2) 作为Web服务器，但你的系统实际上运行的是 Nginx</p>
-<p>下面是后续的解决步骤：</p>
-<h3 id="第一步：手动配置-Nginx-以支持-phpMyAdmin"><a href="#第一步：手动配置-Nginx-以支持-phpMyAdmin" class="headerlink" title="第一步：手动配置 Nginx 以支持 phpMyAdmin"></a>第一步：手动配置 Nginx 以支持 phpMyAdmin</h3><p>由于自动配置失败了，我们需要手动为 Nginx 创建配置文件。</p>
-<ol>
-<li><p><strong>创建 phpMyAdmin 的符号链接</strong>（如果尚未存在）：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">ln</span> <span class="token parameter variable">-s</span> /usr/share/phpmyadmin /var/www/html/phpmyadmin<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-</li>
-<li><p><strong>编辑 Nginx 站点配置文件</strong>：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">nano</span> /etc/nginx/sites-enabled/default<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre></li>
-<li><p><strong>在 <code>server</code> 块中添加以下 location 配置</strong>（放在PHP location块之前或之后）：</p>
-<pre class="line-numbers language-Nginx" data-language="Nginx"><code class="language-Nginx"># phpMyAdmin 配置
-location /phpmyadmin {
-    root /usr/share/;
-    index index.php index.html index.htm;
-    
-    location ~ ^/phpmyadmin/(.+.php)$ {
-        try_files $uri =404;
-        root /usr/share/;
-        fastcgi_pass unix:/run/php/php7.4-fpm.sock;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include /etc/nginx/fastcgi_params;
-    }
-    
-    location ~* ^/phpmyadmin/(.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
-        root /usr/share/;
-    }
-}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre></li>
-</ol>
-<h3 id="第二步：测试并重启-Nginx"><a href="#第二步：测试并重启-Nginx" class="headerlink" title="第二步：测试并重启 Nginx"></a>第二步：测试并重启 Nginx</h3><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 测试配置语法</span>
-<span class="token function">sudo</span> nginx <span class="token parameter variable">-t</span>
-
-<span class="token comment"># 如果语法正确，重启Nginx</span>
-<span class="token function">sudo</span> systemctl restart nginx
-<span class="token comment"># 或者使用重载</span>
-<span class="token function">sudo</span> nginx <span class="token parameter variable">-s</span> reload<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<h3 id="第三步：访问-phpMyAdmin"><a href="#第三步：访问-phpMyAdmin" class="headerlink" title="第三步：访问 phpMyAdmin"></a>第三步：访问 phpMyAdmin</h3><p>现在你应该可以通过浏览器访问 phpMyAdmin：</p>
-<pre class="line-numbers language-none"><code class="language-none">http://你的服务器IP或域名/phpmyadmin<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<h3 id="第四步：登录-phpMyAdmin"><a href="#第四步：登录-phpMyAdmin" class="headerlink" title="第四步：登录 phpMyAdmin"></a>第四步：登录 phpMyAdmin</h3><p>使用以下凭据登录：</p>
-<ul>
-<li><strong>用户名</strong>：phpmyadmin（或者你之前设置的MySQL用户名）</li>
-<li><strong>密码</strong>：你刚才安装时设置的密码</li>
-</ul>
-<h3 id="如果遇到权限问题"><a href="#如果遇到权限问题" class="headerlink" title="如果遇到权限问题"></a>如果遇到权限问题</h3><p>如果无法访问，可能需要调整权限：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 调整phpMyAdmin目录权限</span>
-<span class="token function">sudo</span> <span class="token function">chown</span> <span class="token parameter variable">-R</span> www-data:www-data /usr/share/phpmyadmin/
-<span class="token function">sudo</span> <span class="token function">chmod</span> <span class="token parameter variable">-R</span> <span class="token number">755</span> /usr/share/phpmyadmin/<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
-
-<h3 id="验证MySQL连接"><a href="#验证MySQL连接" class="headerlink" title="验证MySQL连接"></a>验证MySQL连接</h3><p>如果仍然无法连接，检查MySQL用户权限：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 登录MySQL</span>
-<span class="token function">sudo</span> mysql <span class="token parameter variable">-u</span> root <span class="token parameter variable">-p</span>
-
-<span class="token comment"># 检查phpmyadmin用户权限</span>
-SELECT user, <span class="token function">host</span> FROM mysql.user<span class="token punctuation">;</span>
-SHOW GRANTS FOR <span class="token string">'phpmyadmin'</span>@<span class="token string">'localhost'</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<h3 id="安全建议"><a href="#安全建议" class="headerlink" title="安全建议"></a>安全建议</h3><ol>
-<li><strong>限制访问</strong>：考虑通过IP限制或HTTP认证来保护phpMyAdmin</li>
-<li><strong>使用HTTPS</strong>：确保通过SSL访问phpMyAdmin</li>
-<li><strong>修改URL路径</strong>：将 <code>/phpmyadmin</code> 改为不易猜测的路径</li>
-</ol>
-<p>这样配置后，phpMyAdmin 就应该可以正常工作了。完成后你可以通过浏览器访问并管理你的Typecho数据库，然后运行之前提到的SQL命令来批量更新图片链接。</p>
-<p>{lamp/}</p>
-<h2 id="方法"><a href="#方法" class="headerlink" title="方法"></a>方法</h2><p>操作前请各位先备份一下数据库</p>
-<p>(1)执行sql</p>
-<pre class="line-numbers language-SQL" data-language="SQL"><code class="language-SQL">UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域名地址');<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p> <code>typecho_contents</code>  是typecho存放文章的一个表<br>(2)方法2<br><img src="/images/50/3725854188.png" alt="mf3n8p7s.png"></p>
-<p>选中 <code>typecho_contents</code> ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 <code>text</code> ，确认后执行即可批量修改。</p>
-]]></content>
-      <categories>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>6.筛选组内一致率90%，组间有差异的SNP位点</title>
-    <url>/2025/09/03/48/</url>
-    <content><![CDATA[<p><strong>分析需求：</strong><br>请分析查找组间差异SNP &amp; Indel。需要找组内一致，组间具有差异的突变位点，样本一致率卡90%，即在大于90%的样本中突变型一致就认为是组内一致的突变。</p>
-<hr>
-<h2 id="1-筛选的命令如下"><a href="#1-筛选的命令如下" class="headerlink" title="1.筛选的命令如下"></a>1.筛选的命令如下</h2><pre class="line-numbers language-Bash" data-language="Bash"><code class="language-Bash">#!/bin/bash
-# filename: filter_variants_integrated.sh
-# Usage: ./filter_variants_integrated.sh [threshold] [input_file] [output_file] [include_het] [diff_mode]
-
-show_help() {
-    cat  "$OUTPUT_FILE"
-
-# ------------------ 主体处理 ------------------
-START_TIME=$(date +%s)
-log "INFO" "开始处理位点..."
-
-awk -v threshold="$THRESHOLD" \
-    -v bm_start="$BM_START" \
-    -v bm_end="$BM_END" \
-    -v wm_start="$WM_START" \
-    -v wm_end="$WM_END" \
-    -v total_variants="$TOTAL_VARIANTS" \
-    -v log_file="$LOG_FILE" \
-    -v include_het="$INCLUDE_HET" \
-    -v diff_mode="$DIFF_MODE" '
-BEGIN {
-    OFS="\t"
-    processed = 0
-    passed = 0
-    start_time = systime()
-    print strftime("[%Y-%m-%d %H:%M:%S]") " [INFO] AWK processor started" &gt;&gt; log_file
-}
-
-NR==1 {next}  # 跳过表头
-
-{
-    processed++
-
-    bm_ref=0; bm_alt=0; bm_het=0; bm_total=0
-    wm_ref=0; wm_alt=0; wm_het=0; wm_total=0
-
-    # BM
-    for (i=bm_start; i 0) ? bm_alt / bm_total : 0
-    bm_het_ratio = (bm_total &gt; 0) ? bm_het / bm_total : 0
-    
-    wm_ref_ratio = (wm_total &gt; 0) ? wm_ref / wm_total : 0
-    wm_alt_ratio = (wm_total &gt; 0) ? wm_alt / wm_total : 0
-    wm_het_ratio = (wm_total &gt; 0) ? wm_het / wm_total : 0
-
-    bm_gt = "MIXED"
-    wm_gt = "MIXED"
-
-    if (bm_total &gt;= 20) {
-        if (bm_ref_ratio &gt;= threshold) bm_gt="REF"
-        else if (bm_alt_ratio &gt;= threshold) bm_gt="ALT"
-        else if (!include_het &amp;&amp; (bm_het/bm_total &gt;= threshold)) bm_gt="HET"
-    }
-    if (wm_total &gt;= 20) {
-        if (wm_ref_ratio &gt;= threshold) wm_gt="REF"
-        else if (wm_alt_ratio &gt;= threshold) wm_gt="ALT"
-        else if (!include_het &amp;&amp; (wm_het/wm_total &gt;= threshold)) wm_gt="HET"
-    }
-
-    diff = 0
-    if (bm_gt != "MIXED" &amp;&amp; wm_gt != "MIXED") {
-        if (diff_mode=="simple") {
-            if (bm_gt=="REF" &amp;&amp; wm_gt=="ALT") diff=1
-            else if (bm_gt=="ALT" &amp;&amp; wm_gt=="REF") diff=1
-        } else if (diff_mode=="strict") {
-            if (bm_gt != wm_gt) diff=1
-        }
-    }
-
-    if (diff==1) {
-        print $0, bm_ref, bm_alt, bm_het, bm_total, bm_ref_ratio, bm_alt_ratio, bm_het_ratio, bm_gt, wm_ref, wm_alt, wm_het, wm_total, wm_ref_ratio, wm_alt_ratio, wm_het_ratio, wm_gt
-        passed++
-    }
-}
-
-END {
-    end_time = systime()
-    duration = end_time - start_time
-    minutes = int(duration / 60)
-    seconds = duration % 60
-    print strftime("[%Y-%m-%d %H:%M:%S]") " [INFO] Processed: " processed ", Passed: " passed &gt;&gt; log_file
-    print strftime("[%Y-%m-%d %H:%M:%S]") " [INFO] Pass rate: " (passed/processed)*100 "%" &gt;&gt; log_file
-}
-' "$INPUT_FILE" &gt;&gt; "$OUTPUT_FILE"
-
-# ------------------ 结果汇总 ------------------
-RESULT_COUNT=$(($(wc -l &lt; "$OUTPUT_FILE") - 1))
-log "INFO" "分析完成！ 筛选通过: $RESULT_COUNT"
-echo "结果输出到: $OUTPUT_FILE"
-echo "日志文件: $LOG_FILE"
-<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<h2 id="2-可视化代码"><a href="#2-可视化代码" class="headerlink" title="2. 可视化代码"></a>2. 可视化代码</h2><pre class="line-numbers language-R" data-language="R"><code class="language-R">
-library(tidyverse)
-library(vcfR)
-library(data.table)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-
-
-# 先读取数据（不自动解析列名）
-snp_data %
-  layout(
-    title = list(text = "SNP Genotype Heatmap", y = 0.98),
-    xaxis = list(
-      title = "Genomic Position",
-      rangeslider = list(visible = TRUE),
-      type = "category",
-      tickangle = 45
-    ),
-    yaxis = list(
-      title = list(text = "Sample", standoff = 30),
-      tickfont = list(size = 10),
-      automargin = TRUE,
-      tickmode = "array",
-      tickvals = rownames(heatmap_matrix),  # 直接使用样本名
-      ticktext = rownames(heatmap_matrix)
-    ),
-    margin = list(l = left_margin, r = 50, b = 100, t = 100)
-  )
-
-# 7. 输出结果 ------------------------------------------------
-fig  # 在RStudio中查看
-
-# 可选：保存为HTML
-# htmlwidgets::saveWidget(fig, "snp_heatmap.html", selfcontained = TRUE)
-<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>]]></content>
-      <categories>
-        <category>默认分类</category>
         <category>重测序</category>
       </categories>
   </entry>
@@ -1206,139 +642,567 @@ systemctl status frpc.service<span aria-hidden="true" class="line-numbers-rows">
       </categories>
   </entry>
   <entry>
-    <title>基因结构</title>
-    <url>/2025/09/17/55/</url>
-    <content><![CDATA[<h2 id="结构图"><a href="#结构图" class="headerlink" title="结构图"></a>结构图</h2><p>!!!</p>
-<pre><code>    flowchart TD
-    A["一个完整的真核生物基因（DNA模板链）"]
+    <title>6.筛选组内一致率90%，组间有差异的SNP位点</title>
+    <url>/2025/09/03/48/</url>
+    <content><![CDATA[<p><strong>分析需求：</strong><br>请分析查找组间差异SNP &amp; Indel。需要找组内一致，组间具有差异的突变位点，样本一致率卡90%，即在大于90%的样本中突变型一致就认为是组内一致的突变。</p>
+<hr>
+<h2 id="1-筛选的命令如下"><a href="#1-筛选的命令如下" class="headerlink" title="1.筛选的命令如下"></a>1.筛选的命令如下</h2><pre class="line-numbers language-Bash" data-language="Bash"><code class="language-Bash">#!/bin/bash
+# filename: filter_variants_integrated.sh
+# Usage: ./filter_variants_integrated.sh [threshold] [input_file] [output_file] [include_het] [diff_mode]
+
+show_help() {
+    cat  "$OUTPUT_FILE"
+
+# ------------------ 主体处理 ------------------
+START_TIME=$(date +%s)
+log "INFO" "开始处理位点..."
+
+awk -v threshold="$THRESHOLD" \
+    -v bm_start="$BM_START" \
+    -v bm_end="$BM_END" \
+    -v wm_start="$WM_START" \
+    -v wm_end="$WM_END" \
+    -v total_variants="$TOTAL_VARIANTS" \
+    -v log_file="$LOG_FILE" \
+    -v include_het="$INCLUDE_HET" \
+    -v diff_mode="$DIFF_MODE" '
+BEGIN {
+    OFS="\t"
+    processed = 0
+    passed = 0
+    start_time = systime()
+    print strftime("[%Y-%m-%d %H:%M:%S]") " [INFO] AWK processor started" &gt;&gt; log_file
+}
+
+NR==1 {next}  # 跳过表头
+
+{
+    processed++
+
+    bm_ref=0; bm_alt=0; bm_het=0; bm_total=0
+    wm_ref=0; wm_alt=0; wm_het=0; wm_total=0
+
+    # BM
+    for (i=bm_start; i 0) ? bm_alt / bm_total : 0
+    bm_het_ratio = (bm_total &gt; 0) ? bm_het / bm_total : 0
     
-    subgraph A_Sub[基因结构]
-        direction LR
-        Promoter[启动子 Promoter]
-        Exon1[外显子1 Exon 1]
-        Intron[内含子 Intron]
-        Exon2[外显子2 Exon 2]
-        Terminator[终止子 Terminator]
-    end
-    
-    A --&gt; A_Sub
-    
-    subgraph Transcription[第一步：转录]
-        direction TB
-        B["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]
-    end
-    
-    A_Sub --转录--&gt; Transcription
-    
-    subgraph Splicing[第二步：加工（剪切与拼接）]
-        direction TB
-        C["切除内含子并将外显子连接起来"]
-    end
-    
-    Transcription --加工--&gt; Splicing
-    
-    subgraph Final_mRNA[第三步：成熟mRNA]
-        direction LR
-        D["5' 帽子"]
-        E["5' UTR"]
-        F["CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA"]
-        G["3' UTR"]
-        H["多聚A尾巴"]
-    end
-    
-    Splicing --"拼接后形成"--&gt; Final_mRNA
-    
-    %% 定义关系
-    Exon1 --包含--&gt; UTR1[5' UTR部分]
-    Exon1 --包含--&gt; CDS_Part1[CDS部分]
-    Exon2 --包含--&gt; CDS_Part2[CDS部分]
-    Exon2 --包含--&gt; UTR2[3' UTR部分]
-    
-    UTR1 --最终成为--&gt; E
-    CDS_Part1 --最终成为--&gt; F
-    CDS_Part2 --最终成为--&gt; F
-    UTR2 --最终成为--&gt; G
-    
-    Final_mRNA --"进入细胞质进行翻译（核糖体）"--&gt; I["合成的蛋白质"]
-    F --&gt; I
-    
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
-    classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
-    classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
-    
-    class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
-    class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
-    class Transcription,Splicing process;
-</code></pre>
-<p>!!!</p>
+    wm_ref_ratio = (wm_total &gt; 0) ? wm_ref / wm_total : 0
+    wm_alt_ratio = (wm_total &gt; 0) ? wm_alt / wm_total : 0
+    wm_het_ratio = (wm_total &gt; 0) ? wm_het / wm_total : 0
+
+    bm_gt = "MIXED"
+    wm_gt = "MIXED"
+
+    if (bm_total &gt;= 20) {
+        if (bm_ref_ratio &gt;= threshold) bm_gt="REF"
+        else if (bm_alt_ratio &gt;= threshold) bm_gt="ALT"
+        else if (!include_het &amp;&amp; (bm_het/bm_total &gt;= threshold)) bm_gt="HET"
+    }
+    if (wm_total &gt;= 20) {
+        if (wm_ref_ratio &gt;= threshold) wm_gt="REF"
+        else if (wm_alt_ratio &gt;= threshold) wm_gt="ALT"
+        else if (!include_het &amp;&amp; (wm_het/wm_total &gt;= threshold)) wm_gt="HET"
+    }
+
+    diff = 0
+    if (bm_gt != "MIXED" &amp;&amp; wm_gt != "MIXED") {
+        if (diff_mode=="simple") {
+            if (bm_gt=="REF" &amp;&amp; wm_gt=="ALT") diff=1
+            else if (bm_gt=="ALT" &amp;&amp; wm_gt=="REF") diff=1
+        } else if (diff_mode=="strict") {
+            if (bm_gt != wm_gt) diff=1
+        }
+    }
+
+    if (diff==1) {
+        print $0, bm_ref, bm_alt, bm_het, bm_total, bm_ref_ratio, bm_alt_ratio, bm_het_ratio, bm_gt, wm_ref, wm_alt, wm_het, wm_total, wm_ref_ratio, wm_alt_ratio, wm_het_ratio, wm_gt
+        passed++
+    }
+}
+
+END {
+    end_time = systime()
+    duration = end_time - start_time
+    minutes = int(duration / 60)
+    seconds = duration % 60
+    print strftime("[%Y-%m-%d %H:%M:%S]") " [INFO] Processed: " processed ", Passed: " passed &gt;&gt; log_file
+    print strftime("[%Y-%m-%d %H:%M:%S]") " [INFO] Pass rate: " (passed/processed)*100 "%" &gt;&gt; log_file
+}
+' "$INPUT_FILE" &gt;&gt; "$OUTPUT_FILE"
+
+# ------------------ 结果汇总 ------------------
+RESULT_COUNT=$(($(wc -l &lt; "$OUTPUT_FILE") - 1))
+log "INFO" "分析完成！ 筛选通过: $RESULT_COUNT"
+echo "结果输出到: $OUTPUT_FILE"
+echo "日志文件: $LOG_FILE"
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h2 id="2-可视化代码"><a href="#2-可视化代码" class="headerlink" title="2. 可视化代码"></a>2. 可视化代码</h2><pre class="line-numbers language-R" data-language="R"><code class="language-R">
+library(tidyverse)
+library(vcfR)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+
+# 先读取数据（不自动解析列名）
+snp_data %
+  layout(
+    title = list(text = "SNP Genotype Heatmap", y = 0.98),
+    xaxis = list(
+      title = "Genomic Position",
+      rangeslider = list(visible = TRUE),
+      type = "category",
+      tickangle = 45
+    ),
+    yaxis = list(
+      title = list(text = "Sample", standoff = 30),
+      tickfont = list(size = 10),
+      automargin = TRUE,
+      tickmode = "array",
+      tickvals = rownames(heatmap_matrix),  # 直接使用样本名
+      ticktext = rownames(heatmap_matrix)
+    ),
+    margin = list(l = left_margin, r = 50, b = 100, t = 100)
+  )
+
+# 7. 输出结果 ------------------------------------------------
+fig  # 在RStudio中查看
+
+# 可选：保存为HTML
+# htmlwidgets::saveWidget(fig, "snp_heatmap.html", selfcontained = TRUE)
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>]]></content>
+      <categories>
+        <category>默认分类</category>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>5.各样本SNP位点信息可视化</title>
+    <url>/2025/08/03/40/</url>
+    <content><![CDATA[<blockquote>
+<p>前面我们对各样本的SNP位点信息进行了提取，现在我们要进行SNP位点的筛选，相对快捷的办法就是可视化，下面我们进行分析</p>
+</blockquote>
+<p>需要用到的R包</p>
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">library(tidyverse)
+library(vcfR)
+library(data.table)
+library(ggplot2)
+library(dplyr)
+library(tidyr)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>下面以单个基因为例进行分析</p>
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">#</span> 先读取数据（不自动解析列名）</span>
+snp_data %
+  as.matrix()
+
+<span class="token title important"><span class="token punctuation">#</span> 5. 可视化设置 ------------------------------------------------</span>
+<span class="token title important"><span class="token punctuation">#</span> 颜色映射</span>
+gt_colors %
+  layout(
+    title = list(text = "SNP Genotype Heatmap", y = 0.98),
+    xaxis = list(
+      title = "Genomic Position",
+      rangeslider = list(visible = TRUE),  # 横向滚动条
+      type = "category",  # 防止数值排序
+      tickangle = 45
+    ),
+    yaxis = list(
+      title = list(text = "Sample", standoff = 30),
+      tickfont = list(size = 10),
+      automargin = TRUE,  # 自动调整边距
+      tickmode = "array",
+      tickvals = seq_len(nrow(heatmap_matrix)),
+      ticktext = rownames(heatmap_matrix)
+    ),
+    margin = list(
+      l = left_margin,  # 动态左边距
+      r = 50,
+      b = 100,
+      t = 100
+    )
+  )
+
+<span class="token title important"><span class="token punctuation">#</span> 7. 输出结果 --------------------------------------------------</span>
+<span class="token title important"><span class="token punctuation">#</span> 在RStudio中直接查看</span>
+print(fig)
+
+<span class="token title important"><span class="token punctuation">#</span> 保存为HTML文件</span>
+htmlwidgets::saveWidget(
+  widget = fig,
+  file = "snp_heatmap_complete.html",
+  title = "Interactive SNP Heatmap",
+  selfcontained = TRUE,
+  libdir = "lib"
+)<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>输出结果如下<br><img src="/images/40/2532418108.png" alt="mdvqrk99.png"></p>
+]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>1.NPC内网穿透——Linux</title>
+    <url>/2025/07/24/18/</url>
+    <content><![CDATA[<blockquote>
+<p>历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。</p>
+</blockquote>
+<blockquote>
+<p>要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。</p>
+</blockquote>
+<p>用到的软件<br><a href="https://kmxo.lanzoub.com/iF7O730413eb">linux-npc.zip - 蓝奏云</a><br><a href="https://d-jy.net/docs/nps/?lang=zh#/use">使用教程</a><br>共两个步骤<br>1.下载npc客户端后修改 npc.conf文件<br>模板参考<br>修改前</p>
+<pre class="line-numbers language-none"><code class="language-none">[common]
+server_addr=填写服务器IP地址:8024
+conn_type=tcp
+vkey=唯一验证密钥
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+<p>示例如下：<br>修改前</p>
+<p><img src="/images/18/953241429.png" alt="mdqu8nxa.png"></p>
+<p>修改后</p>
+<p><img src="/images/18/1669145814.png" alt="mdqu91bc.png"></p>
+<p>2.在文件目录中执行以下命令需要修改ip和密钥<br>（不要修改服务端口和删除空格）</p>
 <div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
 
 
-<p>下面是代码</p>
-<pre class="line-numbers language-mermaid" data-language="mermaid"><code class="language-mermaid"><span class="token keyword">flowchart</span> TD
-A<span class="token text string">["一个完整的真核生物基因（DNA模板链）"]</span>
+<h1 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h1><ol>
+<li>无配置文件模式（推荐）<br>详细命令行参数</li>
+</ol>
+<p>📌 适用于</p>
+<p>快速连接 NPS 服务器<br>所有配置均在 Web 管理端完成<br>客户端仅需运行一条命令<br>📌 普通连接（TCP 模式）</p>
+<p> <code>./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp</code> </p>
+<p>📌 TLS 加密连接（安全模式）</p>
+<p> <code>./npc -server=ip:8025 -vkey=web界面中显示的密钥 -type=tls</code> </p>
+<p>📌 连接多个服务端</p>
+<p> <code>./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls</code> </p>
+<p>📌 说明：</p>
+<p>默认端口 8024 为非 TLS 端口，用于普通 TCP 连接<br>如果 -type=tls，必须使用 8025 作为 TLS 端口，否则连接失败</p>
+<ol start="2">
+<li>注册到系统服务（开机启动 &amp; 守护进程）<br>📌 适用于</li>
+</ol>
+<p>保证 NPC 在服务器重启后自动运行<br>无需手动启动，后台运行<br>Linux/macOS</p>
+<pre class="line-numbers language-none"><code class="language-none"># 普通连接（TCP）
+sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
+# TLS 加密连接（安全模式）
+sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off
+# 连接多个服务端
+sudo ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls -log=off
 
-<span class="token keyword">subgraph</span> A_Sub<span class="token text string">[基因结构]</span>
-    <span class="token keyword">direction</span> LR
-    Promoter<span class="token text string">[启动子 Promoter]</span>
-    Exon1<span class="token text string">[外显子1 Exon 1]</span>
-    Intron<span class="token text string">[内含子 Intron]</span>
-    Exon2<span class="token text string">[外显子2 Exon 2]</span>
-    Terminator<span class="token text string">[终止子 Terminator]</span>
-<span class="token keyword">end</span>
+# 启动服务
+sudo npc start
+# 停止服务
+sudo npc stop
+# 卸载（修改参数时需要先卸载再重新注册）
+ sudo npc uninstall <span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
-A <span class="token arrow operator">--&gt;</span> A_Sub
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
 
-<span class="token keyword">subgraph</span> Transcription<span class="token text string">[第一步：转录]</span>
-    <span class="token keyword">direction</span> TB
-    B<span class="token text string">["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]</span>
-<span class="token keyword">end</span>
+<p>后面就是开放相应的端口，实现远程访问。</p>
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>3.对基因进行注释，长牡蛎注释包的构建及KEGG和GO分析</title>
+    <url>/2025/08/02/25/</url>
+    <content><![CDATA[<blockquote>
+<p>前面我们发现了一些显著的SNP窗口位点，下面对显著的SNP位点进行提取。</p>
+</blockquote>
+<h1 id="1-提取SNP位点信息"><a href="#1-提取SNP位点信息" class="headerlink" title="1.提取SNP位点信息"></a>1.提取SNP位点信息</h1><pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">##</span> 设置FST阈值（例如取WEIGHTED_FST &gt; 0.2）</span>
+awk '$5 &gt; 0.2' fst_binned.windowed.weir.fst &gt; high_fst_windows.txt
 
-A_Sub <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">转录</span><span class="token arrow operator">--&gt;</span></span> Transcription
+<span class="token title important"><span class="token punctuation">##</span> 检查最高FST窗口</span>
+sort -k5,5nr high_fst_windows.txt | head
 
-<span class="token keyword">subgraph</span> Splicing<span class="token text string">[第二步：加工（剪切与拼接）]</span>
-    <span class="token keyword">direction</span> TB
-    C<span class="token text string">["切除内含子并将外显子连接起来"]</span>
-<span class="token keyword">end</span>
 
-Transcription <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">加工</span><span class="token arrow operator">--&gt;</span></span> Splicing
+<span class="token title important"><span class="token punctuation">##</span> 从高FST结果生成BED格式（用于后续注释）</span>
+awk '{print $1"\t"$2"\t"$3"\t"$5}' high_fst_windows.txt &gt; high_fst_regions.bed
 
-<span class="token keyword">subgraph</span> Final_mRNA<span class="token text string">[第三步：成熟mRNA]</span>
-    <span class="token keyword">direction</span> LR
-    D<span class="token text string">["5' 帽子"]</span>
-    E<span class="token text string">["5' UTR"]</span>
-    F[<span class="token string">"CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA"</span>]
-    G<span class="token text string">["3' UTR"]</span>
-    H<span class="token text string">["多聚A尾巴"]</span>
-<span class="token keyword">end</span>
+<span class="token title important"><span class="token punctuation">##</span> 合并相邻窗口（如距离 merged_high_fst.bed</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
-Splicing <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">"拼接后形成"</span><span class="token arrow operator">--&gt;</span></span> Final_mRNA
+<h1 id="2-对提取SNP位点注释"><a href="#2-对提取SNP位点注释" class="headerlink" title="2.对提取SNP位点注释"></a>2.对提取SNP位点注释</h1><p>然后提取与基因重叠的区域（需准备reference.gtf）</p>
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">##</span> 步骤1：过滤GFF3中的基因行（注意GFF3中gene的第三列为"gene"）</span>
+bedtools intersect -a merged_high_fst.bed -b ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff -wa -wb | \
+awk -F'\t' '$8 == "gene" {print $1,$2,$3,$12}' OFS='\t' | \
+awk -F'[;\t]' '{gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4}' | sort | uniq &gt; fst_genes.txt
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
 
-<span class="token comment">%% 定义关系</span>
-Exon1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> UTR1<span class="token text string">[5' UTR部分]</span>
-Exon1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> CDS_Part1<span class="token text string">[CDS部分]</span>
-Exon2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> CDS_Part2<span class="token text string">[CDS部分]</span>
-Exon2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> UTR2<span class="token text string">[3' UTR部分]</span>
+<h1 id="3-提取SNP位点所在基因的ID号"><a href="#3-提取SNP位点所在基因的ID号" class="headerlink" title="3.提取SNP位点所在基因的ID号"></a>3.提取SNP位点所在基因的ID号</h1><pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">awk -F'\t' '{
+  match($8, /ID=gene-([^;]+)/, id_arr);
+  match($8, /Name=([^;]+)/, name_arr);
+  if (id_arr[1] &amp;&amp; name_arr[1]) {
+    print $1, $2, $3, id_arr[1], name_arr[1];
+  }
+}' OFS='\t' fst_genes_annotated.bed &gt; fst_gene_ids_names.txt<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
-UTR1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> E
-CDS_Part1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> F
-CDS_Part2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> F
-UTR2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> G
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
 
-Final_mRNA <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">"进入细胞质进行翻译（核糖体）"</span><span class="token arrow operator">--&gt;</span></span> I<span class="token text string">["合成的蛋白质"]</span>
-F <span class="token arrow operator">--&gt;</span> I
 
-<span class="token keyword">classDef</span> default <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#f9f9f9<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>2px</span><span class="token punctuation">;</span>
-<span class="token keyword">classDef</span> coding <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#e6f7ff<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>1px</span><span class="token punctuation">;</span>
-<span class="token keyword">classDef</span> noncoding <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#fff5e6<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>1px</span><span class="token punctuation">;</span>
-<span class="token keyword">classDef</span> process <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#f0f8ff<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#2266ff<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>2px</span><span class="token punctuation">;</span>
+<p>下面为整理好的上述过程的脚本</p>
+<p>命名为<code># annotate_fst.sh</code> </p>
+<pre class="line-numbers language-Bash" data-language="Bash"><code class="language-Bash">#!/bin/bash
+# 输入文件
+BED="merged_high_fst.bed"
+GFF="../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff"
 
-<span class="token keyword">class</span> Exon1,Exon2,CDS_Part1,CDS_Part2,F coding<span class="token punctuation">;</span>
-<span class="token keyword">class</span> Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding<span class="token punctuation">;</span>
-<span class="token keyword">class</span> Transcription,Splicing process<span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>]]></content>
+# 步骤1：提取基因（直接运行，若为空则需名称映射）
+bedtools intersect -a $BED -b $GFF -wa -wb | \
+awk -F'\t' '$8 == "gene" {print $1,$2,$3,$12}' OFS='\t' | \
+awk -F'[;\t]' '{gsub(/ID=gene-/, "", $4); print $1,$2,$3,$4}' | sort | uniq &gt; fst_genes.txt
+
+# 步骤2：检查结果
+echo "=== 前10行基因 ==="
+head fst_genes.txt
+echo "=== 行数统计 ==="
+wc -l fst_genes.txt<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+<h1 id="4-通过基因ID提取蛋白序列"><a href="#4-通过基因ID提取蛋白序列" class="headerlink" title="4.通过基因ID提取蛋白序列"></a>4.通过基因ID提取蛋白序列</h1><p>下面为根据基因ID提取转录本序列，然后进行注释（后面不用这个，直接构建注释包进行分析，感觉更好</p>
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">grep -E "$(paste -sd'|' missing_loc.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "gene" | grep -E "$(paste -sd'|' missing_loc.txt)" | grep -o "gene_biotype=[^;]*" | sort | uniq -c
+
+
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.<span class="token italic"><span class="token punctuation">*</span><span class="token content">protein_id=([^;]+).</span><span class="token punctuation">*</span></span>/\1/' | sort | uniq &gt; protein_ids.txt
+
+
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa &gt; proteins_extracted/fst_genes_proteins.faa
+
+grep "^&gt;" proteins_extracted/fst_genes_proteins.faa | wc -l
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>发现不能完全匹配所有LOC，查看哪些没匹配到</p>
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">#</span> 找所有LOC对应的protein_id</span>
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | grep "protein_id=" | \
+sed -r 's/.<span class="token italic"><span class="token punctuation">*</span><span class="token content">protein_id=([^;]+).</span><span class="token punctuation">*</span></span>/\1/' | sort | uniq &gt; protein_ids_all.txt
+
+<span class="token title important"><span class="token punctuation">#</span> 检查protein_ids.txt是否包含所有</span>
+<span class="token blockquote punctuation">&gt;</span> comm -23 protein_ids_all.txt protein_ids.txt &gt; missing_proteins.txt<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<p>下面是上述命令整理好的查找脚本</p>
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown"><span class="token title important"><span class="token punctuation">#</span>!/bin/bash</span>
+set -euo pipefail
+
+<span class="token title important"><span class="token punctuation">#</span> 1. 从fst_gene_ids_names.txt中提取LOC ID列表（假设第4列为LOC ID）</span>
+cut -f4 fst_gene_ids_names.txt | sort | uniq &gt; gene_loc_ids.txt
+
+<span class="token title important"><span class="token punctuation">#</span> 2. 从基因组注释GFF文件中筛选出这些LOC对应的protein_id</span>
+grep -E "$(paste -sd'|' gene_loc_ids.txt)" ../GCF_902806645.1_cgigas_uk_roslin_v1_genomic.gff | \
+    grep "protein_id=" | \
+    sed -r 's/.<span class="token italic"><span class="token punctuation">*</span><span class="token content">protein_id=([^;]+).</span><span class="token punctuation">*</span></span>/\1/' | \
+    sort | uniq &gt; protein_ids.txt
+
+<span class="token title important"><span class="token punctuation">#</span> 3. 使用seqkit提取对应的蛋白序列到指定文件</span>
+seqkit grep -f protein_ids.txt ../GCF_902806645.1_cgigas_uk_roslin_v1_protein.faa &gt; proteins_extracted/fst_genes_proteins.faa
+
+<span class="token title important"><span class="token punctuation">#</span> 4. 统计提取到的蛋白数量，确认数量</span>
+grep "^&gt;" proteins_extracted/fst_genes_proteins.faa | wc -l<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+<h1 id="5-对提取的蛋白进行注释"><a href="#5-对提取的蛋白进行注释" class="headerlink" title="5.对提取的蛋白进行注释"></a>5.对提取的蛋白进行注释</h1><pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">conda create -n eggnog3_env -c bioconda -c conda-forge eggnog-mapper
+conda activate eggnog3_env
+
+
+emapper.py -h
+
+tar -xvzf eggnog_mapper_data-5.0.2.tar.gz -C ./data<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<pre class="line-numbers language-markdown" data-language="markdown"><code class="language-markdown">emapper.py -i proteins_extracted/fst_genes_proteins.faa \
+  --output fst_proteins_annotation \
+  --data_dir ./data \
+  -m diamond \
+  --cpu 12 \
+  --override<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+<p>下面是R中的操作，主要进行KEGG和GO分析</p>
+<h1 id="1-对前面注释的基因进行聚类分析"><a href="#1-对前面注释的基因进行聚类分析" class="headerlink" title="1.对前面注释的基因进行聚类分析"></a>1.对前面注释的基因进行聚类分析</h1><p>详细内容见 <a href="http://192.168.1.101/usr/uploads/2025/08/706163015.ipynb">Fst_2.ipynb</a><br><img src="/images/25/2038951127.png" alt="mdvyq9m6.png"><br>结果如上，没有达到我的预期，操作也较麻烦。</p>
+<h1 id="2-构建非模式物种注释包org-Cgigas-eg-db"><a href="#2-构建非模式物种注释包org-Cgigas-eg-db" class="headerlink" title="2.构建非模式物种注释包org.Cgigas.eg.db"></a>2.构建非模式物种注释包org.Cgigas.eg.db</h1><p>详细内容见 <a href="http://192.168.1.101/usr/uploads/2025/08/3120321603.ipynb">Fst_3.ipynb</a> </p>
+<pre><code class="markdown">library(tidyverse)
+library(AnnotationForge)
+library(readxl)
+
+emapper %
+  dplyr::select(GID=query,Gene_Symbol=Preferred_name, 
+                GO=GOs,KO=KEGG_ko,Pathway =KEGG_Pathway, 
+                OG=eggNOG_OGs,Gene_Name =seed_ortholog)
+
+emapper$GID %   #这是只提取有GO注释信息的行，判断的标准时GO信息不是NA，这也就是为什么前面必须将“-”替换为NA，不替换就无法进行有效过滤。
+  mutate(EVIDENCE = 'gigas')     #硬生生加了1列EVIDENCE，全部赋值A,凑数的。
+dim(gene2go)    #查看数据维度。
+#[1] 1523399       3
+
+#提取GID与KO信息，这里只有2列信息
+gene2ko%
+ separate_rows(KO, sep = ',', convert = F) %&gt;%
+  dplyr::filter(!is.na(KO))
+dim(gene2ko)
+#[1] 30530     2
+
+#提取GID与Pathway信息，这里只有2列信息
+gene2pathway%
+separate_rows(Pathway, sep = ',', convert = F) %&gt;%
+  dplyr::filter(!is.na(Pathway))
+ dim(gene2pathway)
+#[1] 143056      2
+
+#提取GID与Gene_Symbol信息，Gene_Symbol是Preferred_name信息，这里只有2列信息
+gene2symbol%
+  dplyr::filter(!is.na(Gene_Symbol))
+dim(gene2symbol)
+#[1] 4561    2
+
+## 删除 GO ID 中的空格、制表符、换行符
+
+gene2go$GO
+</code></pre>
+]]></content>
       <categories>
         <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>内网穿透</title>
+    <url>/2024/11/21/5/</url>
+    <content><![CDATA[<p>前言<br>对于在本地搭建需求公网的服务，比如nas，游戏联机等。但是又没有公网，这种时候就需要用到内网穿透工具，通过端口转发实现公网访问。市面上的映射基本都是限制流量，要么就是带宽只有1m。</p>
+<p>经过我的不断寻找，终于是找到了一款不限制流量，且基础带宽高的内网穿透工具。以下是他的基本信息：</p>
+<p>免费带宽：国内8m，国外32m（这是我能找到的唯一一款国内国外单独计带宽的映射）<br>免费隧道：4条<br>流量：不限制<br>并发：不限制<br>除此之外访问地址并不会强制变化<br>官网链接</p>
+<blockquote>
+<p><a href="https://www.chmlfrp.cn/">https://www.chmlfrp.cn</a></p>
+</blockquote>
+<p>使用教程<br>这款映射是基于开源软件frp实现的端口映射功能，所以实际使用方法和frp的使用方法一致，复制它生成的配置文件然后运行即可。</p>
+<p>注册/登录<br>没有帐户的首先前往chmlfrp官网注册账户，登录进首页之后是这样的页面：</p>
+<p>创建隧道<br>随后通过菜单前往 “隧道管理 -&gt; 隧道列表” ，然后点击右上角的添加隧道按钮（我已经创建了一个隧道）</p>
+<p>然后选择符合你要求的节点（一般选择离你近，且节点负载较低的节点。节点负载可以在 “隧道管理 -&gt; 节点状态” 查看所有节点的具体负载）</p>
+<p>然后填写相应隧道信息，如果没有特殊需求，一般只需要填写端口类型及内网端口。</p>
+<p>随后点击确定即可成功创建隧道</p>
+<p>启动隧道<br>前往 “隧道管理 -&gt; 软件下载” 页面，下载对应你系统的软件。</p>
+<p>下载好后解压压缩包，一般来讲只需要这三个文件，其他文件可以删除，也可以选择保留。</p>
+<p>随后进入网站的 “隧道管理 -&gt; 配置文件” 页面，在此页面选择你创建隧道的节点，就可以获取到相应的配置文件。将获取的配置文件覆盖到文件夹的frpc.ini中：</p>
+<p>随后保存文件，然后在此文件夹创建一个 “启动.txt” 的文本档案，然后将.txt后缀改为.bat。（注意！此方法仅windows可用，且需要打开显示文件扩展名）</p>
+<p>右键 “启动.bat” ，点击编辑，输入以下代码：</p>
+<p> <code>&nbsp;./frpc -c frpc.ini</code> </p>
+<p>接下来是设置开机后台自启</p>
+<p>新建一个启动服务</p>
+<p>编辑该服务</p>
+<p>重新加载</p>
+<p>启动服务</p>
+<p>开始服务</p>
+<p>查看服务状态</p>
+<p>重启</p>
+<p>在弹出的cmd窗口中直接输入frpc即可启动</p>
+]]></content>
+      <categories>
+        <category>折腾</category>
+        <category>WIFI</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Typecho快速修改文章图片和文件链接地址</title>
+    <url>/2025/09/03/50/</url>
+    <content><![CDATA[<p>说明<br>为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。</p>
+<hr>
+<h2 id="1-安装"><a href="#1-安装" class="headerlink" title="1.安装"></a>1.安装</h2><p>如果您使用的是基于 Debian 或 Ubuntu 的 Linux 系统，可以尝试使用 apt-get 命令。例如：</p>
+<blockquote>
+<p>sudo apt-get update<br>sudo apt-get install phpmyadmin</p>
+</blockquote>
+<hr>
+<p>The phpmyadmin package must have a database installed and configured before it c<br>with dbconfig-common.</p>
+<p>If you are an advanced database administrator and know that you want to perform<br>database has already been installed and configured, you should refuse this optio<br>most likely be provided in /usr/share/doc/phpmyadmin.</p>
+<p>Otherwise, you should probably choose this option.</p>
+<p>Configure database for phpmyadmin with dbconfig-common? [yes/no] yes</p>
+<p>Please provide a password for phpmyadmin to register with the database server. I<br>generated.</p>
+<p>MySQL application password for phpmyadmin:</p>
+<p>Password confirmation:</p>
+<p>Determining localhost credentials from /etc/mysql/debian.cnf: succeeded.<br>请选择要自动配置以运行 phpMyAdmin 的网络服务器。</p>
+<ol>
+<li>apache2  2. lighttpd</li>
+</ol>
+<p>(Enter the items or ranges you want to select, separated by spaces.)</p>
+<p>要自动重新配置的网络服务器： 2</p>
+<p>dbconfig-common: writing config to /etc/dbconfig-common/phpmyadmin.conf</p>
+<p>Creating config file /etc/dbconfig-common/phpmyadmin.conf with new version</p>
+<p>Creating config file /etc/phpmyadmin/config-db.php with new version<br>checking privileges on database phpmyadmin for phpmyadmin@localhost: user creati<br>granting access to database phpmyadmin for phpmyadmin@localhost: success.<br>verifying access for phpmyadmin@localhost: success.<br>creating database phpmyadmin: success.<br>verifying database phpmyadmin exists: success.<br>populating database via sql…  done.<br>dbconfig-common: flushing administrative password<br>Lighttpd not installed, skipping<br>正在处理用于 libc-bin (2.31-13+deb11u2) 的触发器 …<br>ldconfig: /lib/libusbgx.so.2 is not a symbolic link</p>
+<p>正在处理用于 php7.4-fpm (7.4.33-1+deb11u9) 的触发器 …<br>正在处理用于 php7.4-cli (7.4.33-1+deb11u9) 的触发器 …</p>
+<hr>
+<p>选择了 lighttpd (选项2) 作为Web服务器，但你的系统实际上运行的是 Nginx</p>
+<p>下面是后续的解决步骤：</p>
+<h3 id="第一步：手动配置-Nginx-以支持-phpMyAdmin"><a href="#第一步：手动配置-Nginx-以支持-phpMyAdmin" class="headerlink" title="第一步：手动配置 Nginx 以支持 phpMyAdmin"></a>第一步：手动配置 Nginx 以支持 phpMyAdmin</h3><p>由于自动配置失败了，我们需要手动为 Nginx 创建配置文件。</p>
+<ol>
+<li><p><strong>创建 phpMyAdmin 的符号链接</strong>（如果尚未存在）：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">ln</span> <span class="token parameter variable">-s</span> /usr/share/phpmyadmin /var/www/html/phpmyadmin<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+</li>
+<li><p><strong>编辑 Nginx 站点配置文件</strong>：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">nano</span> /etc/nginx/sites-enabled/default<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre></li>
+<li><p><strong>在 <code>server</code> 块中添加以下 location 配置</strong>（放在PHP location块之前或之后）：</p>
+<pre class="line-numbers language-Nginx" data-language="Nginx"><code class="language-Nginx"># phpMyAdmin 配置
+location /phpmyadmin {
+    root /usr/share/;
+    index index.php index.html index.htm;
+    
+    location ~ ^/phpmyadmin/(.+.php)$ {
+        try_files $uri =404;
+        root /usr/share/;
+        fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include /etc/nginx/fastcgi_params;
+    }
+    
+    location ~* ^/phpmyadmin/(.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+        root /usr/share/;
+    }
+}<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre></li>
+</ol>
+<h3 id="第二步：测试并重启-Nginx"><a href="#第二步：测试并重启-Nginx" class="headerlink" title="第二步：测试并重启 Nginx"></a>第二步：测试并重启 Nginx</h3><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 测试配置语法</span>
+<span class="token function">sudo</span> nginx <span class="token parameter variable">-t</span>
+
+<span class="token comment"># 如果语法正确，重启Nginx</span>
+<span class="token function">sudo</span> systemctl restart nginx
+<span class="token comment"># 或者使用重载</span>
+<span class="token function">sudo</span> nginx <span class="token parameter variable">-s</span> reload<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h3 id="第三步：访问-phpMyAdmin"><a href="#第三步：访问-phpMyAdmin" class="headerlink" title="第三步：访问 phpMyAdmin"></a>第三步：访问 phpMyAdmin</h3><p>现在你应该可以通过浏览器访问 phpMyAdmin：</p>
+<pre class="line-numbers language-none"><code class="language-none">http://你的服务器IP或域名/phpmyadmin<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h3 id="第四步：登录-phpMyAdmin"><a href="#第四步：登录-phpMyAdmin" class="headerlink" title="第四步：登录 phpMyAdmin"></a>第四步：登录 phpMyAdmin</h3><p>使用以下凭据登录：</p>
+<ul>
+<li><strong>用户名</strong>：phpmyadmin（或者你之前设置的MySQL用户名）</li>
+<li><strong>密码</strong>：你刚才安装时设置的密码</li>
+</ul>
+<h3 id="如果遇到权限问题"><a href="#如果遇到权限问题" class="headerlink" title="如果遇到权限问题"></a>如果遇到权限问题</h3><p>如果无法访问，可能需要调整权限：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 调整phpMyAdmin目录权限</span>
+<span class="token function">sudo</span> <span class="token function">chown</span> <span class="token parameter variable">-R</span> www-data:www-data /usr/share/phpmyadmin/
+<span class="token function">sudo</span> <span class="token function">chmod</span> <span class="token parameter variable">-R</span> <span class="token number">755</span> /usr/share/phpmyadmin/<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+
+<h3 id="验证MySQL连接"><a href="#验证MySQL连接" class="headerlink" title="验证MySQL连接"></a>验证MySQL连接</h3><p>如果仍然无法连接，检查MySQL用户权限：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token comment"># 登录MySQL</span>
+<span class="token function">sudo</span> mysql <span class="token parameter variable">-u</span> root <span class="token parameter variable">-p</span>
+
+<span class="token comment"># 检查phpmyadmin用户权限</span>
+SELECT user, <span class="token function">host</span> FROM mysql.user<span class="token punctuation">;</span>
+SHOW GRANTS FOR <span class="token string">'phpmyadmin'</span>@<span class="token string">'localhost'</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h3 id="安全建议"><a href="#安全建议" class="headerlink" title="安全建议"></a>安全建议</h3><ol>
+<li><strong>限制访问</strong>：考虑通过IP限制或HTTP认证来保护phpMyAdmin</li>
+<li><strong>使用HTTPS</strong>：确保通过SSL访问phpMyAdmin</li>
+<li><strong>修改URL路径</strong>：将 <code>/phpmyadmin</code> 改为不易猜测的路径</li>
+</ol>
+<p>这样配置后，phpMyAdmin 就应该可以正常工作了。完成后你可以通过浏览器访问并管理你的Typecho数据库，然后运行之前提到的SQL命令来批量更新图片链接。</p>
+<p>{lamp/}</p>
+<h2 id="方法"><a href="#方法" class="headerlink" title="方法"></a>方法</h2><p>操作前请各位先备份一下数据库</p>
+<p>(1)执行sql</p>
+<pre class="line-numbers language-SQL" data-language="SQL"><code class="language-SQL">UPDATE `typecho_contents` SET `text` = REPLACE(`text`,'旧域名地址','新域名地址');<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p> <code>typecho_contents</code>  是typecho存放文章的一个表<br>(2)方法2<br><img src="/images/50/3725854188.png" alt="mf3n8p7s.png"></p>
+<p>选中 <code>typecho_contents</code> ，然后点上面的搜索，选择查找和替换，输入之前的图片或者文件地址和之后的地址，字段选择 <code>text</code> ，确认后执行即可批量修改。</p>
+]]></content>
+      <categories>
+        <category>WIFI</category>
       </categories>
   </entry>
   <entry>
@@ -1546,211 +1410,6 @@ tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
 <p>python main.py</p>
 </blockquote>
 <p>浏览器输入Running on local URL</p>
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>记一次清空SMART修复群晖报故障的硬盘</title>
-    <url>/2024/12/08/9/</url>
-    <content><![CDATA[<p>事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐</p>
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-
-<p>好，让我们进入正题，凡事都有个前因后果，先说说起因</p>
-<p>前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但是用SeaTools扫描，各种长短检测都能通过，希捷这又是什么操作</p>
-<p>HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红<br><img src="/images/9/762531194.png" alt="m4f55w5m.png"><br>最后用MHDD扫描过后，发现硬盘并没有坏块，那么是什么原因导致的B8 End_to_End计数增加呢？各种说法都有，有说是硬盘上的缓存坏掉了，有说是SATA线接触不良导致，有说是缓存到磁盘的数据包校验出错，反正各种说法都有，具体硬盘SMART里如何判断这个值的，估计也只有硬盘厂家知道，所以就不要纠结了。但是就这样淘汰掉一块2T的硬盘？是不是太浪费了？记一次清空SMART修复群晖报故障的硬盘 </p>
-<p>垃圾佬没别的本事，就是爱折腾，于是先尝试了低格整块硬盘，插回群晖还是报故障，看来只能祭出本垃圾佬的终极大杀器USB转TTL神器和给神器属性加成的TTL杜邦线了，没错，就是下面这俩玩意，马粑粑家几块钱一个，随便挑随便选记一次清空SMART修复群晖报故障的硬盘 </p>
-<p>如果你的电脑是第一次插入USB转TTL神器，要先安装驱动，并像下图这样在属性里设置好端口的波特率为38400</p>
-<p>安装好驱动的USB转TTL安装好驱动的USB转TTL</p>
-<p>端口的设置，第一项要设置为 <strong>38400</strong> 端口的设置<br><img src="/images/9/413614975.png" alt="m4f59zrr.png"><br>第一项要设置为 38400</p>
-<p>硬盘上TTL口的接法硬盘上TTL口的接法<br><img src="/images/9/231601982.png" alt="m4f5akz6.png"></p>
-<p>USB转TTL的接法USB转TTL的接法<br><img src="http://hhhh.ywhywhywh.top/usr/uploads/2024/12/4065335586.png" alt="m4f5awqp.png"></p>
-<p>接好了之后，让我们先把USB转TTL插入电脑的USB口，打开你的putty，像下图这样设置，如果你的USB转TTL在电脑上识别出来是COM4或者COM5这样的，请按你自己的实际情况设置COM口，Speed设置为38400，然后点open</p>
-<p>putty设置putty设置</p>
-<p>这时你会看到一个黑麻麻的窗口，什么都没有记一次清空SMART修复群晖报故障的硬盘 别着急，这时我们再接上电源线，记住，只接电源线。</p>
-<p>不要接SATA数据线，不要接SATA数据线，不要接SATA数据线，重要的事情说三遍</p>
-<p>另外，接电源线最好是用电源上引出来的原生SATA电源线，尽量不要用4pin转SATA的电源转换线</p>
-<p>接上电源线后接上电源线后<br><img src="/images/9/2870995132.png" alt="m4f5bgip.png"></p>
-<p>当你接上硬盘电源线后再看Putty会发现有回显了，当停在(P)SATA Reset后，说明硬盘已经启动完成了，这是可以按Ctrl+z激活终端，这时就会进入到希捷硬盘的F3工厂模式</p>
-<p>按下Ctrl+z后进入F3工厂模式按下Ctrl+z后进入F3工厂模式<br><img src="/images/9/1842945658.png" alt="m4f5bqet.png"></p>
-<p>这时如果只是清零SMART那只要输入两个命令/1和N1就能搞定</p>
-<p>输入/1进入1模式<br><img src="/images/9/391565786.png" alt="m4f5c1cz.png"><br>输入/1进入1模式</p>
-<p>在/1模式下输入N1，看到回显Clear SMART is completed，这时硬盘的SMART值已经被清零了，这时你可以拔掉电源线和TTL线，关机把硬盘接回电源线和SATA线（其实你不关机也行，重新接回SATA线和电源线就行，我经常这样干</p>
-<p>这时在我们再用HDTune查看硬盘的SMART值会发现：马达启停次数，硬盘通电时间，马达旋转重试次数，点到点错误计数，接口CRC错误计数，等等等等的很多参数都已经变成0了</p>
-<p>这是我的硬盘清零后的效果这是我的硬盘清零后的效果</p>
-<p>看看我这个硬盘SMART清零后的效果，“启动/停止次数”因为之前清零SMART后拔插过一次电源线，所以这里计数是1</p>
-<p>当然，有一些参数比如：原始读取错误率，磁头飞行时间等这些没有清零，这些都写在SMART的G-list里，要完全清掉需要在F3工厂模式里进入2模式停掉马达电机，清除G表，然后重建SMART和硬盘索引区到硬盘固件内才行</p>
-<p>这硬盘有固件锁<br><img src="/images/9/1367509578.png" alt="m4f5ehrp.png"></p>
-<p>这硬盘有固件锁</p>
-<p>但是如果你像上图我这块硬盘一样，在进入2模式输入Z想停止电机，返回Diagnostic Port Locked的话，说明这块硬盘有固件锁。被锁了固件是无法清零G表的，这也是希捷为了限制一些返厂硬盘和一些奸商通过改写G表来充当新硬盘坑人做的限制。当然，道高一尺魔高一丈，如果你有PC3000的软件和红卡或者MRT的话，固件锁其实也是可以解开的，这时候你就真的可以为所欲为了</p>
-<p>好了，本次折腾到此记录完毕，剩下的自然是把硬盘继续插回群晖里，把小姐姐们请回来</p>
-<p>仅以此文说明硬盘的SMART是可以清零的，硬盘SMART里的G表也是可以清零的，整个SMART是完全可以清除然后重建成刚出厂的样子的，甚至SMART还是可以通过工厂模式改写成你想要的任何样子的，所以二手硬盘水很深很深，请各位谨慎选择</p>
-<p>最后，此文仅以记录过程为目的，请某些头脑比较发达的朋友不要想着用学会了，拿旧硬盘把SMART清零了去坑人，既然有办法清零那肯定是有办法验出来的</p>
-<p>最后的最后，如果你只是本着不想浪费的原则，想清掉SMART上的错误，让这块硬盘继续发挥余热，建议最好清零SMART后的硬盘不要存放重要数据，同时注意时常关注一下硬盘状态，毕竟一块硬盘如果SMART某项报错了，那硬盘肯定是有一些问题的，所以如果有一天你硬盘里的小姐姐们灰飞烟灭了，千万别怪我没有提醒</p>
-<p>哦，还有个温馨提醒，USB转TTL的神器最好是选择CH340G芯片的，别选RS232的，别问我为什么，都是泪</p>
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Hexo + Butterfly 个人博客搭建</title>
-    <url>/2025/10/09/hexo-butterfly-ge-ren-bo-ke-da-jian/</url>
-    <content><![CDATA[<h1 id="Hexo-Butterfly-个人博客搭建"><a href="#Hexo-Butterfly-个人博客搭建" class="headerlink" title="Hexo + Butterfly 个人博客搭建"></a>Hexo + Butterfly 个人博客搭建</h1><p>在用了一周左右的时间搭建博客，沉浸于试效果、改 bug、试效果、改 bug……的循环后，我还是决定写一篇文章来记录一下，省得未来的自己再走一遍这痛苦的过程。</p>
-<hr>
-<h2 id="一、Hexo-静态网页生成"><a href="#一、Hexo-静态网页生成" class="headerlink" title="一、Hexo 静态网页生成"></a>一、Hexo 静态网页生成</h2><p><img src="https://cdn.jsdelivr.net/gh/0HHHHHH0/Image@master/blog/cmd.png" alt="cmd"></p>
-<h3 id="1-Node-js-安装"><a href="#1-Node-js-安装" class="headerlink" title="1. Node.js 安装!"></a>1. Node.js 安装!</h3><p>首先我们需要下载 Node.js<br>👉 <a href="https://nodejs.org/">Node.js — 在任何地方运行 JavaScript</a></p>
-<p>安装好之后我们可以输入以下指令，如果都能正常输出版本号则安装成功。</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">node</span> <span class="token parameter variable">-v</span>
-<span class="token function">npm</span> <span class="token parameter variable">-v</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
-
-<hr>
-<h3 id="2-Git-安装"><a href="#2-Git-安装" class="headerlink" title="2. Git 安装"></a>2. Git 安装</h3><p>Git 可是个好东西，程序员必备。<br>官网在这里：<a href="https://git-scm.com/downloads">Git - Downloading Package</a></p>
-<p>验证是否安装成功：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> <span class="token parameter variable">--version</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>正常显示版本即可。</p>
-<hr>
-<h3 id="3-Hexo-安装"><a href="#3-Hexo-安装" class="headerlink" title="3. Hexo 安装"></a>3. Hexo 安装</h3><p>在自己心仪的文件夹下（如 <code>E:/hexo</code>），鼠标右击选择 <strong>Git Bash Here</strong>，依次执行以下命令：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">npm</span> <span class="token function">install</span> hexo-cli <span class="token parameter variable">-g</span>
-<span class="token function">npm</span> <span class="token function">install</span> hexo <span class="token parameter variable">--save</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
-
-<p>如果已经安装过 hexo 或不确定装没装过也没关系，装过的执行完会显示 <em>update</em>。</p>
-<p>查看版本：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo <span class="token parameter variable">-v</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>正常显示版本号说明安装成功。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/0HHHHHH0/Image@master/blog/image-20251009212637204.png" alt="image-20251009212637204"></p>
-<hr>
-<h2 id="二、Hexo-初始化"><a href="#二、Hexo-初始化" class="headerlink" title="二、Hexo 初始化"></a>二、Hexo 初始化</h2><p>首先确保你要存放 Hexo 博客的文件夹下是空的。<br>随后在该文件夹右键选择 <strong>Git Bash Here</strong>，执行：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo init<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>执行完毕后就能看到 Hexo 框架的文件结构。</p>
-<p>生成一个初始页面测试：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo g <span class="token operator">&amp;&amp;</span> hexo s<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>在页面启动后，按住 <strong>Ctrl</strong> 点击终端中显示的<br><code>http://localhost:4000/</code>  即可自动跳转至浏览器预览。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/0HHHHHH0/Image@master/blog/image-20251009212745176.png" alt="image-20251009212745176"></p>
-<p>当你看到 Hexo 从地平线升起时，你就成功创建了一个本地静态博客网页。</p>
-<hr>
-<h2 id="三、部署到-GitHub"><a href="#三、部署到-GitHub" class="headerlink" title="三、部署到 GitHub"></a>三、部署到 GitHub</h2><h3 id="1-创建仓库"><a href="#1-创建仓库" class="headerlink" title="1. 创建仓库"></a>1. 创建仓库</h3><p>在 GitHub 创建一个公共仓库，命名为：</p>
-<pre class="line-numbers language-none"><code class="language-none">username.github.io<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<h3 id="2-配置账户并生成-SSH-密钥"><a href="#2-配置账户并生成-SSH-密钥" class="headerlink" title="2. 配置账户并生成 SSH 密钥"></a>2. 配置账户并生成 SSH 密钥</h3><p>在 Git Bash 中输入以下指令：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> config <span class="token parameter variable">--global</span> user.name <span class="token string">"XXXX"</span>                       <span class="token comment"># 配置个人信息-username</span>
-<span class="token function">git</span> config <span class="token parameter variable">--global</span> user.email <span class="token string">"XXXXXXXXX@XXX.com"</span>         <span class="token comment"># 配置个人信息-useremail</span>
-ssh-keygen <span class="token parameter variable">-t</span> rsa <span class="token parameter variable">-C</span> <span class="token string">"XXXXXXXXX@XXX.com"</span>	               <span class="token comment"># 生成密钥</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
-
-<p>生成过程中直接回车直到完成即可。<br>默认路径为：</p>
-<pre class="line-numbers language-none"><code class="language-none">C:\Users\用户名\.ssh\id_rsa.pub<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>打开 GitHub 设置 → 添加 SSH 密钥 → 将文件内容粘贴进去。</p>
-<hr>
-<h3 id="3-添加密钥到本地-Git"><a href="#3-添加密钥到本地-Git" class="headerlink" title="3. 添加密钥到本地 Git"></a>3. 添加密钥到本地 Git</h3><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token builtin class-name">eval</span> <span class="token string">"<span class="token variable"><span class="token variable">$(</span>ssh-agent <span class="token parameter variable">-s</span><span class="token variable">)</span></span>"</span>
-ssh-add ~/.ssh/id_rsa<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
-
-<p>测试连接：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">ssh</span> <span class="token parameter variable">-T</span> git@github.com<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>若得到以下回复则说明连接成功。</p>
-<pre class="line-numbers language-text" data-language="text"><code class="language-text">Hi username! You've successfully authenticated...<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<hr>
-<h3 id="4-确保使用正确的密钥"><a href="#4-确保使用正确的密钥" class="headerlink" title="4. 确保使用正确的密钥"></a>4. 确保使用正确的密钥</h3><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> config <span class="token parameter variable">--global</span> core.sshCommand <span class="token string">"ssh -i ~/.ssh/id_rsa"</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>若出现以下错误：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">The authenticity of <span class="token function">host</span> <span class="token string">'github.com (20.205.243.166)'</span> can't be established.
-Host key verification failed.<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
-
-<p>说明 SSH 客户端未信任 GitHub 的主机密钥。执行以下命令修复：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">touch</span> ~/.ssh/known_hosts
-<span class="token function">chmod</span> <span class="token number">644</span> ~/.ssh/known_hosts
-ssh-keyscan <span class="token parameter variable">-t</span> ed25519 github.com <span class="token operator">&gt;&gt;</span> ~/.ssh/known_hosts<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
-
-<p>再次执行 <code>ssh -T git@github.com</code> 即可。</p>
-<hr>
-<h3 id="5-修改-Hexo-配置文件"><a href="#5-修改-Hexo-配置文件" class="headerlink" title="5. 修改 Hexo 配置文件"></a>5. 修改 Hexo 配置文件</h3><p>打开站点配置文件 <code>_config.yml</code>，修改 <code>deploy</code> 部分如下：</p>
-<pre class="line-numbers language-yaml" data-language="yaml"><code class="language-yaml"><span class="token comment"># Deployment</span>
-<span class="token comment">## Docs: https://hexo.io/docs/deployment.html</span>
-<span class="token key atrule">deploy</span><span class="token punctuation">:</span>
-  <span class="token key atrule">type</span><span class="token punctuation">:</span> git
-  <span class="token key atrule">repo</span><span class="token punctuation">:</span> git@github.com<span class="token punctuation">:</span>XXXXX/XXXXX.github.io.git
-  <span class="token key atrule">branch</span><span class="token punctuation">:</span> main<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<p>然后执行 Hexo 三连：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo cl <span class="token operator">&amp;&amp;</span> hexo g <span class="token operator">&amp;&amp;</span> hexo d<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>此时即可通过：</p>
-<pre class="line-numbers language-none"><code class="language-none">https://username.github.io<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>访问你的博客啦！</p>
-<hr>
-<h2 id="四、安装-Butterfly-主题"><a href="#四、安装-Butterfly-主题" class="headerlink" title="四、安装 Butterfly 主题"></a>四、安装 Butterfly 主题</h2><h3 id="1-下载主题文件"><a href="#1-下载主题文件" class="headerlink" title="1. 下载主题文件"></a>1. 下载主题文件</h3><p>在 Git 中执行以下命令安装 Butterfly 主题：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> clone https://github.com/jerryc127/hexo-theme-butterfly.git themes/butterfly<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>如果没有修改代码的需求，也可以使用 npm 安装：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">npm</span> i hexo-theme-butterfly<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<hr>
-<h3 id="2-安装渲染器"><a href="#2-安装渲染器" class="headerlink" title="2. 安装渲染器"></a>2. 安装渲染器</h3><p>Butterfly 主题依赖 <code>pug</code> 和 <code>stylus</code> 渲染器，否则启动后访问会报错。</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">npm</span> <span class="token function">install</span> hexo-renderer-pug hexo-renderer-stylus <span class="token parameter variable">--save</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<hr>
-<h3 id="3-启用主题"><a href="#3-启用主题" class="headerlink" title="3. 启用主题"></a>3. 启用主题</h3><p>在站点配置文件 <code>_config.yml</code> 中找到 <code>theme</code> 字段，修改为：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">theme: butterfly<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>然后再次 Hexo 三连：</p>
-<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo cl <span class="token operator">&amp;&amp;</span> hexo g <span class="token operator">&amp;&amp;</span> hexo s<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>就完成了主题替换！</p>
-<hr>
-<h2 id="五、Butterfly-主题美化"><a href="#五、Butterfly-主题美化" class="headerlink" title="五、Butterfly 主题美化"></a>五、Butterfly 主题美化</h2><h3 id="1-网站资料修改"><a href="#1-网站资料修改" class="headerlink" title="1. 网站资料修改"></a>1. 网站资料修改</h3><p>修改网站标题、副标题、邮箱等个人信息，编辑 <code>_config.yml</code> 中对应字段。</p>
-<table>
-<thead>
-<tr>
-<th>参数</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>title</td>
-<td>网站标题</td>
-</tr>
-<tr>
-<td>subtitle</td>
-<td>描述</td>
-</tr>
-<tr>
-<td>description</td>
-<td>网站描述</td>
-</tr>
-<tr>
-<td>keywords</td>
-<td>网站关键词，支持多个</td>
-</tr>
-<tr>
-<td>author</td>
-<td>作者名</td>
-</tr>
-<tr>
-<td>language</td>
-<td>网站语言（常用 zh-Hans 或 zh-CN）</td>
-</tr>
-<tr>
-<td>timezone</td>
-<td>时区（如 Asia/Shanghai）</td>
-</tr>
-</tbody></table>
-<hr>
-<h3 id="2-背景图片"><a href="#2-背景图片" class="headerlink" title="2. 背景图片"></a>2. 背景图片</h3><p>修改 <code>_config.yml</code> 中的 <code>background</code> 字段即可。</p>
-<hr>
-<h3 id="3-更多美化参考"><a href="#3-更多美化参考" class="headerlink" title="3. 更多美化参考"></a>3. 更多美化参考</h3><ul>
-<li><a href="https://blog.csdn.net/">【Hexo系列】【7】Butterfly主题使用及美化 - CSDN 博客</a></li>
-<li><a href="https://tangzhiyuan.top/">基于 Hexo 从零开始搭建个人博客（五） | 唐志远</a></li>
-</ul>
-<p><strong>原文链接</strong>：<a href="https://xbxyftx.top/2025/01/26/butterfly%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/index.html">https://xbxyftx.top/2025/01/26/butterfly%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/index.html</a>  </p>
 ]]></content>
       <categories>
         <category>默认分类</category>
@@ -2040,6 +1699,347 @@ perl retrieve_seq_from_fasta.pl --format refGene --seqfile Arabidopsis_thaliana.
 ]]></content>
       <categories>
         <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>基因结构</title>
+    <url>/2025/09/17/55/</url>
+    <content><![CDATA[<h2 id="结构图"><a href="#结构图" class="headerlink" title="结构图"></a>结构图</h2><p>!!!</p>
+<pre><code>    flowchart TD
+    A["一个完整的真核生物基因（DNA模板链）"]
+    
+    subgraph A_Sub[基因结构]
+        direction LR
+        Promoter[启动子 Promoter]
+        Exon1[外显子1 Exon 1]
+        Intron[内含子 Intron]
+        Exon2[外显子2 Exon 2]
+        Terminator[终止子 Terminator]
+    end
+    
+    A --&gt; A_Sub
+    
+    subgraph Transcription[第一步：转录]
+        direction TB
+        B["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]
+    end
+    
+    A_Sub --转录--&gt; Transcription
+    
+    subgraph Splicing[第二步：加工（剪切与拼接）]
+        direction TB
+        C["切除内含子并将外显子连接起来"]
+    end
+    
+    Transcription --加工--&gt; Splicing
+    
+    subgraph Final_mRNA[第三步：成熟mRNA]
+        direction LR
+        D["5' 帽子"]
+        E["5' UTR"]
+        F["CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA"]
+        G["3' UTR"]
+        H["多聚A尾巴"]
+    end
+    
+    Splicing --"拼接后形成"--&gt; Final_mRNA
+    
+    %% 定义关系
+    Exon1 --包含--&gt; UTR1[5' UTR部分]
+    Exon1 --包含--&gt; CDS_Part1[CDS部分]
+    Exon2 --包含--&gt; CDS_Part2[CDS部分]
+    Exon2 --包含--&gt; UTR2[3' UTR部分]
+    
+    UTR1 --最终成为--&gt; E
+    CDS_Part1 --最终成为--&gt; F
+    CDS_Part2 --最终成为--&gt; F
+    UTR2 --最终成为--&gt; G
+    
+    Final_mRNA --"进入细胞质进行翻译（核糖体）"--&gt; I["合成的蛋白质"]
+    F --&gt; I
+    
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
+    classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
+    classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
+    
+    class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
+    class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
+    class Transcription,Splicing process;
+</code></pre>
+<p>!!!</p>
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+
+<p>下面是代码</p>
+<pre class="line-numbers language-mermaid" data-language="mermaid"><code class="language-mermaid"><span class="token keyword">flowchart</span> TD
+A<span class="token text string">["一个完整的真核生物基因（DNA模板链）"]</span>
+
+<span class="token keyword">subgraph</span> A_Sub<span class="token text string">[基因结构]</span>
+    <span class="token keyword">direction</span> LR
+    Promoter<span class="token text string">[启动子 Promoter]</span>
+    Exon1<span class="token text string">[外显子1 Exon 1]</span>
+    Intron<span class="token text string">[内含子 Intron]</span>
+    Exon2<span class="token text string">[外显子2 Exon 2]</span>
+    Terminator<span class="token text string">[终止子 Terminator]</span>
+<span class="token keyword">end</span>
+
+A <span class="token arrow operator">--&gt;</span> A_Sub
+
+<span class="token keyword">subgraph</span> Transcription<span class="token text string">[第一步：转录]</span>
+    <span class="token keyword">direction</span> TB
+    B<span class="token text string">["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]</span>
+<span class="token keyword">end</span>
+
+A_Sub <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">转录</span><span class="token arrow operator">--&gt;</span></span> Transcription
+
+<span class="token keyword">subgraph</span> Splicing<span class="token text string">[第二步：加工（剪切与拼接）]</span>
+    <span class="token keyword">direction</span> TB
+    C<span class="token text string">["切除内含子并将外显子连接起来"]</span>
+<span class="token keyword">end</span>
+
+Transcription <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">加工</span><span class="token arrow operator">--&gt;</span></span> Splicing
+
+<span class="token keyword">subgraph</span> Final_mRNA<span class="token text string">[第三步：成熟mRNA]</span>
+    <span class="token keyword">direction</span> LR
+    D<span class="token text string">["5' 帽子"]</span>
+    E<span class="token text string">["5' UTR"]</span>
+    F[<span class="token string">"CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA"</span>]
+    G<span class="token text string">["3' UTR"]</span>
+    H<span class="token text string">["多聚A尾巴"]</span>
+<span class="token keyword">end</span>
+
+Splicing <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">"拼接后形成"</span><span class="token arrow operator">--&gt;</span></span> Final_mRNA
+
+<span class="token comment">%% 定义关系</span>
+Exon1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> UTR1<span class="token text string">[5' UTR部分]</span>
+Exon1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> CDS_Part1<span class="token text string">[CDS部分]</span>
+Exon2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> CDS_Part2<span class="token text string">[CDS部分]</span>
+Exon2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> UTR2<span class="token text string">[3' UTR部分]</span>
+
+UTR1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> E
+CDS_Part1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> F
+CDS_Part2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> F
+UTR2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> G
+
+Final_mRNA <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">"进入细胞质进行翻译（核糖体）"</span><span class="token arrow operator">--&gt;</span></span> I<span class="token text string">["合成的蛋白质"]</span>
+F <span class="token arrow operator">--&gt;</span> I
+
+<span class="token keyword">classDef</span> default <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#f9f9f9<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>2px</span><span class="token punctuation">;</span>
+<span class="token keyword">classDef</span> coding <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#e6f7ff<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>1px</span><span class="token punctuation">;</span>
+<span class="token keyword">classDef</span> noncoding <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#fff5e6<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>1px</span><span class="token punctuation">;</span>
+<span class="token keyword">classDef</span> process <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#f0f8ff<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#2266ff<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>2px</span><span class="token punctuation">;</span>
+
+<span class="token keyword">class</span> Exon1,Exon2,CDS_Part1,CDS_Part2,F coding<span class="token punctuation">;</span>
+<span class="token keyword">class</span> Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding<span class="token punctuation">;</span>
+<span class="token keyword">class</span> Transcription,Splicing process<span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Hexo + Butterfly 个人博客搭建</title>
+    <url>/2025/10/09/hexo-butterfly-ge-ren-bo-ke-da-jian/</url>
+    <content><![CDATA[<h1 id="Hexo-Butterfly-个人博客搭建"><a href="#Hexo-Butterfly-个人博客搭建" class="headerlink" title="Hexo + Butterfly 个人博客搭建"></a>Hexo + Butterfly 个人博客搭建</h1><p>在用了一周左右的时间搭建博客，沉浸于试效果、改 bug、试效果、改 bug……的循环后，我还是决定写一篇文章来记录一下，省得未来的自己再走一遍这痛苦的过程。</p>
+<hr>
+<h2 id="一、Hexo-静态网页生成"><a href="#一、Hexo-静态网页生成" class="headerlink" title="一、Hexo 静态网页生成"></a>一、Hexo 静态网页生成</h2><p><img src="https://cdn.jsdelivr.net/gh/0HHHHHH0/Image@master/blog/cmd.png" alt="cmd"></p>
+<h3 id="1-Node-js-安装"><a href="#1-Node-js-安装" class="headerlink" title="1. Node.js 安装!"></a>1. Node.js 安装!</h3><p>首先我们需要下载 Node.js<br>👉 <a href="https://nodejs.org/">Node.js — 在任何地方运行 JavaScript</a></p>
+<p>安装好之后我们可以输入以下指令，如果都能正常输出版本号则安装成功。</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">node</span> <span class="token parameter variable">-v</span>
+<span class="token function">npm</span> <span class="token parameter variable">-v</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<hr>
+<h3 id="2-Git-安装"><a href="#2-Git-安装" class="headerlink" title="2. Git 安装"></a>2. Git 安装</h3><p>Git 可是个好东西，程序员必备。<br>官网在这里：<a href="https://git-scm.com/downloads">Git - Downloading Package</a></p>
+<p>验证是否安装成功：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> <span class="token parameter variable">--version</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>正常显示版本即可。</p>
+<hr>
+<h3 id="3-Hexo-安装"><a href="#3-Hexo-安装" class="headerlink" title="3. Hexo 安装"></a>3. Hexo 安装</h3><p>在自己心仪的文件夹下（如 <code>E:/hexo</code>），鼠标右击选择 <strong>Git Bash Here</strong>，依次执行以下命令：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">npm</span> <span class="token function">install</span> hexo-cli <span class="token parameter variable">-g</span>
+<span class="token function">npm</span> <span class="token function">install</span> hexo <span class="token parameter variable">--save</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<p>如果已经安装过 hexo 或不确定装没装过也没关系，装过的执行完会显示 <em>update</em>。</p>
+<p>查看版本：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo <span class="token parameter variable">-v</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>正常显示版本号说明安装成功。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/0HHHHHH0/Image@master/blog/image-20251009212637204.png" alt="image-20251009212637204"></p>
+<hr>
+<h2 id="二、Hexo-初始化"><a href="#二、Hexo-初始化" class="headerlink" title="二、Hexo 初始化"></a>二、Hexo 初始化</h2><p>首先确保你要存放 Hexo 博客的文件夹下是空的。<br>随后在该文件夹右键选择 <strong>Git Bash Here</strong>，执行：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo init<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>执行完毕后就能看到 Hexo 框架的文件结构。</p>
+<p>生成一个初始页面测试：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo g <span class="token operator">&amp;&amp;</span> hexo s<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>在页面启动后，按住 <strong>Ctrl</strong> 点击终端中显示的<br><code>http://localhost:4000/</code>  即可自动跳转至浏览器预览。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/0HHHHHH0/Image@master/blog/image-20251009212745176.png" alt="image-20251009212745176"></p>
+<p>当你看到 Hexo 从地平线升起时，你就成功创建了一个本地静态博客网页。</p>
+<hr>
+<h2 id="三、部署到-GitHub"><a href="#三、部署到-GitHub" class="headerlink" title="三、部署到 GitHub"></a>三、部署到 GitHub</h2><h3 id="1-创建仓库"><a href="#1-创建仓库" class="headerlink" title="1. 创建仓库"></a>1. 创建仓库</h3><p>在 GitHub 创建一个公共仓库，命名为：</p>
+<pre class="line-numbers language-none"><code class="language-none">username.github.io<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<h3 id="2-配置账户并生成-SSH-密钥"><a href="#2-配置账户并生成-SSH-密钥" class="headerlink" title="2. 配置账户并生成 SSH 密钥"></a>2. 配置账户并生成 SSH 密钥</h3><p>在 Git Bash 中输入以下指令：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> config <span class="token parameter variable">--global</span> user.name <span class="token string">"XXXX"</span>                       <span class="token comment"># 配置个人信息-username</span>
+<span class="token function">git</span> config <span class="token parameter variable">--global</span> user.email <span class="token string">"XXXXXXXXX@XXX.com"</span>         <span class="token comment"># 配置个人信息-useremail</span>
+ssh-keygen <span class="token parameter variable">-t</span> rsa <span class="token parameter variable">-C</span> <span class="token string">"XXXXXXXXX@XXX.com"</span>	               <span class="token comment"># 生成密钥</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+
+<p>生成过程中直接回车直到完成即可。<br>默认路径为：</p>
+<pre class="line-numbers language-none"><code class="language-none">C:\Users\用户名\.ssh\id_rsa.pub<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>打开 GitHub 设置 → 添加 SSH 密钥 → 将文件内容粘贴进去。</p>
+<hr>
+<h3 id="3-添加密钥到本地-Git"><a href="#3-添加密钥到本地-Git" class="headerlink" title="3. 添加密钥到本地 Git"></a>3. 添加密钥到本地 Git</h3><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token builtin class-name">eval</span> <span class="token string">"<span class="token variable"><span class="token variable">$(</span>ssh-agent <span class="token parameter variable">-s</span><span class="token variable">)</span></span>"</span>
+ssh-add ~/.ssh/id_rsa<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<p>测试连接：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">ssh</span> <span class="token parameter variable">-T</span> git@github.com<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>若得到以下回复则说明连接成功。</p>
+<pre class="line-numbers language-text" data-language="text"><code class="language-text">Hi username! You've successfully authenticated...<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<hr>
+<h3 id="4-确保使用正确的密钥"><a href="#4-确保使用正确的密钥" class="headerlink" title="4. 确保使用正确的密钥"></a>4. 确保使用正确的密钥</h3><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> config <span class="token parameter variable">--global</span> core.sshCommand <span class="token string">"ssh -i ~/.ssh/id_rsa"</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>若出现以下错误：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">The authenticity of <span class="token function">host</span> <span class="token string">'github.com (20.205.243.166)'</span> can't be established.
+Host key verification failed.<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+
+<p>说明 SSH 客户端未信任 GitHub 的主机密钥。执行以下命令修复：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">touch</span> ~/.ssh/known_hosts
+<span class="token function">chmod</span> <span class="token number">644</span> ~/.ssh/known_hosts
+ssh-keyscan <span class="token parameter variable">-t</span> ed25519 github.com <span class="token operator">&gt;&gt;</span> ~/.ssh/known_hosts<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+
+<p>再次执行 <code>ssh -T git@github.com</code> 即可。</p>
+<hr>
+<h3 id="5-修改-Hexo-配置文件"><a href="#5-修改-Hexo-配置文件" class="headerlink" title="5. 修改 Hexo 配置文件"></a>5. 修改 Hexo 配置文件</h3><p>打开站点配置文件 <code>_config.yml</code>，修改 <code>deploy</code> 部分如下：</p>
+<pre class="line-numbers language-yaml" data-language="yaml"><code class="language-yaml"><span class="token comment"># Deployment</span>
+<span class="token comment">## Docs: https://hexo.io/docs/deployment.html</span>
+<span class="token key atrule">deploy</span><span class="token punctuation">:</span>
+  <span class="token key atrule">type</span><span class="token punctuation">:</span> git
+  <span class="token key atrule">repo</span><span class="token punctuation">:</span> git@github.com<span class="token punctuation">:</span>XXXXX/XXXXX.github.io.git
+  <span class="token key atrule">branch</span><span class="token punctuation">:</span> main<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>然后执行 Hexo 三连：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo cl <span class="token operator">&amp;&amp;</span> hexo g <span class="token operator">&amp;&amp;</span> hexo d<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>此时即可通过：</p>
+<pre class="line-numbers language-none"><code class="language-none">https://username.github.io<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>访问你的博客啦！</p>
+<hr>
+<h2 id="四、安装-Butterfly-主题"><a href="#四、安装-Butterfly-主题" class="headerlink" title="四、安装 Butterfly 主题"></a>四、安装 Butterfly 主题</h2><h3 id="1-下载主题文件"><a href="#1-下载主题文件" class="headerlink" title="1. 下载主题文件"></a>1. 下载主题文件</h3><p>在 Git 中执行以下命令安装 Butterfly 主题：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> clone https://github.com/jerryc127/hexo-theme-butterfly.git themes/butterfly<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>如果没有修改代码的需求，也可以使用 npm 安装：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">npm</span> i hexo-theme-butterfly<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<hr>
+<h3 id="2-安装渲染器"><a href="#2-安装渲染器" class="headerlink" title="2. 安装渲染器"></a>2. 安装渲染器</h3><p>Butterfly 主题依赖 <code>pug</code> 和 <code>stylus</code> 渲染器，否则启动后访问会报错。</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">npm</span> <span class="token function">install</span> hexo-renderer-pug hexo-renderer-stylus <span class="token parameter variable">--save</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<hr>
+<h3 id="3-启用主题"><a href="#3-启用主题" class="headerlink" title="3. 启用主题"></a>3. 启用主题</h3><p>在站点配置文件 <code>_config.yml</code> 中找到 <code>theme</code> 字段，修改为：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">theme: butterfly<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>然后再次 Hexo 三连：</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">hexo cl <span class="token operator">&amp;&amp;</span> hexo g <span class="token operator">&amp;&amp;</span> hexo s<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>就完成了主题替换！</p>
+<hr>
+<h2 id="五、Butterfly-主题美化"><a href="#五、Butterfly-主题美化" class="headerlink" title="五、Butterfly 主题美化"></a>五、Butterfly 主题美化</h2><h3 id="1-网站资料修改"><a href="#1-网站资料修改" class="headerlink" title="1. 网站资料修改"></a>1. 网站资料修改</h3><p>修改网站标题、副标题、邮箱等个人信息，编辑 <code>_config.yml</code> 中对应字段。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>title</td>
+<td>网站标题</td>
+</tr>
+<tr>
+<td>subtitle</td>
+<td>描述</td>
+</tr>
+<tr>
+<td>description</td>
+<td>网站描述</td>
+</tr>
+<tr>
+<td>keywords</td>
+<td>网站关键词，支持多个</td>
+</tr>
+<tr>
+<td>author</td>
+<td>作者名</td>
+</tr>
+<tr>
+<td>language</td>
+<td>网站语言（常用 zh-Hans 或 zh-CN）</td>
+</tr>
+<tr>
+<td>timezone</td>
+<td>时区（如 Asia/Shanghai）</td>
+</tr>
+</tbody></table>
+<hr>
+<h3 id="2-背景图片"><a href="#2-背景图片" class="headerlink" title="2. 背景图片"></a>2. 背景图片</h3><p>修改 <code>_config.yml</code> 中的 <code>background</code> 字段即可。</p>
+<hr>
+<h3 id="3-更多美化参考"><a href="#3-更多美化参考" class="headerlink" title="3. 更多美化参考"></a>3. 更多美化参考</h3><ul>
+<li><a href="https://blog.csdn.net/">【Hexo系列】【7】Butterfly主题使用及美化 - CSDN 博客</a></li>
+<li><a href="https://tangzhiyuan.top/">基于 Hexo 从零开始搭建个人博客（五） | 唐志远</a></li>
+</ul>
+<p><strong>原文链接</strong>：<a href="https://xbxyftx.top/2025/01/26/butterfly%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/index.html">https://xbxyftx.top/2025/01/26/butterfly%E4%B8%BB%E9%A2%98%E7%BE%8E%E5%8C%96/index.html</a>  </p>
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>记一次清空SMART修复群晖报故障的硬盘</title>
+    <url>/2024/12/08/9/</url>
+    <content><![CDATA[<p>事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐</p>
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+
+<p>好，让我们进入正题，凡事都有个前因后果，先说说起因</p>
+<p>前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但是用SeaTools扫描，各种长短检测都能通过，希捷这又是什么操作</p>
+<p>HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红<br><img src="/images/9/762531194.png" alt="m4f55w5m.png"><br>最后用MHDD扫描过后，发现硬盘并没有坏块，那么是什么原因导致的B8 End_to_End计数增加呢？各种说法都有，有说是硬盘上的缓存坏掉了，有说是SATA线接触不良导致，有说是缓存到磁盘的数据包校验出错，反正各种说法都有，具体硬盘SMART里如何判断这个值的，估计也只有硬盘厂家知道，所以就不要纠结了。但是就这样淘汰掉一块2T的硬盘？是不是太浪费了？记一次清空SMART修复群晖报故障的硬盘 </p>
+<p>垃圾佬没别的本事，就是爱折腾，于是先尝试了低格整块硬盘，插回群晖还是报故障，看来只能祭出本垃圾佬的终极大杀器USB转TTL神器和给神器属性加成的TTL杜邦线了，没错，就是下面这俩玩意，马粑粑家几块钱一个，随便挑随便选记一次清空SMART修复群晖报故障的硬盘 </p>
+<p>如果你的电脑是第一次插入USB转TTL神器，要先安装驱动，并像下图这样在属性里设置好端口的波特率为38400</p>
+<p>安装好驱动的USB转TTL安装好驱动的USB转TTL</p>
+<p>端口的设置，第一项要设置为 <strong>38400</strong> 端口的设置<br><img src="/images/9/413614975.png" alt="m4f59zrr.png"><br>第一项要设置为 38400</p>
+<p>硬盘上TTL口的接法硬盘上TTL口的接法<br><img src="/images/9/231601982.png" alt="m4f5akz6.png"></p>
+<p>USB转TTL的接法USB转TTL的接法<br><img src="http://hhhh.ywhywhywh.top/usr/uploads/2024/12/4065335586.png" alt="m4f5awqp.png"></p>
+<p>接好了之后，让我们先把USB转TTL插入电脑的USB口，打开你的putty，像下图这样设置，如果你的USB转TTL在电脑上识别出来是COM4或者COM5这样的，请按你自己的实际情况设置COM口，Speed设置为38400，然后点open</p>
+<p>putty设置putty设置</p>
+<p>这时你会看到一个黑麻麻的窗口，什么都没有记一次清空SMART修复群晖报故障的硬盘 别着急，这时我们再接上电源线，记住，只接电源线。</p>
+<p>不要接SATA数据线，不要接SATA数据线，不要接SATA数据线，重要的事情说三遍</p>
+<p>另外，接电源线最好是用电源上引出来的原生SATA电源线，尽量不要用4pin转SATA的电源转换线</p>
+<p>接上电源线后接上电源线后<br><img src="/images/9/2870995132.png" alt="m4f5bgip.png"></p>
+<p>当你接上硬盘电源线后再看Putty会发现有回显了，当停在(P)SATA Reset后，说明硬盘已经启动完成了，这是可以按Ctrl+z激活终端，这时就会进入到希捷硬盘的F3工厂模式</p>
+<p>按下Ctrl+z后进入F3工厂模式按下Ctrl+z后进入F3工厂模式<br><img src="/images/9/1842945658.png" alt="m4f5bqet.png"></p>
+<p>这时如果只是清零SMART那只要输入两个命令/1和N1就能搞定</p>
+<p>输入/1进入1模式<br><img src="/images/9/391565786.png" alt="m4f5c1cz.png"><br>输入/1进入1模式</p>
+<p>在/1模式下输入N1，看到回显Clear SMART is completed，这时硬盘的SMART值已经被清零了，这时你可以拔掉电源线和TTL线，关机把硬盘接回电源线和SATA线（其实你不关机也行，重新接回SATA线和电源线就行，我经常这样干</p>
+<p>这时在我们再用HDTune查看硬盘的SMART值会发现：马达启停次数，硬盘通电时间，马达旋转重试次数，点到点错误计数，接口CRC错误计数，等等等等的很多参数都已经变成0了</p>
+<p>这是我的硬盘清零后的效果这是我的硬盘清零后的效果</p>
+<p>看看我这个硬盘SMART清零后的效果，“启动/停止次数”因为之前清零SMART后拔插过一次电源线，所以这里计数是1</p>
+<p>当然，有一些参数比如：原始读取错误率，磁头飞行时间等这些没有清零，这些都写在SMART的G-list里，要完全清掉需要在F3工厂模式里进入2模式停掉马达电机，清除G表，然后重建SMART和硬盘索引区到硬盘固件内才行</p>
+<p>这硬盘有固件锁<br><img src="/images/9/1367509578.png" alt="m4f5ehrp.png"></p>
+<p>这硬盘有固件锁</p>
+<p>但是如果你像上图我这块硬盘一样，在进入2模式输入Z想停止电机，返回Diagnostic Port Locked的话，说明这块硬盘有固件锁。被锁了固件是无法清零G表的，这也是希捷为了限制一些返厂硬盘和一些奸商通过改写G表来充当新硬盘坑人做的限制。当然，道高一尺魔高一丈，如果你有PC3000的软件和红卡或者MRT的话，固件锁其实也是可以解开的，这时候你就真的可以为所欲为了</p>
+<p>好了，本次折腾到此记录完毕，剩下的自然是把硬盘继续插回群晖里，把小姐姐们请回来</p>
+<p>仅以此文说明硬盘的SMART是可以清零的，硬盘SMART里的G表也是可以清零的，整个SMART是完全可以清除然后重建成刚出厂的样子的，甚至SMART还是可以通过工厂模式改写成你想要的任何样子的，所以二手硬盘水很深很深，请各位谨慎选择</p>
+<p>最后，此文仅以记录过程为目的，请某些头脑比较发达的朋友不要想着用学会了，拿旧硬盘把SMART清零了去坑人，既然有办法清零那肯定是有办法验出来的</p>
+<p>最后的最后，如果你只是本着不想浪费的原则，想清掉SMART上的错误，让这块硬盘继续发挥余热，建议最好清零SMART后的硬盘不要存放重要数据，同时注意时常关注一下硬盘状态，毕竟一块硬盘如果SMART某项报错了，那硬盘肯定是有一些问题的，所以如果有一天你硬盘里的小姐姐们灰飞烟灭了，千万别怪我没有提醒</p>
+<p>哦，还有个温馨提醒，USB转TTL的神器最好是选择CH340G芯片的，别选RS232的，别问我为什么，都是泪</p>
+]]></content>
+      <categories>
+        <category>默认分类</category>
       </categories>
   </entry>
 </search>
