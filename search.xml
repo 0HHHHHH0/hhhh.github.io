@@ -1,67 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>1.NPC内网穿透——Linux</title>
-    <url>/2025/07/24/18/</url>
-    <content><![CDATA[<blockquote>
-<p>历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。</p>
-</blockquote>
-<blockquote>
-<p>要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。</p>
-</blockquote>
-<p>用到的软件<br><a href="https://kmxo.lanzoub.com/iF7O730413eb">linux-npc.zip - 蓝奏云</a><br><a href="https://d-jy.net/docs/nps/?lang=zh#/use">使用教程</a><br>共两个步骤<br>1.下载npc客户端后修改 npc.conf文件<br>模板参考<br>修改前</p>
-<pre class="line-numbers language-none"><code class="language-none">[common]
-server_addr=填写服务器IP地址:8024
-conn_type=tcp
-vkey=唯一验证密钥
-<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
-<p>示例如下：<br>修改前</p>
-<p><img src="/images/18/953241429.png" alt="mdqu8nxa.png"></p>
-<p>修改后</p>
-<p><img src="/images/18/1669145814.png" alt="mdqu91bc.png"></p>
-<p>2.在文件目录中执行以下命令需要修改ip和密钥<br>（不要修改服务端口和删除空格）</p>
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-
-<h1 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h1><ol>
-<li>无配置文件模式（推荐）<br>详细命令行参数</li>
-</ol>
-<p>📌 适用于</p>
-<p>快速连接 NPS 服务器<br>所有配置均在 Web 管理端完成<br>客户端仅需运行一条命令<br>📌 普通连接（TCP 模式）</p>
-<p> <code>./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp</code> </p>
-<p>📌 TLS 加密连接（安全模式）</p>
-<p> <code>./npc -server=ip:8025 -vkey=web界面中显示的密钥 -type=tls</code> </p>
-<p>📌 连接多个服务端</p>
-<p> <code>./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls</code> </p>
-<p>📌 说明：</p>
-<p>默认端口 8024 为非 TLS 端口，用于普通 TCP 连接<br>如果 -type=tls，必须使用 8025 作为 TLS 端口，否则连接失败</p>
-<ol start="2">
-<li>注册到系统服务（开机启动 &amp; 守护进程）<br>📌 适用于</li>
-</ol>
-<p>保证 NPC 在服务器重启后自动运行<br>无需手动启动，后台运行<br>Linux/macOS</p>
-<pre class="line-numbers language-none"><code class="language-none"># 普通连接（TCP）
-sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
-# TLS 加密连接（安全模式）
-sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off
-# 连接多个服务端
-sudo ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls -log=off
-
-# 启动服务
-sudo npc start
-# 停止服务
-sudo npc stop
-# 卸载（修改参数时需要先卸载再重新注册）
- sudo npc uninstall <span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-<p>后面就是开放相应的端口，实现远程访问。</p>
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
     <title>2.重测序数据分析——初步整理</title>
     <url>/2025/07/31/19/</url>
     <content><![CDATA[<blockquote>
@@ -1102,6 +1041,67 @@ fig  # 在RStudio中查看
       </categories>
   </entry>
   <entry>
+    <title>1.NPC内网穿透——Linux</title>
+    <url>/2025/07/24/18/</url>
+    <content><![CDATA[<blockquote>
+<p>历时半个月，浅浅学习了一下重测序数据的分析流程，为防止遗忘，特写此后几篇文章，以便后续回忆参考。</p>
+</blockquote>
+<blockquote>
+<p>要进行重测序数据分析，首要的是搞一台服务器，恰好课题组有一台服务器，但问题是只能在内网访问，遂采用NPC进行内网穿透，实现异地访问使用。</p>
+</blockquote>
+<p>用到的软件<br><a href="https://kmxo.lanzoub.com/iF7O730413eb">linux-npc.zip - 蓝奏云</a><br><a href="https://d-jy.net/docs/nps/?lang=zh#/use">使用教程</a><br>共两个步骤<br>1.下载npc客户端后修改 npc.conf文件<br>模板参考<br>修改前</p>
+<pre class="line-numbers language-none"><code class="language-none">[common]
+server_addr=填写服务器IP地址:8024
+conn_type=tcp
+vkey=唯一验证密钥
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+<p>示例如下：<br>修改前</p>
+<p><img src="/images/18/953241429.png" alt="mdqu8nxa.png"></p>
+<p>修改后</p>
+<p><img src="/images/18/1669145814.png" alt="mdqu91bc.png"></p>
+<p>2.在文件目录中执行以下命令需要修改ip和密钥<br>（不要修改服务端口和删除空格）</p>
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+
+<h1 id="基本使用"><a href="#基本使用" class="headerlink" title="基本使用"></a>基本使用</h1><ol>
+<li>无配置文件模式（推荐）<br>详细命令行参数</li>
+</ol>
+<p>📌 适用于</p>
+<p>快速连接 NPS 服务器<br>所有配置均在 Web 管理端完成<br>客户端仅需运行一条命令<br>📌 普通连接（TCP 模式）</p>
+<p> <code>./npc -server=ip:8024 -vkey=web界面中显示的密钥 -type=tcp</code> </p>
+<p>📌 TLS 加密连接（安全模式）</p>
+<p> <code>./npc -server=ip:8025 -vkey=web界面中显示的密钥 -type=tls</code> </p>
+<p>📌 连接多个服务端</p>
+<p> <code>./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls</code> </p>
+<p>📌 说明：</p>
+<p>默认端口 8024 为非 TLS 端口，用于普通 TCP 连接<br>如果 -type=tls，必须使用 8025 作为 TLS 端口，否则连接失败</p>
+<ol start="2">
+<li>注册到系统服务（开机启动 &amp; 守护进程）<br>📌 适用于</li>
+</ol>
+<p>保证 NPC 在服务器重启后自动运行<br>无需手动启动，后台运行<br>Linux/macOS</p>
+<pre class="line-numbers language-none"><code class="language-none"># 普通连接（TCP）
+sudo ./npc install -server=ip:8024 -vkey=xxx -type=tcp -log=off
+# TLS 加密连接（安全模式）
+sudo ./npc install -server=ip:8025 -vkey=xxx -type=tls -log=off
+# 连接多个服务端
+sudo ./npc install -server=xx:12,yy:34 -vkey=xx,yy -type=tcp,tls -log=off
+
+# 启动服务
+sudo npc start
+# 停止服务
+sudo npc stop
+# 卸载（修改参数时需要先卸载再重新注册）
+ sudo npc uninstall <span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+<p>后面就是开放相应的端口，实现远程访问。</p>
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
     <title>Typecho快速修改文章图片和文件链接地址</title>
     <url>/2025/09/03/50/</url>
     <content><![CDATA[<p>说明<br>为了使我们的博客速度更快，图片等一些文件会采用外接的形式。但当跟换域名或CDN图片地址时，需要大批修正一切文章的援用图片链接和一些文件链接地址，手动修正又烦劳，这里就说一下通过 phpMyAdmin工具快速修正数据库文章图片，文件链接地址。</p>
@@ -1203,6 +1203,282 @@ SHOW GRANTS FOR <span class="token string">'phpmyadmin'</span>@<span class="toke
 ]]></content>
       <categories>
         <category>WIFI</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>基因结构</title>
+    <url>/2025/09/17/55/</url>
+    <content><![CDATA[<h2 id="结构图"><a href="#结构图" class="headerlink" title="结构图"></a>结构图</h2><p>!!!</p>
+<pre><code>    flowchart TD
+    A["一个完整的真核生物基因（DNA模板链）"]
+    
+    subgraph A_Sub[基因结构]
+        direction LR
+        Promoter[启动子 Promoter]
+        Exon1[外显子1 Exon 1]
+        Intron[内含子 Intron]
+        Exon2[外显子2 Exon 2]
+        Terminator[终止子 Terminator]
+    end
+    
+    A --&gt; A_Sub
+    
+    subgraph Transcription[第一步：转录]
+        direction TB
+        B["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]
+    end
+    
+    A_Sub --转录--&gt; Transcription
+    
+    subgraph Splicing[第二步：加工（剪切与拼接）]
+        direction TB
+        C["切除内含子并将外显子连接起来"]
+    end
+    
+    Transcription --加工--&gt; Splicing
+    
+    subgraph Final_mRNA[第三步：成熟mRNA]
+        direction LR
+        D["5' 帽子"]
+        E["5' UTR"]
+        F["CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA"]
+        G["3' UTR"]
+        H["多聚A尾巴"]
+    end
+    
+    Splicing --"拼接后形成"--&gt; Final_mRNA
+    
+    %% 定义关系
+    Exon1 --包含--&gt; UTR1[5' UTR部分]
+    Exon1 --包含--&gt; CDS_Part1[CDS部分]
+    Exon2 --包含--&gt; CDS_Part2[CDS部分]
+    Exon2 --包含--&gt; UTR2[3' UTR部分]
+    
+    UTR1 --最终成为--&gt; E
+    CDS_Part1 --最终成为--&gt; F
+    CDS_Part2 --最终成为--&gt; F
+    UTR2 --最终成为--&gt; G
+    
+    Final_mRNA --"进入细胞质进行翻译（核糖体）"--&gt; I["合成的蛋白质"]
+    F --&gt; I
+    
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
+    classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
+    classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
+    
+    class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
+    class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
+    class Transcription,Splicing process;
+</code></pre>
+<p>!!!</p>
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+
+<p>下面是代码</p>
+<pre class="line-numbers language-mermaid" data-language="mermaid"><code class="language-mermaid"><span class="token keyword">flowchart</span> TD
+A<span class="token text string">["一个完整的真核生物基因（DNA模板链）"]</span>
+
+<span class="token keyword">subgraph</span> A_Sub<span class="token text string">[基因结构]</span>
+    <span class="token keyword">direction</span> LR
+    Promoter<span class="token text string">[启动子 Promoter]</span>
+    Exon1<span class="token text string">[外显子1 Exon 1]</span>
+    Intron<span class="token text string">[内含子 Intron]</span>
+    Exon2<span class="token text string">[外显子2 Exon 2]</span>
+    Terminator<span class="token text string">[终止子 Terminator]</span>
+<span class="token keyword">end</span>
+
+A <span class="token arrow operator">--&gt;</span> A_Sub
+
+<span class="token keyword">subgraph</span> Transcription<span class="token text string">[第一步：转录]</span>
+    <span class="token keyword">direction</span> TB
+    B<span class="token text string">["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]</span>
+<span class="token keyword">end</span>
+
+A_Sub <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">转录</span><span class="token arrow operator">--&gt;</span></span> Transcription
+
+<span class="token keyword">subgraph</span> Splicing<span class="token text string">[第二步：加工（剪切与拼接）]</span>
+    <span class="token keyword">direction</span> TB
+    C<span class="token text string">["切除内含子并将外显子连接起来"]</span>
+<span class="token keyword">end</span>
+
+Transcription <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">加工</span><span class="token arrow operator">--&gt;</span></span> Splicing
+
+<span class="token keyword">subgraph</span> Final_mRNA<span class="token text string">[第三步：成熟mRNA]</span>
+    <span class="token keyword">direction</span> LR
+    D<span class="token text string">["5' 帽子"]</span>
+    E<span class="token text string">["5' UTR"]</span>
+    F[<span class="token string">"CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA"</span>]
+    G<span class="token text string">["3' UTR"]</span>
+    H<span class="token text string">["多聚A尾巴"]</span>
+<span class="token keyword">end</span>
+
+Splicing <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">"拼接后形成"</span><span class="token arrow operator">--&gt;</span></span> Final_mRNA
+
+<span class="token comment">%% 定义关系</span>
+Exon1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> UTR1<span class="token text string">[5' UTR部分]</span>
+Exon1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> CDS_Part1<span class="token text string">[CDS部分]</span>
+Exon2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> CDS_Part2<span class="token text string">[CDS部分]</span>
+Exon2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> UTR2<span class="token text string">[3' UTR部分]</span>
+
+UTR1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> E
+CDS_Part1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> F
+CDS_Part2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> F
+UTR2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> G
+
+Final_mRNA <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">"进入细胞质进行翻译（核糖体）"</span><span class="token arrow operator">--&gt;</span></span> I<span class="token text string">["合成的蛋白质"]</span>
+F <span class="token arrow operator">--&gt;</span> I
+
+<span class="token keyword">classDef</span> default <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#f9f9f9<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>2px</span><span class="token punctuation">;</span>
+<span class="token keyword">classDef</span> coding <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#e6f7ff<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>1px</span><span class="token punctuation">;</span>
+<span class="token keyword">classDef</span> noncoding <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#fff5e6<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>1px</span><span class="token punctuation">;</span>
+<span class="token keyword">classDef</span> process <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#f0f8ff<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#2266ff<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>2px</span><span class="token punctuation">;</span>
+
+<span class="token keyword">class</span> Exon1,Exon2,CDS_Part1,CDS_Part2,F coding<span class="token punctuation">;</span>
+<span class="token keyword">class</span> Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding<span class="token punctuation">;</span>
+<span class="token keyword">class</span> Transcription,Splicing process<span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>]]></content>
+      <categories>
+        <category>重测序</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>openipc goke7205v200</title>
+    <url>/2024/12/03/7/</url>
+    <content><![CDATA[<h1 id="保存原始固件"><a href="#保存原始固件" class="headerlink" title="保存原始固件"></a>保存原始固件</h1><hr>
+<h2 id="备份您的原始固件，请不要跳过这个步骤！"><a href="#备份您的原始固件，请不要跳过这个步骤！" class="headerlink" title="备份您的原始固件，请不要跳过这个步骤！"></a>备份您的原始固件，请不要跳过这个步骤！</h2><p>OpenIPC U-Boot 会覆盖原始的加密分区，因此无法恢复为出厂固件，除非您拥有此特定摄像机的完整闪存备份！要创建完整的固件备份，请启动 TFTP 服务器并在引导加载程序 shell 中执行这些命令。</p>
+<blockquote>
+<pre class="line-numbers language-Python" data-language="Python"><code class="language-Python"> # Enter commands line by line! Do not copy and paste multiple lines at once!
+setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105
+mw.b 0x42000000 0xff 0x1000000
+sf probe 0; sf read 0x42000000 0x0 0x1000000
+tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
+# if there is no tftpput but tftp then run this instead
+ tftp 0x42000000 backup-gk7205v200-nor16m.bin 0x1000000<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+</blockquote>
+<p>有关详细信息，请参阅项目 wiki 中的安装说明。</p>
+<h1 id="烧录完整的-OpenIPC-固件"><a href="#烧录完整的-OpenIPC-固件" class="headerlink" title="烧录完整的 OpenIPC 固件"></a>烧录完整的 OpenIPC 固件</h1><h2 id="下载-OpenIPC-固件-Ultimate"><a href="#下载-OpenIPC-固件-Ultimate" class="headerlink" title="下载 OpenIPC 固件 (Ultimate)"></a>下载 OpenIPC 固件 (Ultimate)</h2><p>for Goke GK7205V200 with 16MB NOR flash</p>
+<p>完整的固件由引导加载程序、内核和根文件系统组成，也适用于使用编程器烧写闪存芯片。 请注意，完整固件不包含预设环境。你还需要添加自己的MAC地址、IP地址等设置。</p>
+<blockquote>
+<h1 id="Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once"><a href="#Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once" class="headerlink" title="Enter commands line by line! Do not copy and paste multiple lines at once!"></a>Enter commands line by line! Do not copy and paste multiple lines at once!</h1><p>setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105<br>mw.b 0x42000000 0xff 0x1000000<br>tftpboot 0x42000000 openipc-gk7205v200-ultimate-16mb.bin</p>
+<h1 id="if-there-is-no-tftpboot-but-tftp-then-run-this-instead"><a href="#if-there-is-no-tftpboot-but-tftp-then-run-this-instead" class="headerlink" title="if there is no tftpboot but tftp then run this instead"></a>if there is no tftpboot but tftp then run this instead</h1><p>tftp 0x42000000 openipc-gk7205v200-ultimate-16mb.bin<br>sf probe 0; sf lock 0;<br>sf erase 0x0 0x1000000; sf write 0x42000000 0x0 0x1000000<br>reset</p>
+</blockquote>
+<p>摄像机将自动重启并使用全新的引导加载程序启动。</p>
+<p>注意准备中断并进入引导程序的命令行。 在引导加载程序的命令行中，根据您的闪存大小和类型重新映射 ROM 分区。</p>
+<blockquote>
+<h1 id="Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once-1"><a href="#Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once-1" class="headerlink" title="Enter commands line by line! Do not copy and paste multiple lines at once!"></a>Enter commands line by line! Do not copy and paste multiple lines at once!</h1><p>run setnor16m</p>
+</blockquote>
+<h1 id="恭喜！此时，您已经安装了-OpenIPC-固件-Ultimate-。"><a href="#恭喜！此时，您已经安装了-OpenIPC-固件-Ultimate-。" class="headerlink" title="恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。"></a>恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。</h1><p>在端口 85 ( <a href="http://192.168.15.169:85/">http://192.168.15.169:85/</a> ) 上打开摄像机的 Web 界面并使用登录root和密码12345登录。登录后将要求您设置自己的安全密码。通过以下方式访问摄像机ssh 或 UART 使用与上述相同的登录名和密码。</p>
+<hr>
+<p>打开web界面后，更新固件，更新完后调整majestic、sensor与设备型号对应。</p>
+<h1 id="majestic"><a href="#majestic" class="headerlink" title="majestic"></a>majestic</h1><p>openipc未开源部分。</p>
+]]></content>
+      <categories>
+        <category>折腾</category>
+      </categories>
+      <tags>
+        <tag>openipc</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>GPT 学术优化</title>
+    <url>/2024/12/06/8/</url>
+    <content><![CDATA[<h1 id="Installation"><a href="#Installation" class="headerlink" title="Installation"></a>Installation</h1><p>安装方法I：直接运行 (Windows, Linux or MacOS)<br>下载项目</p>
+<blockquote>
+<p>git clone –depth=1 <a href="https://github.com/binary-husky/gpt_academic.git">https://github.com/binary-husky/gpt_academic.git</a><br>cd gpt_academic<br>配置API_KEY等变量</p>
+</blockquote>
+<p>在config.py中，配置API KEY等变量。特殊网络环境设置方法、Wiki-项目配置说明。</p>
+<p>「 程序会优先检查是否存在名为config_private.py的私密配置文件，并用其中的配置覆盖config.py的同名配置。如您能理解以上读取逻辑，我们强烈建议您在config.py同路径下创建一个名为config_private.py的新配置文件，并使用config_private.py配置项目，从而确保自动更新时不会丢失配置 」。</p>
+<p>「 支持通过环境变量配置项目，环境变量的书写格式参考docker-compose.yml文件或者我们的Wiki页面。配置读取优先级: 环境变量 &gt; config_private.py &gt; config.py 」。</p>
+<p>安装依赖</p>
+<h4 id="（选择I-如熟悉python-python推荐版本-3-9-3-11）"><a href="#（选择I-如熟悉python-python推荐版本-3-9-3-11）" class="headerlink" title="（选择I: 如熟悉python, python推荐版本 3.9 ~ 3.11）"></a>（选择I: 如熟悉python, python推荐版本 3.9 ~ 3.11）</h4><p>备注：使用官方pip源或者阿里pip源, 临时换源方法：</p>
+<blockquote>
+<p>python -m pip install -r requirements.txt -i <a href="https://mirrors.aliyun.com/pypi/simple/">https://mirrors.aliyun.com/pypi/simple/</a></p>
+</blockquote>
+<blockquote>
+<p>python -m pip install -r requirements.txt</p>
+</blockquote>
+<h4 id="（选择II-使用Anaconda）步骤也是类似的-https-www-bilibili-com-video-BV1rc411W7Dr-："><a href="#（选择II-使用Anaconda）步骤也是类似的-https-www-bilibili-com-video-BV1rc411W7Dr-：" class="headerlink" title="（选择II: 使用Anaconda）步骤也是类似的 (https://www.bilibili.com/video/BV1rc411W7Dr)："></a>（选择II: 使用Anaconda）步骤也是类似的 (<a href="https://www.bilibili.com/video/BV1rc411W7Dr)%EF%BC%9A">https://www.bilibili.com/video/BV1rc411W7Dr)：</a></h4><blockquote>
+<p>conda create -n gptac_venv python=3.11    # 创建anaconda环境<br>conda activate gptac_venv                 # 激活anaconda环境</p>
+</blockquote>
+<blockquote>
+<p>python -m pip install -r requirements.txt # 这个步骤和pip安装一样的步骤</p>
+</blockquote>
+<p>如果需要支持清华ChatGLM2/复旦MOSS/RWKV作为后端，请点击展开此处<br>运行</p>
+<blockquote>
+<p>python main.py</p>
+</blockquote>
+<p>使用第三方API、Azure等、文心一言、星火等，见Wiki页面</p>
+<p>云服务器远程部署避坑指南。 请访问云服务器远程部署wiki</p>
+<p>在其他平台部署&amp;二级网址部署</p>
+<p>使用Sealos一键部署。<br>使用WSL2（Windows Subsystem for Linux 子系统）。请访问部署wiki-2<br>如何在二级网址（如<a href="http://localhost/subpath%EF%BC%89%E4%B8%8B%E8%BF%90%E8%A1%8C%E3%80%82%E8%AF%B7%E8%AE%BF%E9%97%AEFastAPI%E8%BF%90%E8%A1%8C%E8%AF%B4%E6%98%8E">http://localhost/subpath）下运行。请访问FastAPI运行说明</a></p>
+<p>Advanced Usage<br>I：自定义新的便捷按钮（学术快捷键）<br>现在已可以通过UI中的界面外观菜单中的自定义菜单添加新的便捷按钮。如果需要在代码中定义，请使用任意文本编辑器打开core_functional.py，添加如下条目即可：</p>
+<p>“超级英译中”: {<br>    # 前缀，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等<br>    “Prefix”: “请翻译把下面一段内容成中文，然后用一个markdown表格逐一解释文中出现的专有名词：\n\n”,</p>
+<pre><code># 后缀，会被加在你的输入之后。例如，配合前缀可以把你的输入内容用引号圈起来。
+"Suffix": "",
+</code></pre>
+<p>},</p>
+<p>II：自定义函数插件<br>编写强大的函数插件来执行任何你想得到的和想不到的任务。 本项目的插件编写、调试难度很低，只要您具备一定的python基础知识，就可以仿照我们提供的模板实现自己的插件功能。 详情请参考函数插件指南。</p>
+<p>⭐Latex/Arxiv论文翻译功能⭐<br> ===&gt;<br>虚空终端（从自然语言输入中，理解用户意图+自动调用其他插件）<br>步骤一：输入 “ 请调用插件翻译PDF论文，地址为<a href="https://openreview.net/pdf?id=rJl0r3R9KX">https://openreview.net/pdf?id=rJl0r3R9KX</a> ”<br>步骤二：点击“虚空终端”</p>
+<p>模块化功能设计，简单的接口却能支持强大的功能</p>
+<p>译解其他开源项目</p>
+<p>装饰live2d的小功能（默认关闭，需要修改config.py）</p>
+<p>OpenAI图像生成</p>
+<p>基于mermaid的流图、脑图绘制</p>
+<p>已知问题<br>某些浏览器翻译插件干扰此软件前端的运行<br>官方Gradio目前有很多兼容性问题，请务必使用requirement.txt安装Gradio</p>
+<p>III：主题<br>可以通过修改THEME选项（config.py）变更主题</p>
+<p>Chuanhu-Small-and-Beautiful 网址</p>
+<p>访问GPT-Academic的在线服务并支持我们<br>V：参考与学习<br>代码中参考了很多其他优秀项目中的设计，顺序不分先后：</p>
+<h1 id="清华ChatGLM2-6B"><a href="#清华ChatGLM2-6B" class="headerlink" title="清华ChatGLM2-6B:"></a>清华ChatGLM2-6B:</h1><p><a href="https://github.com/THUDM/ChatGLM2-6B">https://github.com/THUDM/ChatGLM2-6B</a></p>
+<h1 id="清华JittorLLMs"><a href="#清华JittorLLMs" class="headerlink" title="清华JittorLLMs:"></a>清华JittorLLMs:</h1><p><a href="https://github.com/Jittor/JittorLLMs">https://github.com/Jittor/JittorLLMs</a></p>
+<h1 id="ChatPaper"><a href="#ChatPaper" class="headerlink" title="ChatPaper:"></a>ChatPaper:</h1><p><a href="https://github.com/kaixindelele/ChatPaper">https://github.com/kaixindelele/ChatPaper</a></p>
+<h1 id="Edge-GPT"><a href="#Edge-GPT" class="headerlink" title="Edge-GPT:"></a>Edge-GPT:</h1><p><a href="https://github.com/acheong08/EdgeGPT">https://github.com/acheong08/EdgeGPT</a></p>
+<h1 id="ChuanhuChatGPT"><a href="#ChuanhuChatGPT" class="headerlink" title="ChuanhuChatGPT:"></a>ChuanhuChatGPT:</h1><p><a href="https://github.com/GaiZhenbiao/ChuanhuChatGPT">https://github.com/GaiZhenbiao/ChuanhuChatGPT</a></p>
+<h1 id="Oobabooga-one-click-installer"><a href="#Oobabooga-one-click-installer" class="headerlink" title="Oobabooga one-click installer:"></a>Oobabooga one-click installer:</h1><p><a href="https://github.com/oobabooga/one-click-installers">https://github.com/oobabooga/one-click-installers</a></p>
+<h1 id="More："><a href="#More：" class="headerlink" title="More："></a>More：</h1><p><a href="https://github.com/gradio-app/gradio">https://github.com/gradio-app/gradio</a><br><a href="https://github.com/fghrsh/live2d_demo">https://github.com/fghrsh/live2d_demo</a></p>
+<p>下载项目<br>git命令下载</p>
+<blockquote>
+<p>git clone <a href="https://github.com/binary-husky/chatgpt_academic.git">https://github.com/binary-husky/chatgpt_academic.git</a></p>
+</blockquote>
+<p>github下载 download zip<br>ChatGPT学术优化项目地址:<a href="https://github.com/binary-husky/chatgpt_academic">https://github.com/binary-husky/chatgpt_academic</a></p>
+<p>安装项目环境<br>这里是通过Anaconda Prompt创建环境</p>
+<p>创建环境</p>
+<blockquote>
+<p>conda create -n chatgpt-academic python=3.11.0</p>
+</blockquote>
+<p>输入y，回车安装！</p>
+<p>进入环境</p>
+<blockquote>
+<p>conda activate chatgpt-academic</p>
+</blockquote>
+<p>安装依赖<br>先进入到项目的根目录</p>
+<blockquote>
+<p>python -m pip install -r requirements.txt</p>
+</blockquote>
+<p>PS：我这里是可以正常安装的，因为项目要求gradio&gt;= <strong>3.23</strong> ，有些可能报错。需要先下载python的whl文件再进行安装。地址<a href="https://pypi.org/project/gradio/#files">https://pypi.org/project/gradio/#files</a></p>
+<p>下载保存到你的项目根目录，在通过</p>
+<blockquote>
+<p>pip install gradio-3.24.1-py3-none-any.whl</p>
+</blockquote>
+<p>当我们安装好gradio之后，把requirements.txt文件中gradio注释</p>
+<p>重新运行</p>
+<blockquote>
+<p>python -m pip install -r requirements.txt</p>
+</blockquote>
+<p>此致项目需要的环境就安装完成了！</p>
+<p>打开解压的项目<br>这里以Vscode为例，配置config.py文件</p>
+<p>配置API_KEY<br>打开你的科学上网助手，我这里使用是Clash是可以的（个人感觉路线选择美国的代理更好）<br>进入<a href="https://platform.openai.com/account/api-keys">https://platform.openai.com/account/api-keys</a></p>
+<p>将创建的秘钥复制到config.py文件的API_KEY变量，秘钥配置完成！</p>
+<p>配置代理网络的地址<br>第一步：进入网址<a href="https://ipapi.co/json/">https://ipapi.co/json/</a><br>第二步：打开开发者工具（Google浏览器快捷键Ctrl+Shift+i）,点击网络，按一下Ctrl+r，可以看到一个json文件</p>
+<p>第三步：点击json文件</p>
+<p>第四步：将这个地址复制到config.py文件中的proxies</p>
+<p>运行项目<br>项目所需的环境、秘钥、代理全部配置好就可以运行项目了</p>
+<blockquote>
+<p>python main.py</p>
+</blockquote>
+<p>浏览器输入Running on local URL</p>
+]]></content>
+      <categories>
+        <category>默认分类</category>
       </categories>
   </entry>
   <entry>
@@ -1492,396 +1768,6 @@ perl retrieve_seq_from_fasta.pl --format refGene --seqfile Arabidopsis_thaliana.
       </categories>
   </entry>
   <entry>
-    <title>基因结构</title>
-    <url>/2025/09/17/55/</url>
-    <content><![CDATA[<h2 id="结构图"><a href="#结构图" class="headerlink" title="结构图"></a>结构图</h2><p>!!!</p>
-<pre><code>    flowchart TD
-    A["一个完整的真核生物基因（DNA模板链）"]
-    
-    subgraph A_Sub[基因结构]
-        direction LR
-        Promoter[启动子 Promoter]
-        Exon1[外显子1 Exon 1]
-        Intron[内含子 Intron]
-        Exon2[外显子2 Exon 2]
-        Terminator[终止子 Terminator]
-    end
-    
-    A --&gt; A_Sub
-    
-    subgraph Transcription[第一步：转录]
-        direction TB
-        B["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]
-    end
-    
-    A_Sub --转录--&gt; Transcription
-    
-    subgraph Splicing[第二步：加工（剪切与拼接）]
-        direction TB
-        C["切除内含子并将外显子连接起来"]
-    end
-    
-    Transcription --加工--&gt; Splicing
-    
-    subgraph Final_mRNA[第三步：成熟mRNA]
-        direction LR
-        D["5' 帽子"]
-        E["5' UTR"]
-        F["CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA"]
-        G["3' UTR"]
-        H["多聚A尾巴"]
-    end
-    
-    Splicing --"拼接后形成"--&gt; Final_mRNA
-    
-    %% 定义关系
-    Exon1 --包含--&gt; UTR1[5' UTR部分]
-    Exon1 --包含--&gt; CDS_Part1[CDS部分]
-    Exon2 --包含--&gt; CDS_Part2[CDS部分]
-    Exon2 --包含--&gt; UTR2[3' UTR部分]
-    
-    UTR1 --最终成为--&gt; E
-    CDS_Part1 --最终成为--&gt; F
-    CDS_Part2 --最终成为--&gt; F
-    UTR2 --最终成为--&gt; G
-    
-    Final_mRNA --"进入细胞质进行翻译（核糖体）"--&gt; I["合成的蛋白质"]
-    F --&gt; I
-    
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef coding fill:#e6f7ff,stroke:#333,stroke-width:1px;
-    classDef noncoding fill:#fff5e6,stroke:#333,stroke-width:1px;
-    classDef process fill:#f0f8ff,stroke:#2266ff,stroke-width:2px;
-    
-    class Exon1,Exon2,CDS_Part1,CDS_Part2,F coding;
-    class Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding;
-    class Transcription,Splicing process;
-</code></pre>
-<p>!!!</p>
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-
-<p>下面是代码</p>
-<pre class="line-numbers language-mermaid" data-language="mermaid"><code class="language-mermaid"><span class="token keyword">flowchart</span> TD
-A<span class="token text string">["一个完整的真核生物基因（DNA模板链）"]</span>
-
-<span class="token keyword">subgraph</span> A_Sub<span class="token text string">[基因结构]</span>
-    <span class="token keyword">direction</span> LR
-    Promoter<span class="token text string">[启动子 Promoter]</span>
-    Exon1<span class="token text string">[外显子1 Exon 1]</span>
-    Intron<span class="token text string">[内含子 Intron]</span>
-    Exon2<span class="token text string">[外显子2 Exon 2]</span>
-    Terminator<span class="token text string">[终止子 Terminator]</span>
-<span class="token keyword">end</span>
-
-A <span class="token arrow operator">--&gt;</span> A_Sub
-
-<span class="token keyword">subgraph</span> Transcription<span class="token text string">[第一步：转录]</span>
-    <span class="token keyword">direction</span> TB
-    B<span class="token text string">["初级mRNA转录本（Pre-mRNA, 包含所有序列）"]</span>
-<span class="token keyword">end</span>
-
-A_Sub <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">转录</span><span class="token arrow operator">--&gt;</span></span> Transcription
-
-<span class="token keyword">subgraph</span> Splicing<span class="token text string">[第二步：加工（剪切与拼接）]</span>
-    <span class="token keyword">direction</span> TB
-    C<span class="token text string">["切除内含子并将外显子连接起来"]</span>
-<span class="token keyword">end</span>
-
-Transcription <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">加工</span><span class="token arrow operator">--&gt;</span></span> Splicing
-
-<span class="token keyword">subgraph</span> Final_mRNA<span class="token text string">[第三步：成熟mRNA]</span>
-    <span class="token keyword">direction</span> LR
-    D<span class="token text string">["5' 帽子"]</span>
-    E<span class="token text string">["5' UTR"]</span>
-    F[<span class="token string">"CDS (编码序列)起始密码子AUG -&gt; 终止密码子UAA/UAG/UGA"</span>]
-    G<span class="token text string">["3' UTR"]</span>
-    H<span class="token text string">["多聚A尾巴"]</span>
-<span class="token keyword">end</span>
-
-Splicing <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">"拼接后形成"</span><span class="token arrow operator">--&gt;</span></span> Final_mRNA
-
-<span class="token comment">%% 定义关系</span>
-Exon1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> UTR1<span class="token text string">[5' UTR部分]</span>
-Exon1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> CDS_Part1<span class="token text string">[CDS部分]</span>
-Exon2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> CDS_Part2<span class="token text string">[CDS部分]</span>
-Exon2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">包含</span><span class="token arrow operator">--&gt;</span></span> UTR2<span class="token text string">[3' UTR部分]</span>
-
-UTR1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> E
-CDS_Part1 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> F
-CDS_Part2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> F
-UTR2 <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">最终成为</span><span class="token arrow operator">--&gt;</span></span> G
-
-Final_mRNA <span class="token inter-arrow-label"><span class="token arrow-head arrow operator">--</span><span class="token label property">"进入细胞质进行翻译（核糖体）"</span><span class="token arrow operator">--&gt;</span></span> I<span class="token text string">["合成的蛋白质"]</span>
-F <span class="token arrow operator">--&gt;</span> I
-
-<span class="token keyword">classDef</span> default <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#f9f9f9<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>2px</span><span class="token punctuation">;</span>
-<span class="token keyword">classDef</span> coding <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#e6f7ff<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>1px</span><span class="token punctuation">;</span>
-<span class="token keyword">classDef</span> noncoding <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#fff5e6<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#333<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>1px</span><span class="token punctuation">;</span>
-<span class="token keyword">classDef</span> process <span class="token style"><span class="token property">fill</span><span class="token operator">:</span>#f0f8ff<span class="token punctuation">,</span><span class="token property">stroke</span><span class="token operator">:</span>#2266ff<span class="token punctuation">,</span><span class="token property">stroke-width</span><span class="token operator">:</span>2px</span><span class="token punctuation">;</span>
-
-<span class="token keyword">class</span> Exon1,Exon2,CDS_Part1,CDS_Part2,F coding<span class="token punctuation">;</span>
-<span class="token keyword">class</span> Promoter,Intron,Terminator,UTR1,UTR2,E,G noncoding<span class="token punctuation">;</span>
-<span class="token keyword">class</span> Transcription,Splicing process<span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>]]></content>
-      <categories>
-        <category>重测序</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>410随身WiFi棒子Debian刷入青龙教程</title>
-    <url>/2025/09/25/56/</url>
-    <content><![CDATA[<p>备份教程<br>刷Debian前请先备份（非常重要！！！）</p>
-<p>弄成砖了是可以刷回来的，大佬可忽略</p>
-<p>备份教程：	<a href="https://xiao54.com/linux/32.html">https://xiao54.com/linux/32.html</a><br>视频教程：	<a href="https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1">https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1</a><br>下载链接：	<a href="https://www.123pan.com/s/354uVv-z7YU3.html">https://www.123pan.com/s/354uVv-z7YU3.html</a><br>先进入fastboot模式，输入指令</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">adb reboot bootloader<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>410随身WiFi棒子Debian刷入青龙教程<br>SSH账号密码<br>解压要刷的Debian系统，然后点击一件刷入</p>
-<p>cmd登录地址:ssh <a href="mailto:root@10.42.0.1">root@10.42.0.1</a> 密码:1313144</p>
-<p>SSH软件:IP:10.42.0.1 用户名:root 密码:1313144</p>
-<p>热点:4G-wifi 密码:12345678</p>
-<p>更新驱动<br>更新驱动视频教程：<a href="https://player.bilibili.com/">https://player.bilibili.com/</a></p>
-<p>更新驱动前注意事项：需要安装vivo9008drivers.exe软件，如安装过请忽略</p>
-<p>1、在【Android Device】下查看有没有【Android Composite ADB Interface】这个驱动，如果不是，右键【更新驱动程序】-【浏览我的计算机以查找驱动程序软件】-【让我从计算机上的可用驱动程序列表中选取(L)】，选择【Android Composite ADB Interface或者USB Composite Device】-【下一步】</p>
-<p>2、插入棒子会显示一个未知设备或者RNDIS，不确定是那个就先拔掉棒子，然后重新插入</p>
-<p>3、下拉找到【网络适配器】-厂商下拉选择【Microsoft】型号下拉选择【基于远程 NDIS 的Internet 共享设备】-【下一步】-即可完成安装驱动</p>
-<p>网络编辑<br>1、现在就用键盘上的方向键编辑，鼠标就不能用了</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">nmtui<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>2、把热点删除，因为他现在不支持WiFi和热点一起开启，所以要把热点删除连接WiFi给debian系统通网才能继续操作</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">true &gt; /etc/apt/sources.list.d/mobian.list<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>3、更新软件包</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">sudo apt-get update<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>4、更新curl wget</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">apt install curl wget<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>5、安装docker系统</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">apt install docker.io<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>6、docker设置随服务启动而自启动</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">systemctl enable docker<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>7、启动docker</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">systemctl start docker<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>给docker设置加速代理<br>1、创建文件夹</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">sudo mkdir -p /etc/docker<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>2、填入加速代理</p>
-<p>如不能使用则代理失效了，请更换代理，更换里面的链接即可。</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">sudo tee /etc/docker/daemon.json  /sys/kernel/debug/usb/ci_hdrc.0/role
-安装1panel代码
-```html
-curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_start.sh &amp;&amp; bash quick_start.sh<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
-
-<p>近期商家为了成本emmmc质量都不太行下面这个指令查看寿命</p>
-<p>查看棒子颗粒寿命<br>查看内存寿命如果显示是0x01寿命就很好，如果显示0+09等越来越远的寿命也就离挂不远了：</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">cat /sys/class/mmc_host/mmc0/mmc0\:0001/life_time<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-<p><img src="/images/56/477017655.png" alt="mfzbzmj7.png"></p>
-<p>410随身WiFi棒子Debian刷入青龙教程<br>关灯方法一<br>1、先安装dialog</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">apt install dialog<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>2、然后执行一键命令</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">curl -L gitee.com/ojf6ii/led-control-script/raw/master/led2.sh -o /bin/ledctl &amp;&amp; chmod 755 /bin/ledctl<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>3、下载完成后输入指令即可打开界面</p>
-<p>ledctl<br>关灯方法二<br>1、打开文件夹</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">vi /etc/rc.local<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
-
-<p>2、粘贴以下代码保存设置开机自启关闭led，重启即可生效</p>
-<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">echo none &gt; /sys/class/leds/red\:os/trigger
-echo none &gt; /sys/class/leds/blue\:wifi/trigger
-echo none &gt; /sys/class/leds/green\:internet/trigger<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>]]></content>
-      <categories>
-        <category>WIFI</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>openipc goke7205v200</title>
-    <url>/2024/12/03/7/</url>
-    <content><![CDATA[<h1 id="保存原始固件"><a href="#保存原始固件" class="headerlink" title="保存原始固件"></a>保存原始固件</h1><hr>
-<h2 id="备份您的原始固件，请不要跳过这个步骤！"><a href="#备份您的原始固件，请不要跳过这个步骤！" class="headerlink" title="备份您的原始固件，请不要跳过这个步骤！"></a>备份您的原始固件，请不要跳过这个步骤！</h2><p>OpenIPC U-Boot 会覆盖原始的加密分区，因此无法恢复为出厂固件，除非您拥有此特定摄像机的完整闪存备份！要创建完整的固件备份，请启动 TFTP 服务器并在引导加载程序 shell 中执行这些命令。</p>
-<blockquote>
-<pre class="line-numbers language-Python" data-language="Python"><code class="language-Python"> # Enter commands line by line! Do not copy and paste multiple lines at once!
-setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105
-mw.b 0x42000000 0xff 0x1000000
-sf probe 0; sf read 0x42000000 0x0 0x1000000
-tftpput 0x42000000 0x1000000 backup-gk7205v200-nor16m.bin
-# if there is no tftpput but tftp then run this instead
- tftp 0x42000000 backup-gk7205v200-nor16m.bin 0x1000000<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
-</blockquote>
-<p>有关详细信息，请参阅项目 wiki 中的安装说明。</p>
-<h1 id="烧录完整的-OpenIPC-固件"><a href="#烧录完整的-OpenIPC-固件" class="headerlink" title="烧录完整的 OpenIPC 固件"></a>烧录完整的 OpenIPC 固件</h1><h2 id="下载-OpenIPC-固件-Ultimate"><a href="#下载-OpenIPC-固件-Ultimate" class="headerlink" title="下载 OpenIPC 固件 (Ultimate)"></a>下载 OpenIPC 固件 (Ultimate)</h2><p>for Goke GK7205V200 with 16MB NOR flash</p>
-<p>完整的固件由引导加载程序、内核和根文件系统组成，也适用于使用编程器烧写闪存芯片。 请注意，完整固件不包含预设环境。你还需要添加自己的MAC地址、IP地址等设置。</p>
-<blockquote>
-<h1 id="Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once"><a href="#Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once" class="headerlink" title="Enter commands line by line! Do not copy and paste multiple lines at once!"></a>Enter commands line by line! Do not copy and paste multiple lines at once!</h1><p>setenv ipaddr 192.168.15.169; setenv serverip 192.168.15.105<br>mw.b 0x42000000 0xff 0x1000000<br>tftpboot 0x42000000 openipc-gk7205v200-ultimate-16mb.bin</p>
-<h1 id="if-there-is-no-tftpboot-but-tftp-then-run-this-instead"><a href="#if-there-is-no-tftpboot-but-tftp-then-run-this-instead" class="headerlink" title="if there is no tftpboot but tftp then run this instead"></a>if there is no tftpboot but tftp then run this instead</h1><p>tftp 0x42000000 openipc-gk7205v200-ultimate-16mb.bin<br>sf probe 0; sf lock 0;<br>sf erase 0x0 0x1000000; sf write 0x42000000 0x0 0x1000000<br>reset</p>
-</blockquote>
-<p>摄像机将自动重启并使用全新的引导加载程序启动。</p>
-<p>注意准备中断并进入引导程序的命令行。 在引导加载程序的命令行中，根据您的闪存大小和类型重新映射 ROM 分区。</p>
-<blockquote>
-<h1 id="Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once-1"><a href="#Enter-commands-line-by-line-Do-not-copy-and-paste-multiple-lines-at-once-1" class="headerlink" title="Enter commands line by line! Do not copy and paste multiple lines at once!"></a>Enter commands line by line! Do not copy and paste multiple lines at once!</h1><p>run setnor16m</p>
-</blockquote>
-<h1 id="恭喜！此时，您已经安装了-OpenIPC-固件-Ultimate-。"><a href="#恭喜！此时，您已经安装了-OpenIPC-固件-Ultimate-。" class="headerlink" title="恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。"></a>恭喜！此时，您已经安装了 OpenIPC 固件 (Ultimate)。</h1><p>在端口 85 ( <a href="http://192.168.15.169:85/">http://192.168.15.169:85/</a> ) 上打开摄像机的 Web 界面并使用登录root和密码12345登录。登录后将要求您设置自己的安全密码。通过以下方式访问摄像机ssh 或 UART 使用与上述相同的登录名和密码。</p>
-<hr>
-<p>打开web界面后，更新固件，更新完后调整majestic、sensor与设备型号对应。</p>
-<h1 id="majestic"><a href="#majestic" class="headerlink" title="majestic"></a>majestic</h1><p>openipc未开源部分。</p>
-]]></content>
-      <categories>
-        <category>折腾</category>
-      </categories>
-      <tags>
-        <tag>openipc</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>GPT 学术优化</title>
-    <url>/2024/12/06/8/</url>
-    <content><![CDATA[<h1 id="Installation"><a href="#Installation" class="headerlink" title="Installation"></a>Installation</h1><p>安装方法I：直接运行 (Windows, Linux or MacOS)<br>下载项目</p>
-<blockquote>
-<p>git clone –depth=1 <a href="https://github.com/binary-husky/gpt_academic.git">https://github.com/binary-husky/gpt_academic.git</a><br>cd gpt_academic<br>配置API_KEY等变量</p>
-</blockquote>
-<p>在config.py中，配置API KEY等变量。特殊网络环境设置方法、Wiki-项目配置说明。</p>
-<p>「 程序会优先检查是否存在名为config_private.py的私密配置文件，并用其中的配置覆盖config.py的同名配置。如您能理解以上读取逻辑，我们强烈建议您在config.py同路径下创建一个名为config_private.py的新配置文件，并使用config_private.py配置项目，从而确保自动更新时不会丢失配置 」。</p>
-<p>「 支持通过环境变量配置项目，环境变量的书写格式参考docker-compose.yml文件或者我们的Wiki页面。配置读取优先级: 环境变量 &gt; config_private.py &gt; config.py 」。</p>
-<p>安装依赖</p>
-<h4 id="（选择I-如熟悉python-python推荐版本-3-9-3-11）"><a href="#（选择I-如熟悉python-python推荐版本-3-9-3-11）" class="headerlink" title="（选择I: 如熟悉python, python推荐版本 3.9 ~ 3.11）"></a>（选择I: 如熟悉python, python推荐版本 3.9 ~ 3.11）</h4><p>备注：使用官方pip源或者阿里pip源, 临时换源方法：</p>
-<blockquote>
-<p>python -m pip install -r requirements.txt -i <a href="https://mirrors.aliyun.com/pypi/simple/">https://mirrors.aliyun.com/pypi/simple/</a></p>
-</blockquote>
-<blockquote>
-<p>python -m pip install -r requirements.txt</p>
-</blockquote>
-<h4 id="（选择II-使用Anaconda）步骤也是类似的-https-www-bilibili-com-video-BV1rc411W7Dr-："><a href="#（选择II-使用Anaconda）步骤也是类似的-https-www-bilibili-com-video-BV1rc411W7Dr-：" class="headerlink" title="（选择II: 使用Anaconda）步骤也是类似的 (https://www.bilibili.com/video/BV1rc411W7Dr)："></a>（选择II: 使用Anaconda）步骤也是类似的 (<a href="https://www.bilibili.com/video/BV1rc411W7Dr)%EF%BC%9A">https://www.bilibili.com/video/BV1rc411W7Dr)：</a></h4><blockquote>
-<p>conda create -n gptac_venv python=3.11    # 创建anaconda环境<br>conda activate gptac_venv                 # 激活anaconda环境</p>
-</blockquote>
-<blockquote>
-<p>python -m pip install -r requirements.txt # 这个步骤和pip安装一样的步骤</p>
-</blockquote>
-<p>如果需要支持清华ChatGLM2/复旦MOSS/RWKV作为后端，请点击展开此处<br>运行</p>
-<blockquote>
-<p>python main.py</p>
-</blockquote>
-<p>使用第三方API、Azure等、文心一言、星火等，见Wiki页面</p>
-<p>云服务器远程部署避坑指南。 请访问云服务器远程部署wiki</p>
-<p>在其他平台部署&amp;二级网址部署</p>
-<p>使用Sealos一键部署。<br>使用WSL2（Windows Subsystem for Linux 子系统）。请访问部署wiki-2<br>如何在二级网址（如<a href="http://localhost/subpath%EF%BC%89%E4%B8%8B%E8%BF%90%E8%A1%8C%E3%80%82%E8%AF%B7%E8%AE%BF%E9%97%AEFastAPI%E8%BF%90%E8%A1%8C%E8%AF%B4%E6%98%8E">http://localhost/subpath）下运行。请访问FastAPI运行说明</a></p>
-<p>Advanced Usage<br>I：自定义新的便捷按钮（学术快捷键）<br>现在已可以通过UI中的界面外观菜单中的自定义菜单添加新的便捷按钮。如果需要在代码中定义，请使用任意文本编辑器打开core_functional.py，添加如下条目即可：</p>
-<p>“超级英译中”: {<br>    # 前缀，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等<br>    “Prefix”: “请翻译把下面一段内容成中文，然后用一个markdown表格逐一解释文中出现的专有名词：\n\n”,</p>
-<pre><code># 后缀，会被加在你的输入之后。例如，配合前缀可以把你的输入内容用引号圈起来。
-"Suffix": "",
-</code></pre>
-<p>},</p>
-<p>II：自定义函数插件<br>编写强大的函数插件来执行任何你想得到的和想不到的任务。 本项目的插件编写、调试难度很低，只要您具备一定的python基础知识，就可以仿照我们提供的模板实现自己的插件功能。 详情请参考函数插件指南。</p>
-<p>⭐Latex/Arxiv论文翻译功能⭐<br> ===&gt;<br>虚空终端（从自然语言输入中，理解用户意图+自动调用其他插件）<br>步骤一：输入 “ 请调用插件翻译PDF论文，地址为<a href="https://openreview.net/pdf?id=rJl0r3R9KX">https://openreview.net/pdf?id=rJl0r3R9KX</a> ”<br>步骤二：点击“虚空终端”</p>
-<p>模块化功能设计，简单的接口却能支持强大的功能</p>
-<p>译解其他开源项目</p>
-<p>装饰live2d的小功能（默认关闭，需要修改config.py）</p>
-<p>OpenAI图像生成</p>
-<p>基于mermaid的流图、脑图绘制</p>
-<p>已知问题<br>某些浏览器翻译插件干扰此软件前端的运行<br>官方Gradio目前有很多兼容性问题，请务必使用requirement.txt安装Gradio</p>
-<p>III：主题<br>可以通过修改THEME选项（config.py）变更主题</p>
-<p>Chuanhu-Small-and-Beautiful 网址</p>
-<p>访问GPT-Academic的在线服务并支持我们<br>V：参考与学习<br>代码中参考了很多其他优秀项目中的设计，顺序不分先后：</p>
-<h1 id="清华ChatGLM2-6B"><a href="#清华ChatGLM2-6B" class="headerlink" title="清华ChatGLM2-6B:"></a>清华ChatGLM2-6B:</h1><p><a href="https://github.com/THUDM/ChatGLM2-6B">https://github.com/THUDM/ChatGLM2-6B</a></p>
-<h1 id="清华JittorLLMs"><a href="#清华JittorLLMs" class="headerlink" title="清华JittorLLMs:"></a>清华JittorLLMs:</h1><p><a href="https://github.com/Jittor/JittorLLMs">https://github.com/Jittor/JittorLLMs</a></p>
-<h1 id="ChatPaper"><a href="#ChatPaper" class="headerlink" title="ChatPaper:"></a>ChatPaper:</h1><p><a href="https://github.com/kaixindelele/ChatPaper">https://github.com/kaixindelele/ChatPaper</a></p>
-<h1 id="Edge-GPT"><a href="#Edge-GPT" class="headerlink" title="Edge-GPT:"></a>Edge-GPT:</h1><p><a href="https://github.com/acheong08/EdgeGPT">https://github.com/acheong08/EdgeGPT</a></p>
-<h1 id="ChuanhuChatGPT"><a href="#ChuanhuChatGPT" class="headerlink" title="ChuanhuChatGPT:"></a>ChuanhuChatGPT:</h1><p><a href="https://github.com/GaiZhenbiao/ChuanhuChatGPT">https://github.com/GaiZhenbiao/ChuanhuChatGPT</a></p>
-<h1 id="Oobabooga-one-click-installer"><a href="#Oobabooga-one-click-installer" class="headerlink" title="Oobabooga one-click installer:"></a>Oobabooga one-click installer:</h1><p><a href="https://github.com/oobabooga/one-click-installers">https://github.com/oobabooga/one-click-installers</a></p>
-<h1 id="More："><a href="#More：" class="headerlink" title="More："></a>More：</h1><p><a href="https://github.com/gradio-app/gradio">https://github.com/gradio-app/gradio</a><br><a href="https://github.com/fghrsh/live2d_demo">https://github.com/fghrsh/live2d_demo</a></p>
-<p>下载项目<br>git命令下载</p>
-<blockquote>
-<p>git clone <a href="https://github.com/binary-husky/chatgpt_academic.git">https://github.com/binary-husky/chatgpt_academic.git</a></p>
-</blockquote>
-<p>github下载 download zip<br>ChatGPT学术优化项目地址:<a href="https://github.com/binary-husky/chatgpt_academic">https://github.com/binary-husky/chatgpt_academic</a></p>
-<p>安装项目环境<br>这里是通过Anaconda Prompt创建环境</p>
-<p>创建环境</p>
-<blockquote>
-<p>conda create -n chatgpt-academic python=3.11.0</p>
-</blockquote>
-<p>输入y，回车安装！</p>
-<p>进入环境</p>
-<blockquote>
-<p>conda activate chatgpt-academic</p>
-</blockquote>
-<p>安装依赖<br>先进入到项目的根目录</p>
-<blockquote>
-<p>python -m pip install -r requirements.txt</p>
-</blockquote>
-<p>PS：我这里是可以正常安装的，因为项目要求gradio&gt;= <strong>3.23</strong> ，有些可能报错。需要先下载python的whl文件再进行安装。地址<a href="https://pypi.org/project/gradio/#files">https://pypi.org/project/gradio/#files</a></p>
-<p>下载保存到你的项目根目录，在通过</p>
-<blockquote>
-<p>pip install gradio-3.24.1-py3-none-any.whl</p>
-</blockquote>
-<p>当我们安装好gradio之后，把requirements.txt文件中gradio注释</p>
-<p>重新运行</p>
-<blockquote>
-<p>python -m pip install -r requirements.txt</p>
-</blockquote>
-<p>此致项目需要的环境就安装完成了！</p>
-<p>打开解压的项目<br>这里以Vscode为例，配置config.py文件</p>
-<p>配置API_KEY<br>打开你的科学上网助手，我这里使用是Clash是可以的（个人感觉路线选择美国的代理更好）<br>进入<a href="https://platform.openai.com/account/api-keys">https://platform.openai.com/account/api-keys</a></p>
-<p>将创建的秘钥复制到config.py文件的API_KEY变量，秘钥配置完成！</p>
-<p>配置代理网络的地址<br>第一步：进入网址<a href="https://ipapi.co/json/">https://ipapi.co/json/</a><br>第二步：打开开发者工具（Google浏览器快捷键Ctrl+Shift+i）,点击网络，按一下Ctrl+r，可以看到一个json文件</p>
-<p>第三步：点击json文件</p>
-<p>第四步：将这个地址复制到config.py文件中的proxies</p>
-<p>运行项目<br>项目所需的环境、秘钥、代理全部配置好就可以运行项目了</p>
-<blockquote>
-<p>python main.py</p>
-</blockquote>
-<p>浏览器输入Running on local URL</p>
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>记一次清空SMART修复群晖报故障的硬盘</title>
-    <url>/2024/12/08/9/</url>
-    <content><![CDATA[<p>事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐</p>
-<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
-
-
-<p>好，让我们进入正题，凡事都有个前因后果，先说说起因</p>
-<p>前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但是用SeaTools扫描，各种长短检测都能通过，希捷这又是什么操作</p>
-<p>HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红<br><img src="/images/9/762531194.png" alt="m4f55w5m.png"><br>最后用MHDD扫描过后，发现硬盘并没有坏块，那么是什么原因导致的B8 End_to_End计数增加呢？各种说法都有，有说是硬盘上的缓存坏掉了，有说是SATA线接触不良导致，有说是缓存到磁盘的数据包校验出错，反正各种说法都有，具体硬盘SMART里如何判断这个值的，估计也只有硬盘厂家知道，所以就不要纠结了。但是就这样淘汰掉一块2T的硬盘？是不是太浪费了？记一次清空SMART修复群晖报故障的硬盘 </p>
-<p>垃圾佬没别的本事，就是爱折腾，于是先尝试了低格整块硬盘，插回群晖还是报故障，看来只能祭出本垃圾佬的终极大杀器USB转TTL神器和给神器属性加成的TTL杜邦线了，没错，就是下面这俩玩意，马粑粑家几块钱一个，随便挑随便选记一次清空SMART修复群晖报故障的硬盘 </p>
-<p>如果你的电脑是第一次插入USB转TTL神器，要先安装驱动，并像下图这样在属性里设置好端口的波特率为38400</p>
-<p>安装好驱动的USB转TTL安装好驱动的USB转TTL</p>
-<p>端口的设置，第一项要设置为 <strong>38400</strong> 端口的设置<br><img src="/images/9/413614975.png" alt="m4f59zrr.png"><br>第一项要设置为 38400</p>
-<p>硬盘上TTL口的接法硬盘上TTL口的接法<br><img src="/images/9/231601982.png" alt="m4f5akz6.png"></p>
-<p>USB转TTL的接法USB转TTL的接法<br><img src="http://hhhh.ywhywhywh.top/usr/uploads/2024/12/4065335586.png" alt="m4f5awqp.png"></p>
-<p>接好了之后，让我们先把USB转TTL插入电脑的USB口，打开你的putty，像下图这样设置，如果你的USB转TTL在电脑上识别出来是COM4或者COM5这样的，请按你自己的实际情况设置COM口，Speed设置为38400，然后点open</p>
-<p>putty设置putty设置</p>
-<p>这时你会看到一个黑麻麻的窗口，什么都没有记一次清空SMART修复群晖报故障的硬盘 别着急，这时我们再接上电源线，记住，只接电源线。</p>
-<p>不要接SATA数据线，不要接SATA数据线，不要接SATA数据线，重要的事情说三遍</p>
-<p>另外，接电源线最好是用电源上引出来的原生SATA电源线，尽量不要用4pin转SATA的电源转换线</p>
-<p>接上电源线后接上电源线后<br><img src="/images/9/2870995132.png" alt="m4f5bgip.png"></p>
-<p>当你接上硬盘电源线后再看Putty会发现有回显了，当停在(P)SATA Reset后，说明硬盘已经启动完成了，这是可以按Ctrl+z激活终端，这时就会进入到希捷硬盘的F3工厂模式</p>
-<p>按下Ctrl+z后进入F3工厂模式按下Ctrl+z后进入F3工厂模式<br><img src="/images/9/1842945658.png" alt="m4f5bqet.png"></p>
-<p>这时如果只是清零SMART那只要输入两个命令/1和N1就能搞定</p>
-<p>输入/1进入1模式<br><img src="/images/9/391565786.png" alt="m4f5c1cz.png"><br>输入/1进入1模式</p>
-<p>在/1模式下输入N1，看到回显Clear SMART is completed，这时硬盘的SMART值已经被清零了，这时你可以拔掉电源线和TTL线，关机把硬盘接回电源线和SATA线（其实你不关机也行，重新接回SATA线和电源线就行，我经常这样干</p>
-<p>这时在我们再用HDTune查看硬盘的SMART值会发现：马达启停次数，硬盘通电时间，马达旋转重试次数，点到点错误计数，接口CRC错误计数，等等等等的很多参数都已经变成0了</p>
-<p>这是我的硬盘清零后的效果这是我的硬盘清零后的效果</p>
-<p>看看我这个硬盘SMART清零后的效果，“启动/停止次数”因为之前清零SMART后拔插过一次电源线，所以这里计数是1</p>
-<p>当然，有一些参数比如：原始读取错误率，磁头飞行时间等这些没有清零，这些都写在SMART的G-list里，要完全清掉需要在F3工厂模式里进入2模式停掉马达电机，清除G表，然后重建SMART和硬盘索引区到硬盘固件内才行</p>
-<p>这硬盘有固件锁<br><img src="/images/9/1367509578.png" alt="m4f5ehrp.png"></p>
-<p>这硬盘有固件锁</p>
-<p>但是如果你像上图我这块硬盘一样，在进入2模式输入Z想停止电机，返回Diagnostic Port Locked的话，说明这块硬盘有固件锁。被锁了固件是无法清零G表的，这也是希捷为了限制一些返厂硬盘和一些奸商通过改写G表来充当新硬盘坑人做的限制。当然，道高一尺魔高一丈，如果你有PC3000的软件和红卡或者MRT的话，固件锁其实也是可以解开的，这时候你就真的可以为所欲为了</p>
-<p>好了，本次折腾到此记录完毕，剩下的自然是把硬盘继续插回群晖里，把小姐姐们请回来</p>
-<p>仅以此文说明硬盘的SMART是可以清零的，硬盘SMART里的G表也是可以清零的，整个SMART是完全可以清除然后重建成刚出厂的样子的，甚至SMART还是可以通过工厂模式改写成你想要的任何样子的，所以二手硬盘水很深很深，请各位谨慎选择</p>
-<p>最后，此文仅以记录过程为目的，请某些头脑比较发达的朋友不要想着用学会了，拿旧硬盘把SMART清零了去坑人，既然有办法清零那肯定是有办法验出来的</p>
-<p>最后的最后，如果你只是本着不想浪费的原则，想清掉SMART上的错误，让这块硬盘继续发挥余热，建议最好清零SMART后的硬盘不要存放重要数据，同时注意时常关注一下硬盘状态，毕竟一块硬盘如果SMART某项报错了，那硬盘肯定是有一些问题的，所以如果有一天你硬盘里的小姐姐们灰飞烟灭了，千万别怪我没有提醒</p>
-<p>哦，还有个温馨提醒，USB转TTL的神器最好是选择CH340G芯片的，别选RS232的，别问我为什么，都是泪</p>
-]]></content>
-      <categories>
-        <category>默认分类</category>
-      </categories>
-  </entry>
-  <entry>
     <title>Hexo + Butterfly 个人博客搭建</title>
     <url>/2025/10/09/hexo-butterfly-ge-ren-bo-ke-da-jian/</url>
     <content><![CDATA[<h1 id="Hexo-Butterfly-个人博客搭建"><a href="#Hexo-Butterfly-个人博客搭建" class="headerlink" title="Hexo + Butterfly 个人博客搭建"></a>Hexo + Butterfly 个人博客搭建</h1><p>在用了一周左右的时间搭建博客，沉浸于试效果、改 bug、试效果、改 bug……的循环后，我还是决定写一篇文章来记录一下，省得未来的自己再走一遍这痛苦的过程。</p>
@@ -2040,6 +1926,120 @@ ssh-keyscan <span class="token parameter variable">-t</span> ed25519 github.com 
 ]]></content>
       <categories>
         <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>记一次清空SMART修复群晖报故障的硬盘</title>
+    <url>/2024/12/08/9/</url>
+    <content><![CDATA[<p>事先说明，虽然这篇文章内容大量注水，但是文中涉及的操作有风险，想要照葫芦画瓢的童鞋，请谨慎对待，切记提前备份重要数据。小姐姐们不见了别找我，我这里可不生产小姐姐</p>
+<div style="height:3px;background:linear-gradient(90deg,#ff6c6c,#73aaff);margin:2rem 0;border-radius:2px;"></div>
+
+
+<p>好，让我们进入正题，凡事都有个前因后果，先说说起因</p>
+<p>前几天，群晖里一块希捷的2T硬盘报告故障，查看一下SMART信息，发现是End_to_End计数达到阈值，于是把硬盘抽出来接到Windows下用HDTune再次确认，确实见红了 但是用SeaTools扫描，各种长短检测都能通过，希捷这又是什么操作</p>
+<p>HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红HDTune忘记截图了，借用网上的一张图说明一下是哪一项见红<br><img src="/images/9/762531194.png" alt="m4f55w5m.png"><br>最后用MHDD扫描过后，发现硬盘并没有坏块，那么是什么原因导致的B8 End_to_End计数增加呢？各种说法都有，有说是硬盘上的缓存坏掉了，有说是SATA线接触不良导致，有说是缓存到磁盘的数据包校验出错，反正各种说法都有，具体硬盘SMART里如何判断这个值的，估计也只有硬盘厂家知道，所以就不要纠结了。但是就这样淘汰掉一块2T的硬盘？是不是太浪费了？记一次清空SMART修复群晖报故障的硬盘 </p>
+<p>垃圾佬没别的本事，就是爱折腾，于是先尝试了低格整块硬盘，插回群晖还是报故障，看来只能祭出本垃圾佬的终极大杀器USB转TTL神器和给神器属性加成的TTL杜邦线了，没错，就是下面这俩玩意，马粑粑家几块钱一个，随便挑随便选记一次清空SMART修复群晖报故障的硬盘 </p>
+<p>如果你的电脑是第一次插入USB转TTL神器，要先安装驱动，并像下图这样在属性里设置好端口的波特率为38400</p>
+<p>安装好驱动的USB转TTL安装好驱动的USB转TTL</p>
+<p>端口的设置，第一项要设置为 <strong>38400</strong> 端口的设置<br><img src="/images/9/413614975.png" alt="m4f59zrr.png"><br>第一项要设置为 38400</p>
+<p>硬盘上TTL口的接法硬盘上TTL口的接法<br><img src="/images/9/231601982.png" alt="m4f5akz6.png"></p>
+<p>USB转TTL的接法USB转TTL的接法<br><img src="http://hhhh.ywhywhywh.top/usr/uploads/2024/12/4065335586.png" alt="m4f5awqp.png"></p>
+<p>接好了之后，让我们先把USB转TTL插入电脑的USB口，打开你的putty，像下图这样设置，如果你的USB转TTL在电脑上识别出来是COM4或者COM5这样的，请按你自己的实际情况设置COM口，Speed设置为38400，然后点open</p>
+<p>putty设置putty设置</p>
+<p>这时你会看到一个黑麻麻的窗口，什么都没有记一次清空SMART修复群晖报故障的硬盘 别着急，这时我们再接上电源线，记住，只接电源线。</p>
+<p>不要接SATA数据线，不要接SATA数据线，不要接SATA数据线，重要的事情说三遍</p>
+<p>另外，接电源线最好是用电源上引出来的原生SATA电源线，尽量不要用4pin转SATA的电源转换线</p>
+<p>接上电源线后接上电源线后<br><img src="/images/9/2870995132.png" alt="m4f5bgip.png"></p>
+<p>当你接上硬盘电源线后再看Putty会发现有回显了，当停在(P)SATA Reset后，说明硬盘已经启动完成了，这是可以按Ctrl+z激活终端，这时就会进入到希捷硬盘的F3工厂模式</p>
+<p>按下Ctrl+z后进入F3工厂模式按下Ctrl+z后进入F3工厂模式<br><img src="/images/9/1842945658.png" alt="m4f5bqet.png"></p>
+<p>这时如果只是清零SMART那只要输入两个命令/1和N1就能搞定</p>
+<p>输入/1进入1模式<br><img src="/images/9/391565786.png" alt="m4f5c1cz.png"><br>输入/1进入1模式</p>
+<p>在/1模式下输入N1，看到回显Clear SMART is completed，这时硬盘的SMART值已经被清零了，这时你可以拔掉电源线和TTL线，关机把硬盘接回电源线和SATA线（其实你不关机也行，重新接回SATA线和电源线就行，我经常这样干</p>
+<p>这时在我们再用HDTune查看硬盘的SMART值会发现：马达启停次数，硬盘通电时间，马达旋转重试次数，点到点错误计数，接口CRC错误计数，等等等等的很多参数都已经变成0了</p>
+<p>这是我的硬盘清零后的效果这是我的硬盘清零后的效果</p>
+<p>看看我这个硬盘SMART清零后的效果，“启动/停止次数”因为之前清零SMART后拔插过一次电源线，所以这里计数是1</p>
+<p>当然，有一些参数比如：原始读取错误率，磁头飞行时间等这些没有清零，这些都写在SMART的G-list里，要完全清掉需要在F3工厂模式里进入2模式停掉马达电机，清除G表，然后重建SMART和硬盘索引区到硬盘固件内才行</p>
+<p>这硬盘有固件锁<br><img src="/images/9/1367509578.png" alt="m4f5ehrp.png"></p>
+<p>这硬盘有固件锁</p>
+<p>但是如果你像上图我这块硬盘一样，在进入2模式输入Z想停止电机，返回Diagnostic Port Locked的话，说明这块硬盘有固件锁。被锁了固件是无法清零G表的，这也是希捷为了限制一些返厂硬盘和一些奸商通过改写G表来充当新硬盘坑人做的限制。当然，道高一尺魔高一丈，如果你有PC3000的软件和红卡或者MRT的话，固件锁其实也是可以解开的，这时候你就真的可以为所欲为了</p>
+<p>好了，本次折腾到此记录完毕，剩下的自然是把硬盘继续插回群晖里，把小姐姐们请回来</p>
+<p>仅以此文说明硬盘的SMART是可以清零的，硬盘SMART里的G表也是可以清零的，整个SMART是完全可以清除然后重建成刚出厂的样子的，甚至SMART还是可以通过工厂模式改写成你想要的任何样子的，所以二手硬盘水很深很深，请各位谨慎选择</p>
+<p>最后，此文仅以记录过程为目的，请某些头脑比较发达的朋友不要想着用学会了，拿旧硬盘把SMART清零了去坑人，既然有办法清零那肯定是有办法验出来的</p>
+<p>最后的最后，如果你只是本着不想浪费的原则，想清掉SMART上的错误，让这块硬盘继续发挥余热，建议最好清零SMART后的硬盘不要存放重要数据，同时注意时常关注一下硬盘状态，毕竟一块硬盘如果SMART某项报错了，那硬盘肯定是有一些问题的，所以如果有一天你硬盘里的小姐姐们灰飞烟灭了，千万别怪我没有提醒</p>
+<p>哦，还有个温馨提醒，USB转TTL的神器最好是选择CH340G芯片的，别选RS232的，别问我为什么，都是泪</p>
+]]></content>
+      <categories>
+        <category>默认分类</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>410随身WiFi棒子Debian刷入青龙教程</title>
+    <url>/2025/09/25/56/</url>
+    <content><![CDATA[<p>备份教程<br>刷Debian前请先备份（非常重要！！！）</p>
+<p>弄成砖了是可以刷回来的，大佬可忽略</p>
+<p>备份教程：	<a href="https://xiao54.com/linux/32.html">https://xiao54.com/linux/32.html</a><br>视频教程：	<a href="https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1">https://www.bilibili.com/blackboard/webplayer/mbplayer.html?aid=326276265&amp;bvid=BV1iw411J7BG&amp;cid=1406661980&amp;p=1</a><br>下载链接：	<a href="https://www.123pan.com/s/354uVv-z7YU3.html">https://www.123pan.com/s/354uVv-z7YU3.html</a><br>先进入fastboot模式，输入指令</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">adb reboot bootloader<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>410随身WiFi棒子Debian刷入青龙教程<br>SSH账号密码<br>解压要刷的Debian系统，然后点击一件刷入</p>
+<p>cmd登录地址:ssh <a href="mailto:root@10.42.0.1">root@10.42.0.1</a> 密码:1313144</p>
+<p>SSH软件:IP:10.42.0.1 用户名:root 密码:1313144</p>
+<p>热点:4G-wifi 密码:12345678</p>
+<p>更新驱动<br>更新驱动视频教程：<a href="https://player.bilibili.com/">https://player.bilibili.com/</a></p>
+<p>更新驱动前注意事项：需要安装vivo9008drivers.exe软件，如安装过请忽略</p>
+<p>1、在【Android Device】下查看有没有【Android Composite ADB Interface】这个驱动，如果不是，右键【更新驱动程序】-【浏览我的计算机以查找驱动程序软件】-【让我从计算机上的可用驱动程序列表中选取(L)】，选择【Android Composite ADB Interface或者USB Composite Device】-【下一步】</p>
+<p>2、插入棒子会显示一个未知设备或者RNDIS，不确定是那个就先拔掉棒子，然后重新插入</p>
+<p>3、下拉找到【网络适配器】-厂商下拉选择【Microsoft】型号下拉选择【基于远程 NDIS 的Internet 共享设备】-【下一步】-即可完成安装驱动</p>
+<p>网络编辑<br>1、现在就用键盘上的方向键编辑，鼠标就不能用了</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">nmtui<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>2、把热点删除，因为他现在不支持WiFi和热点一起开启，所以要把热点删除连接WiFi给debian系统通网才能继续操作</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">true &gt; /etc/apt/sources.list.d/mobian.list<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>3、更新软件包</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">sudo apt-get update<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>4、更新curl wget</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">apt install curl wget<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>5、安装docker系统</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">apt install docker.io<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>6、docker设置随服务启动而自启动</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">systemctl enable docker<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>7、启动docker</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">systemctl start docker<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>给docker设置加速代理<br>1、创建文件夹</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">sudo mkdir -p /etc/docker<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>2、填入加速代理</p>
+<p>如不能使用则代理失效了，请更换代理，更换里面的链接即可。</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">sudo tee /etc/docker/daemon.json  /sys/kernel/debug/usb/ci_hdrc.0/role
+安装1panel代码
+```html
+curl -sSL https://resource.fit2cloud.com/1panel/package/quick_start.sh -o quick_start.sh &amp;&amp; bash quick_start.sh<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+
+<p>近期商家为了成本emmmc质量都不太行下面这个指令查看寿命</p>
+<p>查看棒子颗粒寿命<br>查看内存寿命如果显示是0x01寿命就很好，如果显示0+09等越来越远的寿命也就离挂不远了：</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">cat /sys/class/mmc_host/mmc0/mmc0\:0001/life_time<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p><img src="/images/56/477017655.png" alt="mfzbzmj7.png"></p>
+<p>410随身WiFi棒子Debian刷入青龙教程<br>关灯方法一<br>1、先安装dialog</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">apt install dialog<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>2、然后执行一键命令</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">curl -L gitee.com/ojf6ii/led-control-script/raw/master/led2.sh -o /bin/ledctl &amp;&amp; chmod 755 /bin/ledctl<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>3、下载完成后输入指令即可打开界面</p>
+<p>ledctl<br>关灯方法二<br>1、打开文件夹</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">vi /etc/rc.local<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+
+<p>2、粘贴以下代码保存设置开机自启关闭led，重启即可生效</p>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup">echo none &gt; /sys/class/leds/red\:os/trigger
+echo none &gt; /sys/class/leds/blue\:wifi/trigger
+echo none &gt; /sys/class/leds/green\:internet/trigger<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>]]></content>
+      <categories>
+        <category>WIFI</category>
       </categories>
   </entry>
 </search>

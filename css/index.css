@@ -4493,9 +4493,16 @@ pre[class*='language-'] .token.italic {
 }
 #footer {
   position: relative;
+  background: #49b1f5;
   background-attachment: local;
   background-position: bottom;
   background-size: cover;
+}
+[data-theme="dark"] #footer {
+  background: transparent;
+}
+[data-theme="dark"] #footer:before {
+  display: none;
 }
 #footer #jsi-flying-fish-container {
   position: absolute;
@@ -4510,6 +4517,9 @@ pre[class*='language-'] .token.italic {
   position: relative;
   color: #42858c;
 }
+[data-theme="dark"] #footer > * {
+  color: var(--text-color, #ccc);
+}
 #footer a {
   color: var(--light-grey);
   -webkit-transition: all 0.3s ease-in-out;
@@ -4520,6 +4530,9 @@ pre[class*='language-'] .token.italic {
 }
 #footer a:hover {
   color: #49b1f5;
+}
+[data-theme="dark"] #footer a:hover {
+  color: var(--theme-color, #6cf);
 }
 #footer .footer-separator {
   margin: 0 4px;
